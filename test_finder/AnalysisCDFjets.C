@@ -50,8 +50,9 @@
 #include "AliAnalysisTaskCDFhistos.h"
 
 
-// #include "AddTaskJetsReader.C"
-// #include "AddTaskJetsFinder.C"
+#include "AddTaskJetsReader.C"
+#include "AddTaskJetsFinder.C"
+#include "AddTaskCDFhistos.C"
 
 #endif
 
@@ -87,7 +88,7 @@ TString   kInputData =
 // Debug
 Int_t   debug = 100;
 
-const Long64_t nentries = 500; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+const Long64_t nentries = 100; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 const Long64_t firstentry = 0; // for local and proof mode, ignored in grid mode
 
 //______________________________________________________________________________
@@ -183,18 +184,6 @@ void AnalysisCDFjets ( const char* plugin_mode="test" , const char* analysis_mod
 
   if ( !LoadJetLibs() ) { ::Error("CDFhistos", "Could not load jet libraries"); return; }
 
-  // Load AliAnalysisTaskCDFhistos
-  gSystem->SetIncludePath("-I$ROOTSYS/include -I$CGAL_DIR/include -I$FASTJET/include -I$ALICE_ROOT/include -I$ALICE_ROOT/JETAN -I$.");
-
-//   gSystem->AddIncludePath("-I$ROOTSYS/include -I$CGAL_DIR/include -I$FASTJET/include -I$ALICE_ROOT/include -I$ALICE_ROOT/JETAN -I$.");
-//   gSystem->AddIncludePath("-I.");
-
-//   gROOT->LoadMacro("AliAnalysisTaskCDFhistos.cxx++g");
-
-  // Add my task
-//   plugin->SetAnalysisSource("AliAnalysisTaskCDFhistos.cxx");
-//   plugin->AddIncludePath(".");
-
   //******************
   // DATA INPUT
   //******************
@@ -258,96 +247,68 @@ TString kNonStdBranchInput = "";
 
 cout << "---> START TASK CONFIGURATION <---" << endl;
 
-Int_t use_cdf = 0;
+Int_t use_cdf = 1;
 
 gROOT->LoadMacro("$ALICE_ROOT/PWGJE/macros/AddTaskJetsReader.C");
 gROOT->LoadMacro("$ALICE_ROOT/PWGJE/macros/AddTaskJetsFinder.C");
-gROOT->LoadMacro("AddTaskCDFhistos.C");
-
 
 //   INIT JET EXCHANGE CONTAINERS
 AliAnalysisDataContainer* cont_jet1 = AddJetExchangeContainer("jets_1");
-// AliAnalysisDataContainer* cont_jet2 = AddJetExchangeContainer("jets_2");
 
 // READER 1
 AliAnalysisTaskJetsReader* taskjetsReader1 = AddTaskJetsReader(cont_jet1,"AOD",kHighPtFilterMask,0.15);
-// if (!taskjetsReader) {::Fatal("AnalysisCDFJets", "no taskjetsReader"); return; }
+if (!taskjetsReader1) {::Fatal("AnalysisCDFJets", "no taskjetsReader"); return; }
 // if(outFile.Length()>0)taskjetsReader->SetNonStdOutputFile(outFile.Data());
-
-// READER 2
-// AliAnalysisTaskJetsReader* taskjetsReader2 = AddTaskJetsReader(cont_jet2,"AOD", kHighPtFilterMask,1.);
-// if (!taskjetsReader) {::Fatal("AnalysisCDFJets", "no taskjetsReader"); return; }
-// if(outFile.Length()>0)taskjetsReader->SetNonStdOutputFile(outFile.Data());
-
-
-// taskjetsFinder = AddTaskJetsFinder(cont_jet1,"UA1",0.4,0);     // UA1 no bkg subtraction (reader: jet_1)
-// taskjetsFinder = AddTaskJetsFinder(cont_jet1,"FASTJET",0.4,1); // FASTJET B1             (reader: jet_1)
-// taskjetsFinder = AddTaskJetsFinder(cont_jet2,"FASTJET",0.4,0); // FASTJET B0             (reader: jet_2)
-
-
-
 
 
 // JET FINDER 1
-AliAnalysisTaskJetsFinder* taskjetsFinder1 = AddTaskJetsFinder(cont_jet1,"FASTJET",0.2,0); // FASTJET
-
-// if ( kDeltaAODJetName.Length() > 0 ) { taskjets->SetNonStdOutputFile(kDeltaAODJetName.Data()); }
-// if(outFile.Length()>0)taskjetsFinder->SetNonStdOutputFile(outFile.Data());
-
-
-// kNonStdBranchInput = taskjets->GetNonStdBranch(); cout << "JETFINDER :: nonstdbranch : " << kNonStdBranchInput.Data() << endl;
-// if ( kNonStdBranchInput.Length() ) { kJetListSpectrum.Add(new TObjString(kNonStdBranchInput.Data())); }
-
+AliAnalysisTaskJetsFinder* taskjetsFinder1 = AddTaskJetsFinder(cont_jet1,"FASTJET",0.3,0); // FASTJET
 cout << "---> END JET FINDER 1 CONFIGURATION <---" << endl;
-
-
 
 // JET FINDER 2
 // AliAnalysisTaskJetsFinder* taskjetsFinder2 = AddTaskJetsFinder(cont_jet1,"FASTJET",0.4,0); // FASTJET
-// if ( kDeltaAODJetName.Length() > 0 ) { taskjets->SetNonStdOutputFile(kDeltaAODJetName.Data()); }
-// if(outFile.Length()>0)taskjetsFinder->SetNonStdOutputFile(outFile.Data());
-
-// kNonStdBranchInput = taskjets->GetNonStdBranch(); cout << "JETFINDER :: nonstdbranch : " << kNonStdBranchInput.Data() << endl;
-// if ( kNonStdBranchInput.Length() ) { kJetListSpectrum.Add(new TObjString(kNonStdBranchInput.Data())); }
-
 cout << "---> END JET FINDER 2 CONFIGURATION <---" << endl;
-
-
 
 // JET FINDER 3
 // AliAnalysisTaskJetsFinder* taskjetsFinder3 = AddTaskJetsFinder(cont_jet1,"FASTJET",0.7,0); // FASTJET
-// if ( kDeltaAODJetName.Length() > 0 ) { taskjets->SetNonStdOutputFile(kDeltaAODJetName.Data()); }
-// if(outFile.Length()>0)taskjetsFinder->SetNonStdOutputFile(outFile.Data());
-
-// kNonStdBranchInput = taskjets->GetNonStdBranch(); cout << "JETFINDER :: nonstdbranch : " << kNonStdBranchInput.Data() << endl;
-// if ( kNonStdBranchInput.Length() ) { kJetListSpectrum.Add(new TObjString(kNonStdBranchInput.Data())); }
-
 cout << "---> END JET FINDER 3 CONFIGURATION <---" << endl;
 
 
-// if (!taskjetsFinder) {::Fatal("AnalysisCDFJets", "no taskjetsFinder"); return; }
+
 
 cout << "---> END JET FINDERS CONFIGURATION <---" << endl;
 
+cout << "---> END TASK CONFIGURATION <---" << endl;
+
 
 if (use_cdf)
-  {
+{
+  // Load AliAnalysisTaskCDFhistos
+  gSystem->SetIncludePath("-I$ROOTSYS/include -I$CGAL_DIR/include -I$FASTJET/include -I$ALICE_ROOT/include -I$ALICE_ROOT/JETAN -I$.");
+  gROOT->LoadMacro("AliAnalysisTaskCDFhistos.cxx++g");
+
+  // Add my task
+  plugin->SetAnalysisSource("AliAnalysisTaskCDFhistos.cxx");
+  plugin->AddIncludePath(".");
+
+  gROOT->LoadMacro("AddTaskCDFhistos.C");
+
   // AliAnalysisTaskCDFhistos *AddTaskCDFhistos( Char_t *connect_file="", Char_t *connect_branch="cdfh_br", Char_t *file_out="CDFh", Char_t *branch_out="cdfh_br", Int_t jet1_min_tracks = 0, Double_t jet1_min_pt = 0. )
 
-//   AliAnalysisTaskCDFhistos *taskCDF = AddTaskCDFhistos ( "" , kNonStdBranchInput.Data(), kCDFresults.Data() ,kNonStdBranchInput.Data(), 0, 0.);
+  //   AliAnalysisTaskCDFhistos *taskCDF = AddTaskCDFhistos ( "" , kNonStdBranchInput.Data(), kCDFresults.Data() ,kNonStdBranchInput.Data(), 0, 0.);
   AliAnalysisTaskCDFhistos* taskCDF = AddTaskCDFhistos ( kNonStdBranchInput.Data(), 0, 0.);
 
   if (!taskCDF) { ::Fatal("CDFhistos", "No CDFhistos pointer"); }
 
   taskCDF->SetDebugLevel(debug);
   taskCDF->SetNonStdFile(kDeltaAODJetName.Data());
+  taskCDF->SetNonStdBranch(kNonStdBranchInput.Data());
 
   cout << "AddTaskCDF histos :: input file : "   << taskCDF->GetNonStdFile()   << endl;
   cout << "AddTaskCDF histos :: input branch : " << taskCDF->GetNonStdBranch() << endl;
-  }
+}
 
 
-cout << "---> END TASK CONFIGURATION <---" << endl;
 
 
 // REGISTERING FILE OUTPUTS
@@ -582,22 +543,39 @@ Bool_t LoadJetLibs()
   Bool_t success = kTRUE; Int_t result = 999;
 
   // LOAD FASTJET
+//   success &= LoadLibrary("libCGAL.so", kTRUE);
+//   success &= LoadLibrary("libfastjet.so", kTRUE);
+//   success &= LoadLibrary("libfastjettools.so", kTRUE);
+//
+//   success &= LoadLibrary("libsiscone.so", kTRUE);
+//   success &= LoadLibrary("libsiscone_spherical.so", kTRUE);
+//
+//
+//   success &= LoadLibrary("libfastjetplugins.so", kTRUE);
+// //   success &= LoadLibrary("libSISConePlugin.so", kTRUE);
+//
+//
+// //   success &= LoadLibrary("libJETAN.so", kTRUE);
+// //   success &= LoadLibrary("libFASTJETAN.so", kTRUE);
+//
+//   // LOAD FASTJET
+//   success &= LoadLibrary("libJETANdev.so", kTRUE);
+//   success &= LoadLibrary("libFASTJETANdev.so", kTRUE);
+// //   success &= LoadLibrary("libPWGJEEMCALJetTasks.so");
+
+
   success &= LoadLibrary("libCGAL.so", kTRUE);
   success &= LoadLibrary("libfastjet.so", kTRUE);
   success &= LoadLibrary("libsiscone.so", kTRUE);
+  success &= LoadLibrary("libsiscone_spherical.so", kTRUE);
   success &= LoadLibrary("libSISConePlugin.so", kTRUE);
-
-  success &= LoadLibrary("libJETAN.so", kTRUE);
-  success &= LoadLibrary("libFASTJETAN.so", kTRUE);
-
-  // LOAD FASTJET
+//  success &= LoadLibrary("libfastjetplugins.so", kTRUE);
+  success &= LoadLibrary("libfastjettools.so", kTRUE);
   success &= LoadLibrary("libJETANdev.so", kTRUE);
   success &= LoadLibrary("libFASTJETANdev.so", kTRUE);
-//   success &= LoadLibrary("libPWGJEEMCALJetTasks.so");
-
 
   success &= LoadLibrary("libPWGTools.so",kTRUE);
-  success &= LoadLibrary("libPWGJE.so", kTRUE);
+//   success &= LoadLibrary("libPWGJE.so", kTRUE);
 
 //   cout << "Libs FASTJET :" << gSystem->GetLibraries("","D") << endl;
 
