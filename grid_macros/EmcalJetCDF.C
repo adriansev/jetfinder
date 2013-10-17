@@ -78,6 +78,62 @@
 #include <ctime>
 #include "TGrid.h"
 
+//(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
+//        AliEN Variables
+//(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
+
+Int_t       kTestFiles               = 8;    // Number of test files
+Long64_t    nentries                 = 10; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
+
+TString     kTrainName               = "sev_jets";           // *CHANGE ME* (no blancs or special characters)
+TString     kWorkDir                 = "emcalcdf_histos1";   // AliEn work dir; relative to AliEn $HOME
+TString     kJobTag                  = "sev_jet_analysis";   // *CHANGE ME*
+
+TString     kPluginExecutableCommand = "aliroot -b -q";
+Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in production mode
+
+TString     kPluginAPIVersion        = "V1.1x";
+TString     kPluginRootVersion       = "v5-34-08";
+TString     kPluginAliRootVersion    = "v5-05-26-AN";
+
+Bool_t      kPluginFastReadOption    = kFALSE;         // use xrootd tweaks
+Bool_t      kPluginOverwriteMode     = kTRUE;          // overwrite existing collections
+
+Int_t       kGridFilesPerJob         = 70;    // Maximum number of files per job (gives size of AOD)
+Int_t       kGridMaxMergeFiles       = 100;   // Number of files merged in a chunk grid run range
+Int_t       kMaxInitFailed           = 10 ;    // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
+
+Int_t       kTTL                     = 14400 ; // Time To Live
+Int_t       kMergeTTL                = 1800 ;  // Time To Live merging
+
+Int_t       kGridRunsPerMaster       = 1; // Number of runs per master job
+Bool_t      kPluginMergeViaJDL       = kTRUE;          // merge via JDL
+
+Int_t       kPluginOutputToRunNumber = 1;              // write the output to subdirs named after run number
+
+TString     kGridOutdir              = "out"; // AliEn output directory. If blank will become output_<kTrainName>
+TString     kGridDataSet             = ""; // sub working directory not to confuse different run xmls
+TString     kGridExtraAliendirLevel  = ""; // sub working directory not to confuse different run xmls
+
+TString     kAlirootMode             ="ALIROOT";      // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
+//  alirootMode="ALIROOT";   // $ALICE_ROOT/macros/loadlibs.C
+//  alirootMode="REC";       // $ALICE_ROOT/macros/loadlibsrec.C
+//  alirootMode="SIM";       // $ALICE_ROOT/macros/loadlibssim.C
+//  alirootMode="TRAIN";     // $ALICE_ROOT/macros/loadlibstrain.C (not working yet)
+//  alirootMode="CUSTOM";    // nothing is loaded, but aliroot variables are set (not working yet)
+
+//--------------------
+//   PROOF SETTINGS
+//--------------------
+TString kAAF        =
+//                         "asevcenc@alice-caf.cern.ch" ;
+"asevcenc@skaf.saske.sk";
+
+Int_t   kProofReset = 0  ;
+Int_t   kWorkers    = 20 ;
+Int_t   kCores      = 8  ;
+
 //______________________________________________________________________________
 //  DEFINED INPUT DATA in AlienHandler.C
 
@@ -101,22 +157,6 @@ TString   kInputData =
 // Debug
 Int_t   debug = 100;
 
-const Long64_t nentries = 500; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
-const Long64_t firstentry = 0; // for local and proof mode, ignored in grid mode
-
-//______________________________________________________________________________
-// PROOF SETTINGS
-//______________________________________________________________________________
-
-TString kAAF        =
-//                         "asevcenc@alice-caf.cern.ch" ;
-"asevcenc@skaf.saske.sk";
-
-Int_t   kProofReset = 0  ;
-Int_t   kWorkers    = 20 ;
-Int_t   kCores      = 8  ;
-
-
 //==============================================================================
 Bool_t      kSkipTerminate      = kTRUE; // Do not call Terminate
 Bool_t      kUseDebug           = kTRUE; // activate debugging
@@ -126,6 +166,7 @@ Bool_t      kUsePAR             = kFALSE; // use par files for extra libs
 unsigned int kUseSysInfo        = 0 ;           // activate debugging
 
 TString kDataset = "";
+TString kDatafile = "";
 
 // FILES USED IN MACRO
 TString     kCommonOutputFileName   = "CDFanalysis_out.root";
@@ -145,21 +186,20 @@ class AliAnalysisGrid;
 class AliAnalysisAlien;
 class AliAnalysisManager;
 
-// AliAnalysisAlien* CreateAlienHandler (const char* plugin_mode="test") ;
-
-void EmcalJetCDF ( const char* plugin_mode="test" , const char* analysis_mode="local", const char* dataset="" )
+void EmcalJetCDF ( const char* plugin_mode="test" , const char* analysis_mode="local", const char* input="data.txt" )
 {
   TString   kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
   TString   kAnalysisMode = analysis_mode ; kAnalysisMode.ToLower();  // local, grid, proof
 
-  kDataset = dataset;
+  TString input_data = input;
+  if (input_data.EndsWith(".txt"))
+    { kDatafile = input_data; }
+  else
+    { kDataset = input_data; }
 
   if ( (!kAnalysisMode.CompareTo("local")) || (!kPluginMode.CompareTo("test")) ) { kUsePAR = kFALSE; }
 
   const char*    dataType            = "AOD";                       // set the analysis type, AOD, ESD or sESD
-  Bool_t         useGrid             = kFALSE;                      // local or grid
-  const char*    gridMode            = "test";                      // set the grid run mode (can be "full", "test", "offline", "submit" or "terminate")
-  const char*    uniqueName          = "EMCalJF_LEGOTrainTest";     // sets base string for the name of the task on the grid
   UInt_t         pSel                = AliVEvent::kAny;             // used event selection for every task except for the analysis tasks
   Bool_t         useTender           = kFALSE;                      // trigger, if tender task should be used
   Bool_t         isMC                = kFALSE;                      // trigger, if MC handler should be used
@@ -176,7 +216,7 @@ void EmcalJetCDF ( const char* plugin_mode="test" , const char* analysis_mode="l
   LoadLibs();
 
   //compile and load the task in local macro
-  if (gROOT->LoadMacro("AliAnalysisTaskEmcalJetCDF.cxx++g") != 0)  { Printf ("--->>> !!! compilation failed !!! <<<---") ; return; }
+  if (gROOT->LoadMacro("AliAnalysisTaskEmcalJetCDF.cxx+g") != 0)  { Printf ("--->>> !!! compilation failed !!! <<<---") ; return; }
 
   // Load InputData macro ++++++++++++
   gROOT->LoadMacro("InputData.C");
@@ -210,17 +250,14 @@ void EmcalJetCDF ( const char* plugin_mode="test" , const char* analysis_mode="l
   InputData ( plugin, kInputData );
 
   // .txt file containing the list of files to be chained in test mode
-  plugin->SetFileForTestMode("data.txt");
+  plugin->SetFileForTestMode(kDatafile.Data());
 
   //********************
   //    DATA OUTPUT
   //********************
-  plugin->SetMergeExcludes  (kGridMergeExclude);
+  plugin->SetMergeExcludes(kGridMergeExclude);
 
   plugin->SetDefaultOutputs(kTRUE);
-
-
-
 
   //#######################
   //   ANALYSIS MANAGER
@@ -257,6 +294,7 @@ void EmcalJetCDF ( const char* plugin_mode="test" , const char* analysis_mode="l
     localFiles = "files_aod.txt";
     gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C");
     AliAODInputHandler* aodH = AddAODHandler();
+    aodH->SetCheckStatistics(kTRUE);
     }
   else
   if (usedData == "ESD")
@@ -335,27 +373,28 @@ void EmcalJetCDF ( const char* plugin_mode="test" , const char* analysis_mode="l
   // ################# Now: Add jet finders+analyzers
 
   gROOT->LoadMacro("$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C");
+  // ---> AddTaskEmcalJet arguments - signature 1
+  //   const UInt_t type          = AliEmcalJetTask::kAKT | AliEmcalJetTask::kFullJet | AliEmcalJetTask::kR040Jet,
+  //   const char *nTracks        = "Tracks",
+  //   const char *nClusters      = "CaloClusters",
+  //   const Double_t minTrPt     = 0.15,
+  //   const Double_t minClPt     = 0.30,
+  //   const Double_t ghostArea   = 0.005,
+  //   const Double_t radius      = 0.4,
+  //   const char *tag            = "Jet"
 
-  // ---> AddTaskEmcalJet arguments
-  // const char *nTracks        = "Tracks",
-  // const char *nClusters      = "CaloClusters",
-  // const Int_t algo           = 1,
-  // const Double_t radius      = 0.4,
-  // const Int_t type           = 0,
-  // const Double_t minTrPt     = 0.15,
-  // const Double_t minClPt     = 0.30,
-  // const Double_t ghostArea   = 0.01  ,
-  // const char *tag            = "Jet"
-  AliEmcalJetTask* jetFinderTask = AddTaskEmcalJet("PicoTracks", "CaloClustersCorr", kANTIKT, 0.4, kCHARGEDJETS, 0.150, 0.300);
+  // ---> AddTaskEmcalJet arguments - signature 2
+  //   const char *nTracks        = "Tracks",
+  //   const char *nClusters      = "CaloClusters",
+  //   const Int_t algo           = 1,
+  //   const Double_t radius      = 0.4,
+  //   const Int_t type           = 0,
+  //   const Double_t minTrPt     = 0.15,
+  //   const Double_t minClPt     = 0.30,
+  //   const Double_t ghostArea   = 0.01  ,
+  //   const char *tag            = "Jet"
 
-//  AliEmcalJetTask* jetFinderTask = AddTaskEmcalJet( AliEmcalJetTask::kAKT, "Tracks", "CaloClusters", 0.15, 0.30, 0.005, 0.3, "Jet03");
-//  AliEmcalJetTask* jetFinderTask = AddTaskEmcalJet( AliEmcalJetTask::kAKT, "Tracks", "CaloClusters", 0.15, 0.30, 0.005, 0.4, "Jet04");
-//  AliEmcalJetTask* jetFinderTask = AddTaskEmcalJet( AliEmcalJetTask::kAKT, "Tracks", "CaloClusters", 0.15, 0.30, 0.005, 0.5, "Jet05");
-//  AliEmcalJetTask* jetFinderTask = AddTaskEmcalJet( AliEmcalJetTask::kAKT, "Tracks", "CaloClusters", 0.15, 0.30, 0.005, 0.6, "Jet06");
-
-  // Here you can put in your AddTaskMacro for your task
   gROOT->LoadMacro("AddTaskEmcalJetCDF.C");
-
   // ---> AddTaskEmcalJetCDF arguments
   // const char* ntracks            = "Tracks",
   // const char* nclusters          = "CaloClusters",
@@ -368,10 +407,26 @@ void EmcalJetCDF ( const char* plugin_mode="test" , const char* analysis_mode="l
   // Int_t       leadhadtype        = 0,
   // const char *taskname           = "TaskEmcalJetCDF"
 
-  cout << "jetFinder Task Name : " << jetFinderTask->GetName() << endl;
 
-//   AliAnalysisTaskEmcalJetCDF* anaTask = AddTaskEmcalJetCDF("Tracks", "CaloClusters", "Jets" , "Rho", 0.4, 1, 0.557, AliAnalysisTaskEmcal::kEMCAL, 0, "TaskEmcalJetCDF" );
-  AliAnalysisTaskEmcalJetCDF* anaTask = AddTaskEmcalJetCDF("PicoTracks", "CaloClustersCorr", jetFinderTask->GetName(), "");
+//   AliEmcalJetTask* jetFinderTask1 = AddTaskEmcalJet("PicoTracks", "CaloClustersCorr", kANTIKT, 0.2, kCHARGEDJETS, 0.150, 0.300);
+//     jetFinderTask1->SetLegacyMode(false);
+//   cout << "jetFinder1 Task Name : " << jetFinderTask1->GetName() << endl;
+//   AliAnalysisTaskEmcalJetCDF* anaTask1 = AddTaskEmcalJetCDF("PicoTracks", "CaloClustersCorr", jetFinderTask1->GetName(), "");
+
+  AliEmcalJetTask* jetFinderTask2 = AddTaskEmcalJet("PicoTracks", "CaloClustersCorr", kANTIKT, 0.4, kCHARGEDJETS, 0.150, 0.300);
+  jetFinderTask2->SetLegacyMode(false);
+
+  cout << "jetFinder2 Task Name : " << jetFinderTask2->GetName() << endl;
+  AliAnalysisTaskEmcalJetCDF* anaTask2 = AddTaskEmcalJetCDF("PicoTracks", "CaloClustersCorr", jetFinderTask2->GetName(), "");
+
+//   AliEmcalJetTask* jetFinderTask3 = AddTaskEmcalJet("PicoTracks", "CaloClustersCorr", kANTIKT, 0.6, kCHARGEDJETS, 0.150, 0.300);
+//   jetFinderTask3->SetLegacyMode(false);
+//   cout << "jetFinder3 Task Name : " << jetFinderTask3->GetName() << endl;
+//   AliAnalysisTaskEmcalJetCDF* anaTask3 = AddTaskEmcalJetCDF("PicoTracks", "CaloClustersCorr", jetFinderTask3->GetName(), "");
+
+
+
+//#################################################################
 
   // Set the physics selection for all given tasks
   TObjArray *toptasks = mgr->GetTasks();
@@ -497,38 +552,6 @@ void LoadLibs()
 //______________________________________________________________________________
 AliAnalysisAlien* CreateAlienHandler (const char* plugin_mode="test")
 {
-  Int_t       kTestFiles               =  1;    // Number of test files
-
-  TString     kTrainName               = "sev_jets";           // *CHANGE ME* (no blancs or special characters)
-  TString     kWorkDir                 = "emcalcdf_histos1";   // AliEn work dir; relative to AliEn $HOME
-  TString     kJobTag                  = "sev_jet_analysis";   // *CHANGE ME*
-
-  TString     kPluginExecutableCommand = "aliroot -b -q";
-  Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in production mode
-
-  TString     kPluginAPIVersion        = "V1.1x";
-  TString     kPluginRootVersion       = "v5-34-08";
-  TString     kPluginAliRootVersion    = "v5-05-22-AN";
-
-  Bool_t      kPluginFastReadOption    = kFALSE;         // use xrootd tweaks
-  Bool_t      kPluginOverwriteMode     = kTRUE;          // overwrite existing collections
-
-  Int_t       kGridFilesPerJob         = 25;    // Maximum number of files per job (gives size of AOD)
-  Int_t       kGridMaxMergeFiles       = 100;   // Number of files merged in a chunk grid run range
-  Int_t       kMaxInitFailed           = 10 ;    // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
-
-  Int_t       kTTL                     = 14400 ; // Time To Live
-  Int_t       kMergeTTL                = 1800 ;  // Time To Live merging
-
-  Int_t       kGridRunsPerMaster       = 1; // Number of runs per master job
-  Bool_t      kPluginMergeViaJDL       = kTRUE;          // merge via JDL
-
-  Int_t       kPluginOutputToRunNumber = 1;              // write the output to subdirs named after run number
-
-  TString     kGridOutdir              = "out"; // AliEn output directory. If blank will become output_<kTrainName>
-  TString     kGridDataSet             = ""; // sub working directory not to confuse different run xmls
-  TString     kGridExtraAliendirLevel  = ""; // sub working directory not to confuse different run xmls
-
   AliAnalysisAlien* plugin = new AliAnalysisAlien();
   if (!plugin) { printf("!!! -->> alien handler could not be created <<-- !!!"); return;}
 
@@ -613,14 +636,6 @@ AliAnalysisAlien* CreateAlienHandler (const char* plugin_mode="test")
   //-----------------------------------------------
   //           PROOF SETTINGS
   //-----------------------------------------------
-
-  TString kAlirootMode="ALIROOT";      // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
-  //  alirootMode="ALIROOT";   // $ALICE_ROOT/macros/loadlibs.C
-  //  alirootMode="REC";       // $ALICE_ROOT/macros/loadlibsrec.C
-  //  alirootMode="SIM";       // $ALICE_ROOT/macros/loadlibssim.C
-  //  alirootMode="TRAIN";     // $ALICE_ROOT/macros/loadlibstrain.C (not working yet)
-  //  alirootMode="CUSTOM";    // nothing is loaded, but aliroot variables are set (not working yet)
-
   plugin->SetProofCluster  ( kAAF )        ;
   plugin->SetProofDataSet  ( kDataset )    ;
   plugin->SetProofReset    ( kProofReset ) ;
@@ -645,8 +660,8 @@ Bool_t LoadLibrary ( const char *module, Bool_t rec = kFALSE )
   result = gSystem->Load(mod);
 
   if (result < 0) { ::Error("AnalysisCDFjets::LoadLibrary", "Could not load library %s", module); return kFALSE; }
-  anaLibs      += Form("%s.so ",mod.Data());
-  anaLibsExtra += Form("%s.so ",mod.Data());
+  ListLibs      += Form("%s.so ",mod.Data());
+  ListLibsExtra += Form("%s.so ",mod.Data());
 
   return kTRUE;
 }
@@ -700,9 +715,9 @@ Bool_t LoadSource(const char *source, Bool_t rec=kFALSE)
     result = gROOT->LoadMacro(Form("%s.cxx++g",basename.Data()));
     if (rec){
       // what we want to compile
-      anaSources += Form("%s.cxx ",basename.Data());
+      ListSources += Form("%s.cxx ",basename.Data());
       // what we need as input...
-      anaLibs += Form("%s.cxx %s.h ",basename.Data(),basename.Data());
+      ListLibs += Form("%s.cxx %s.h ",basename.Data(),basename.Data());
     }
   }
 
@@ -711,4 +726,5 @@ Bool_t LoadSource(const char *source, Bool_t rec=kFALSE)
 
   return kTRUE;
 }
+
 
