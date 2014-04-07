@@ -76,6 +76,7 @@ else if ( !dataruns.CompareTo("pp_lhc10e") )
 
 
 // FILTER_p-p_113_LHC11a: Standard AODs + deltas
+// details https://alimonitor.cern.ch/users/download.jsp?view=true&path=/alice/cern.ch/user/a/alidaq/AOD/AOD113/AnalysisTrainFilterpp.C
 else if ( !dataruns.CompareTo("pp_lhc11a") )
   {
   // AliEn data production directory
