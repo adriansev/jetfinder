@@ -6,7 +6,7 @@ AliAnalysisTaskEmcalJetCDF* AddTaskEmcalJetCDF(
   Double_t    jetradius          = 0.2,
   Double_t    jetptcut           = 1,
   Double_t    jetareacut         = 0.557,
-  UInt_t      type               = AliAnalysisTaskEmcal::kEMCAL,
+  UInt_t      type               = AliJetContainer::kEMCAL,
   Int_t       leadhadtype        = 0,
   const char *taskname           = "TaskEmcalJetCDF"
 )
@@ -29,11 +29,11 @@ AliAnalysisTaskEmcalJetCDF* AddTaskEmcalJetCDF(
   if ( strcmp(njets,"") ) { name += "_"; name += njets; }
   if ( strcmp(nrho,"")  ) { name += "_"; name += nrho;  }
 
-  if (type == AliAnalysisTaskEmcal::kTPC)   { name += "_TPC"; }
+  if (type == AliJetContainer::kTPC)   { name += "_TPC"; }
   else
-  if (type == AliAnalysisTaskEmcal::kEMCAL) { name += "_EMCAL"; }
+  if (type == AliJetContainer::kEMCAL) { name += "_EMCAL"; }
   else
-  if (type == AliAnalysisTaskEmcal::kUser)  { name += "_USER"; }
+  if (type == AliJetContainer::kUser)  { name += "_USER"; }
 
   cout << "EMCAL Jet task name : " << name.Data() << endl;
 
