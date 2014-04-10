@@ -79,7 +79,7 @@
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 
 Int_t       kTestFiles               = 1;    // Number of test files
-Long64_t    nentries                 = 100000; //234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+Long64_t    nentries                 = 1000000; //234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
 TString     kTrainName               = "sev_jets";           // *CHANGE ME* (no blancs or special characters)
@@ -448,52 +448,54 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     // algo : 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
     // type : 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
 
-    //                                                    nTracks,     nClusters,     algo,   radius,    type,       minTrPt, minClPt,    ghostArea, recombScheme,      *tag
+    //                                                    nTracks,        nClusters,      algo,   radius,    type,       minTrPt, minClPt,    ghostArea, recombScheme,      *tag
     AliEmcalJetTask* jetFinderTask1 = AddTaskEmcalJet( "PicoTracks", "CaloClustersCorr", kANTIKT,   0.4,  kCHARGEDJETS,   0.150,   0.300); //,      0.01,         1,      "Jet" );
     jetFinderTask1->SetLegacyMode ( false );
     // jetFinderTask1->SetRadius(0.4); // set only for AddTaskEmcalJet with radius != 0.2, 0.3, 0.4
     cout << "jetFinder1 Task Name : " << jetFinderTask1->GetName() << endl;
 
-
     //                                                             ntracks,       nclusters,               njets,           nrho, radius, jetptcut, jetareacut , type ,            leadhadtype , taskname
     AliAnalysisTaskEmcalJetCDF* anaTask1 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask1->GetName(), "",   0.4,      1.,      0.01, AliJetContainer::kEMCAL,    0,     "JetCDF_cut1" );
-//     AliAnalysisTaskEmcalJetCDF* anaTask2 = AddTaskEmcalJetCDF ( "Tracks", "CaloClustersCorr", jetFinderTask1->GetName(), "", 0.4,  2., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut2" );
-//     AliAnalysisTaskEmcalJetCDF* anaTask3 = AddTaskEmcalJetCDF ( "Tracks", "CaloClustersCorr", jetFinderTask1->GetName(), "", 0.4,  5., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut5" );
-//     AliAnalysisTaskEmcalJetCDF* anaTask4 = AddTaskEmcalJetCDF ( "Tracks", "CaloClustersCorr", jetFinderTask1->GetName(), "", 0.4, 10., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut10" );
-//
+    AliAnalysisTaskEmcalJetCDF* anaTask2 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask1->GetName(), "",   0.4,      2.,      0.01, AliJetContainer::kEMCAL,    0,     "JetCDF_cut2" );
+    AliAnalysisTaskEmcalJetCDF* anaTask3 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask1->GetName(), "",   0.4,      5.,      0.01, AliJetContainer::kEMCAL,    0,     "JetCDF_cut5" );
+    AliAnalysisTaskEmcalJetCDF* anaTask4 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask1->GetName(), "",   0.4,     10.,      0.01, AliJetContainer::kEMCAL,    0,     "JetCDF_cut10" );
 
-//     AliEmcalJetTask* jetFinderTask2 = AddTaskEmcalJet ( "PicoTracks", "CaloClustersCorr", kANTIKT, 0.4, kCHARGEDJETS, 1.0, 0.300 );
-//     jetFinderTask2->SetLegacyMode ( false );
-//     cout << "jetFinder2 Task Name : " << jetFinderTask2->GetName() << endl;
-//
-//     AliAnalysisTaskEmcalJetCDF* anaTask5 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask2->GetName(), "", 0.4,  1., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut1" );
-//     AliAnalysisTaskEmcalJetCDF* anaTask6 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask2->GetName(), "", 0.4,  2., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut2" );
-//     AliAnalysisTaskEmcalJetCDF* anaTask7 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask2->GetName(), "", 0.4,  5., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut5" );
-//     AliAnalysisTaskEmcalJetCDF* anaTask8 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask2->GetName(), "", 0.4, 10., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut10" );
-//
+
+    //                                                    nTracks,        nClusters,      algo,   radius,    type,       minTrPt, minClPt,    ghostArea, recombScheme,      *tag
+    AliEmcalJetTask* jetFinderTask2 = AddTaskEmcalJet( "PicoTracks", "CaloClustersCorr", kANTIKT,   0.4,  kCHARGEDJETS,   1.000,   0.300); //,      0.01,         1,      "Jet" );
+    jetFinderTask2->SetLegacyMode ( false );
+    // jetFinderTask1->SetRadius(0.4); // set only for AddTaskEmcalJet with radius != 0.2, 0.3, 0.4
+    cout << "jetFinder2 Task Name : " << jetFinderTask2->GetName() << endl;
+
+    //                                                             ntracks,       nclusters,               njets,           nrho, radius, jetptcut, jetareacut , type ,            leadhadtype , taskname
+    AliAnalysisTaskEmcalJetCDF* anaTask5 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask2->GetName(), "",   0.4,      1.,      0.01, AliJetContainer::kEMCAL,    0,     "JetCDF_cut1" );
+    AliAnalysisTaskEmcalJetCDF* anaTask6 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask2->GetName(), "",   0.4,      2.,      0.01, AliJetContainer::kEMCAL,    0,     "JetCDF_cut2" );
+    AliAnalysisTaskEmcalJetCDF* anaTask7 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask2->GetName(), "",   0.4,      5.,      0.01, AliJetContainer::kEMCAL,    0,     "JetCDF_cut5" );
+    AliAnalysisTaskEmcalJetCDF* anaTask8 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask2->GetName(), "",   0.4,     10.,      0.01, AliJetContainer::kEMCAL,    0,     "JetCDF_cut10" );
+
 
 // ###########################
 //    FULL JETS SECTION
 // ###########################
-/*
+
     AliEmcalJetTask* jetFinderTask3 = AddTaskEmcalJet ( "PicoTracks", "CaloClustersCorr", kANTIKT, 0.4, kFULLJETS, 0.150, 0.300 );
     jetFinderTask3->SetLegacyMode ( false );
     cout << "jetFinder3 Task Name : " << jetFinderTask3->GetName() << endl;
 
-    AliAnalysisTaskEmcalJetCDF* anaTask9  = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask3->GetName(), "", 0.4,  1., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut1" );
-    AliAnalysisTaskEmcalJetCDF* anaTask10 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask3->GetName(), "", 0.4,  2., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut2" );
-    AliAnalysisTaskEmcalJetCDF* anaTask11 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask3->GetName(), "", 0.4,  5., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut5" );
-    AliAnalysisTaskEmcalJetCDF* anaTask12 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask3->GetName(), "", 0.4, 10., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut10" );
+    AliAnalysisTaskEmcalJetCDF* anaTask9  = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask3->GetName(), "", 0.4,  1., 0.01, AliJetContainer::kEMCAL, 0, "JetCDF_cut1" );
+    AliAnalysisTaskEmcalJetCDF* anaTask10 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask3->GetName(), "", 0.4,  2., 0.01, AliJetContainer::kEMCAL, 0, "JetCDF_cut2" );
+    AliAnalysisTaskEmcalJetCDF* anaTask11 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask3->GetName(), "", 0.4,  5., 0.01, AliJetContainer::kEMCAL, 0, "JetCDF_cut5" );
+    AliAnalysisTaskEmcalJetCDF* anaTask12 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask3->GetName(), "", 0.4, 10., 0.01, AliJetContainer::kEMCAL, 0, "JetCDF_cut10" );
 
-    AliEmcalJetTask* jetFinderTask4 = AddTaskEmcalJet ( "PicoTracks", "CaloClustersCorr", kANTIKT, 0.4, kFULLJETS, 1.0, 0.300 );
+    AliEmcalJetTask* jetFinderTask4 = AddTaskEmcalJet ( "PicoTracks", "CaloClustersCorr", kANTIKT, 0.4, kFULLJETS, 1.000, 0.300 );
     jetFinderTask4->SetLegacyMode ( false );
     cout << "jetFinder4 Task Name : " << jetFinderTask4->GetName() << endl;
 
-    AliAnalysisTaskEmcalJetCDF* anaTask13 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask4->GetName(), "", 0.4,  1., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut1" );
-    AliAnalysisTaskEmcalJetCDF* anaTask14 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask4->GetName(), "", 0.4,  2., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut2" );
-    AliAnalysisTaskEmcalJetCDF* anaTask15 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask4->GetName(), "", 0.4,  5., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut5" );
-    AliAnalysisTaskEmcalJetCDF* anaTask16 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask4->GetName(), "", 0.4, 10., 0.557, AliJetContainer::kEMCAL, 0, "TaskEmcalJetCDF_cut10" );
-*/
+    AliAnalysisTaskEmcalJetCDF* anaTask13 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask4->GetName(), "", 0.4,  1., 0.01, AliJetContainer::kEMCAL, 0, "JetCDF_cut1" );
+    AliAnalysisTaskEmcalJetCDF* anaTask14 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask4->GetName(), "", 0.4,  2., 0.01, AliJetContainer::kEMCAL, 0, "JetCDF_cut2" );
+    AliAnalysisTaskEmcalJetCDF* anaTask15 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask4->GetName(), "", 0.4,  5., 0.01, AliJetContainer::kEMCAL, 0, "JetCDF_cut5" );
+    AliAnalysisTaskEmcalJetCDF* anaTask16 = AddTaskEmcalJetCDF ( "PicoTracks", "CaloClustersCorr", jetFinderTask4->GetName(), "", 0.4, 10., 0.01, AliJetContainer::kEMCAL, 0, "JetCDF_cut10" );
+
 
 
 //#################################################################
