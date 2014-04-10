@@ -1,0 +1,60 @@
+#!/bin/bash
+
+DATA_FILE="data.txt"
+DATA_FILE_LIST=`cat $DATA_FILE`
+
+NR_JOBS=`wc -l $DATA_FILE`
+
+TIME=`date +%Y%m%d_%H%M`
+DIR="emcal_jet_cdf"
+TAG=$1
+
+PROGRAM='aliroot -l -b -q EmcalJetCDF.C\(\"test\",\"local\",\"data.txt\"\)'
+
+JOB_FILES="EmcalJetCDF.C AddTaskEmcalJetCDF.C AliAnalysisTaskEmcalJetCDF.cxx AliAnalysisTaskEmcalJetCDF.h InputData.C AliAnalysisTaskEmcalJetCDF_cxx.d AliAnalysisTaskEmcalJetCDF_cxx.so"
+
+compileC_aliroot AliAnalysisTaskEmcalJetCDF.cxx
+
+
+## directory that holds the jobs subdirs; 
+## it will be created in curent dir and the name can be changed at will
+DIR_JOBS="${DIR}_$TAG_${TIME}"
+mkdir -p $DIR_JOBS
+
+echo $DIR_JOBS
+
+JOB_IDX=0
+
+for data_file in $DATA_FILE_LIST
+do
+  ## job number
+  (( JOB_IDX += 1 ))
+
+  echo $JOB_IDX
+
+#  ## create job dir
+  SUBJOB_DIR=$DIR_JOBS/job_$JOB_IDX
+
+  echo $DIR_JOBS
+  echo $SUBJOB_DIR
+
+  mkdir -p $SUBJOB_DIR
+
+  ## create the torque scripts
+  SCRIPT=$SUBJOB_DIR/qsub_job
+
+  cat head >> ${SCRIPT}
+  echo "${PROGRAM}" >> $SCRIPT
+  cat tail >> ${SCRIPT}
+
+  echo $data_file > $SUBJOB_DIR/data.txt
+
+  for file in $JOB_FILES
+  do
+    cp -d $file $SUBJOB_DIR/
+  done
+
+done
+
+
+

@@ -1,0 +1,49 @@
+#!/bin/bash
+
+STARTDIR=`pwd`
+
+ARGS=1
+ARG2=$2
+ARG3=$3
+
+if [ "$#" -lt "$ARGS" ]
+then
+  echo "Usage: `basename $0` directory_with_jobs_subdirs"
+  exit
+fi
+
+list_of_job_files_raw=`find $1 -type f -name qsub_job -printf '%h \n' | sort -n --field-separator=/ -k2.5n`
+list_of_job_files=( $list_of_job_files_raw )
+
+LIST_LENGHT=${#list_of_job_files[@]}
+
+START_IDX=0
+STOP_IDX=$((LIST_LENGHT - 1))
+
+
+if [ -n "$ARG2" ] ; then
+  (( ARG2 = ARG2 - 1 ))
+  START_IDX=$ARG2
+fi
+
+if [ -n "$ARG3" ] ; then
+  (( ARG3 = ARG3 - 1 ))
+  STOP_IDX=$ARG3
+
+  if [ "$ARG3" -ge "$LIST_LENGHT" ]; then
+    STOP_IDX=$((LIST_LENGHT - 1))
+  fi
+fi
+
+## echo ${list_of_job_files[@]:$START_IDX:$STOP_IDX}
+
+for (( c=START_IDX ; c<=STOP_IDX; c++ ))
+do
+  cd ${list_of_job_files[$c]}
+
+  qsub qsub_job
+
+  cd $STARTDIR
+done
+
+
