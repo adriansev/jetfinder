@@ -78,8 +78,8 @@
 //        AliEN Variables
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 
-Int_t       kTestFiles               = 1;    // Number of test files
-Long64_t    nentries                 = 1000000; //234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+Int_t       kTestFiles               = 10;    // Number of test files
+Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
 TString     kTrainName               = "sev_jets";           // *CHANGE ME* (no blancs or special characters)

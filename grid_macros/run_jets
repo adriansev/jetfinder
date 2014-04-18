@@ -1,37 +1,50 @@
 help ()
 {
 echo "Signature of the macro function :"
-echo "void AnalysisPWG4CDF ( const char *method="local", const char *plugin_mode="test", const char *analysis_mode="grid" )"
+echo "void EmcalJetCDF ( const char *method="local", const char *plugin_mode="test", const char *analysis_mode="grid" )"
 echo
 echo "Usage : run_jets <kMethod> <kPluginMode> <kAnalysisMode>"
 echo "kMethod : local or plugin "
 echo "kPluginMode : test, offline, submit, terminate, full "
 echo "kAnalysisMode : local, grid, proof "
+echo "For running with memory checking tools prefix all arguments with one of the following:"
+echo "memstat : for running the ROOT tool memstat"
+echo "massif : for running script under the valgrind tool massif"
+echo "valgrind : for running under valgrind with --leak-check=full --suppressions=/software/physics-tools/alice/aliroot-src/etc/valgrind-aliroot.supp"
 }
 
 escape_quotes ()
 {
-string=$1
-substring="\""
-replacement="\\\""
-
-echo ${string//"$substring"/"$replacement"}
+  string=$1
+  substring="\""
+  replacement="\\\""
+  echo ${string//"$substring"/"$replacement"}
 }
 
 
 quote_args()
 {
-arg=$1
+  arg=$1
 
-if [[ $arg == ${arg//[^0-9]/} ]]
-then
-  echo $arg
-else
-  echo "\""$arg"\""
-fi
-
+  if [[ $arg == ${arg//[^0-9]/} ]]
+  then
+    echo $arg
+  else
+    echo "\""$arg"\""
+  fi
 }
 
+dot_countdown()
+{
+i=0
+while (( i < $1 ))
+  do
+  echo -ne ". "
+  sleep 1
+  ((i++))
+  done 
+echo
+}
 
 if [ "$1" = "help" ]
 then
@@ -46,11 +59,11 @@ then
   shift
 elif [ "$1" = "valgrind" ]
 then
-  VALGRIND="valgrind --leak-check=full --suppressions=/home/physics-tools/alice/aliroot/etc/valgrind-aliroot.supp "
+  VALGRIND="valgrind --leak-check=full --suppressions=/software/physics-tools/alice/aliroot-src/etc/valgrind-aliroot.supp "
   shift
 fi
 
-COMMAND="AnalysisCDFjets.C"
+COMMAND="EmcalJetCDF.C"
 
 
 # parse arguments and quote them
@@ -75,10 +88,8 @@ ARGS_END="\)"
 
 PLUGIN_ARGS=$ARGS_BEGIN$ARGS_CORE$ARGS_END
 
-# exec_begin="nohup root -l -b -q "
-
-# NOHUP="nohup"
-# REZ="&"
+NOHUP="nohup"
+REZ="&"
 REDIR=" > >(tee out.log) 2> >(tee err.log >&2)"
 ROOT=" aliroot -l -b -q"
 
@@ -91,6 +102,8 @@ full_command=$exec_begin" "$COMMAND$PLUGIN_ARGS" "$exec_end
 
 echo "Running command :"
 echo $full_command
+echo "ctrl-c for stopping the execution .."
+dot_countdown 5
 
 eval $full_command
 

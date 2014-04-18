@@ -3,11 +3,26 @@
 DATA_FILE="data.txt"
 DATA_FILE_LIST=`cat $DATA_FILE`
 
-NR_JOBS=`wc -l $DATA_FILE`
-
 TIME=`date +%Y%m%d_%H%M`
 DIR="emcal_jet_cdf"
 TAG=$1
+JOBS_PACK=$2
+
+DATA_PREFIX="subdata_"
+
+NR_FILES=`wc -l $DATA_FILE | awk '{print $1}'`
+
+NR_JOBS=$(($NR_FILES/$JOBS_PACK + 1))
+
+DIR_JOBS="${DIR}_${TAG}_${TIME}"
+
+mkdir -p $DIR_JOBS
+
+echo "NR_FILES : " $NR_FILES
+echo "NR_JOBS : " $NR_JOBS
+echo "RUN DIR : " $DIR_JOBS
+
+split -a 6 -d -l $JOBS_PACK data.txt $DATA_PREFIX
 
 PROGRAM='aliroot -l -b -q EmcalJetCDF.C\(\"test\",\"local\",\"data.txt\"\)'
 
@@ -15,30 +30,14 @@ JOB_FILES="EmcalJetCDF.C AddTaskEmcalJetCDF.C AliAnalysisTaskEmcalJetCDF.cxx Ali
 
 compileC_aliroot AliAnalysisTaskEmcalJetCDF.cxx
 
+for data in `ls -1 $DATA_PREFIX*`
+{
+  IDX=${data#"subdata_"}
 
-## directory that holds the jobs subdirs; 
-## it will be created in curent dir and the name can be changed at will
-DIR_JOBS="${DIR}_$TAG_${TIME}"
-mkdir -p $DIR_JOBS
+  ## create job dir
+  SUBJOB_DIR=$DIR_JOBS/job_$IDX
 
-echo $DIR_JOBS
-
-JOB_IDX=0
-
-for data_file in $DATA_FILE_LIST
-do
-  ## job number
-  (( JOB_IDX += 1 ))
-
-  echo $JOB_IDX
-
-#  ## create job dir
-  SUBJOB_DIR=$DIR_JOBS/job_$JOB_IDX
-
-  echo $DIR_JOBS
-  echo $SUBJOB_DIR
-
-  mkdir -p $SUBJOB_DIR
+  mkdir -pv $SUBJOB_DIR
 
   ## create the torque scripts
   SCRIPT=$SUBJOB_DIR/qsub_job
@@ -47,14 +46,13 @@ do
   echo "${PROGRAM}" >> $SCRIPT
   cat tail >> ${SCRIPT}
 
-  echo $data_file > $SUBJOB_DIR/data.txt
+  mv $data  $SUBJOB_DIR/data.txt
 
   for file in $JOB_FILES
   do
-    cp -d $file $SUBJOB_DIR/
+    cp -L $file $SUBJOB_DIR/
   done
 
-done
-
+}
 
 
