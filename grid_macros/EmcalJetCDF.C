@@ -376,6 +376,29 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
 //     if (useTender)
 //     {
 //         gROOT->LoadMacro("$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEMCALTender.C");
+//         Bool_t distBC         = kTRUE,   //distance to bad channel
+//         Bool_t recalibClus    = kTRUE,   //recalibrate cluster energy
+//         Bool_t recalcClusPos  = kTRUE,   //recalculate cluster position
+//         Bool_t nonLinearCorr  = kTRUE,   //apply non-linearity
+//         Bool_t remExoticCell  = kTRUE,   //remove exotic cells
+//         Bool_t remExoticClus  = kTRUE,   //remove exotic clusters
+//         Bool_t fidRegion      = kFALSE,  //apply fiducial cuts
+//         Bool_t calibEnergy    = kTRUE,   //calibrate energy
+//         Bool_t calibTime      = kTRUE,   //calibrate timing
+//         Bool_t remBC          = kTRUE,   //remove bad channels
+//         UInt_t nonLinFunct    = AliEMCALRecoUtils::kBeamTestCorrected,
+//         Bool_t reclusterize   = kTRUE,   //reclusterize
+//         Float_t seedthresh    = 0.100,   //seed threshold
+//         Float_t cellthresh    = 0.050,   //cell threshold
+//         UInt_t clusterizer    = AliEMCALRecParam::kClusterizerv2,
+//         Bool_t trackMatch     = kTRUE,   //track matching
+//         Bool_t updateCellOnly = kFALSE,  //only change if you run your own clusterizer task
+//         Float_t timeMin       = 100e-9,  //minimum time of physical signal in a cell/digit (s)
+//         Float_t timeMax       = 900e-9,  //maximum time of physical signal in a cell/digit (s)
+//         Float_t timeCut       = 900e-9,  //maximum time difference between the digits inside EMC cluster (s)
+//         const char *pass      = 0        //string defining pass (use none if figured out from path)
+
+
 //         AliAnalysisTaskSE *tender = AddTaskEMCALTender( "" , kTRUE, kTRUE, kTRUE, kTRUE, kTRUE, kFALSE, kTRUE, kTRUE, kTRUE,
 //                                                     AliEMCALRecoUtils::kBeamTestCorrected,kTRUE,0.1,0.05,AliEMCALRecParam::kClusterizerv2, kFALSE,kFALSE,-1,1e6,1e6);
 //         if (usedData != "AOD" && !kAnalysisMode.CompareTo ( "grid" ))
