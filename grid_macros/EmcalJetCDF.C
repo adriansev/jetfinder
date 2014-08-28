@@ -1,3 +1,4 @@
+
 #ifndef __CINT__
 // Standard includes
 #include <cstdio>
@@ -18,6 +19,7 @@
 #include "TError.h"
 #include "TFile.h"
 #include "TFileCollection.h"
+#include "TCollection.h"
 #include "TChain.h"
 #include "TObjString.h"
 #include "TObjArray.h"
@@ -73,7 +75,18 @@
 #endif
 
 #include <ctime>
+#include <Rtypes.h>
+#include <TROOT.h>
+#include <TSystem.h>
 #include "TGrid.h"
+#include <TObject.h>
+#include <TTree.h>
+#include <Riostream.h>
+
+//______________________________________________________________________________
+// enum Jets used
+enum AlgoType {kKT, kANTIKT};
+enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS};
 
 //______________________________________________________________________________
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
@@ -81,7 +94,7 @@
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
 
-Int_t       kTestFiles               = 10;    // Number of test files
+Int_t       kTestFiles               = 4;    // Number of test files
 Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
@@ -111,11 +124,6 @@ Int_t       kMaxInitFailed           = 10 ;    // Optionally set number of faile
 Int_t       kTTL                     = 14400 ; // Time To Live
 Int_t       kMergeTTL                = 1800 ;  // Time To Live merging
 
-Int_t       kGridRunsPerMaster       = 1; // Number of runs per master job
-Bool_t      kPluginMergeViaJDL       = kTRUE;          // merge via JDL
-
-Int_t       kPluginOutputToRunNumber = 1;              // write the output to subdirs named after run number
-
 TString     kGridOutdir              = "out"; // AliEn output directory. If blank will become output_<kTrainName>
 TString     kGridDataSet             = ""; // sub working directory not to confuse different run xmls
 TString     kGridExtraAliendirLevel  = ""; // sub working directory not to confuse different run xmls
@@ -134,16 +142,7 @@ TString kAAF        =
 //                         "asevcenc@alice-caf.cern.ch" ;
     "asevcenc@skaf.saske.sk";
 
-Int_t   kProofReset = 0  ;
-Int_t   kWorkers    = 20 ;
-Int_t   kCores      = 8  ;
-
-//______________________________________________________________________________
-//  DEFINED INPUT DATA in AlienHandler.C
-
-TString   kInputData =
-    "pp_lhc11a";
-//                       "pp_lhc10e";
+Int_t   kProofReset = 0  ; Int_t   kWorkers    = 20 ; Int_t   kCores      = 8  ;
 
 // Debug
 Int_t   debug = 100;
@@ -154,7 +153,7 @@ Bool_t      kUseDebug           = kTRUE; // activate debugging
 Int_t       kErrorIgnoreLevel   = -1; // takes the errror print level from .rootrc
 Bool_t      kUsePAR             = kFALSE; // use par files for extra libs
 
-unsigned int kUseSysInfo        = 0 ;           // activate debugging
+unsigned int kUseSysInfo        = 50 ;           // activate debugging
 
 //______________________________________________________________________________
 // Containers for IO file names
@@ -174,18 +173,6 @@ TString ListLibs = "";
 TString ListLibsExtra = "";
 TString ListSources = "";
 
-//______________________________________________________________________________
-// enum Jets used
-enum AlgoType {kKT, kANTIKT};
-enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS};
-
-//______________________________________________________________________________
-// Analysis steering variables
-TString        runPeriod           = "LHC10e";            // set the run period (used on grid)
-TString        dataType            = "AOD";               // set the analysis type, AOD, ESD or sESD
-UInt_t         pSel                = AliVEvent::kMB;      // used event selection for every task except for the analysis tasks
-Bool_t         useTender           = kTRUE;               // trigger, if tender task should be used
-Bool_t         isMC                = kFALSE;              // trigger, if MC handler should be used
 
 // Function signatures
 class AliAnalysisGrid;
@@ -194,10 +181,29 @@ class AliAnalysisManager;
 
 void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode = "local", const char* input = "data.txt" )
     {
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    //@@@     ANALYSIS STEERING VARIABLES     @@@
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    TString        runPeriod           = "";              // run period (to be determined automatically form path to files; if path is not GRID like, set by hand)
+    TString        dataType            = "";              // analysis type, AOD, ESD or sESD (to be automatically determined below; if detection does not work, set by hand after detection)
+    UInt_t         pSel                = AliVEvent::kMB;  // used event selection for every task except for the analysis tasks
+    Bool_t         useTender           = kTRUE;           // trigger, if tender task should be used
+    Bool_t         isMC                = kFALSE;          // trigger, if MC handler should be used
+
+    //______________________________________________________________________________
+    //  DEFINED INPUT DATA LIST IN InputData.C
+    TString   kInputData =
+                            "pp_lhc11a";
+    //                      "pp_lhc10e";
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    // LIBRARIES LOADING
     LoadLibs( kTRUE ); // load FJ3 libs  // Load necessary libraries for the script
 
     TString   kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
     TString   kAnalysisMode = analysis_mode ; kAnalysisMode.ToLower();  // local, grid, proof
+
+    if ( ( !kAnalysisMode.CompareTo ( "local" ) ) || ( !kPluginMode.CompareTo ( "test" ) ) ) { kUsePAR = kFALSE; }
 
     gSystem->SetFPEMask(); // because is used in reference script
 
@@ -213,16 +219,7 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     if ( input_data.EndsWith ( ".txt" ) )
         { kDatafile = input_data; }
     else
-        { kDataset = input_data; }
-
-    if ( ( !kAnalysisMode.CompareTo ( "local" ) ) || ( !kPluginMode.CompareTo ( "test" ) ) ) { kUsePAR = kFALSE; }
-
-
-    // Analysis input type
-    dataType.ToLower();
-    cout << "Data type : " << dataType.Data() << " analysis chosen" << endl;
-
-    if ( !kAnalysisMode.CompareTo ("grid") && !dataType.CompareTo("sesd") ) { cout << "Skimmed ESD analysis not available on the grid!" << endl; return; }
+        { kDataset  = input_data; }
 
     //******************
     //    DATA INPUT
@@ -235,9 +232,53 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     // .txt file containing the list of files to be chained in test mode
     plugin->SetFileForTestMode ( kDatafile.Data() );   //fFileForTestMode
 
-    // to set up also runPeriod from string;
-    // irrelevant at this moment what exactly is runPeriod unless MC!!!!
+    //   *****************************
+    //         DATA TYPE SETTINGS
+    //   *****************************
+    // extract (if possible) the data type from input path
+    TString dataPattern   = plugin->GetDataPattern();
+    TString file4TestMode = plugin->GetFileForTestMode();
 
+    if ( !kAnalysisMode.CompareTo("local") && !kPluginMode.CompareTo("test") )
+        { dataType = FindTreeName(file4TestMode); }
+    else
+        {
+        if (dataPattern.Contains("AliAOD.root")) { dataType = "aod"; }
+        if (dataPattern.Contains("AliESD.root")) { dataType = "esd"; }
+        }
+
+    if (!dataType.IsNull())
+        { cout << "----->>>>>>> Data type : " << dataType.Data() << " analysis chosen" << endl; }
+    else
+        {
+        dataType = "aod";
+        cout << "ERROR ----->>>>>>>   Data type IS NULL !!! ; dataType fallback to AOD type" << endl;
+        printf("ERROR ############   Set dataType by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
+        }
+    // dataType = "esd"; // Here it should be set by hand in case automatic procedure did not work
+
+    //   *****************************
+    //         PERIOD SETTINGS
+    //   *****************************
+    // extract (if possible) the Period from input path
+    if ( !kAnalysisMode.CompareTo("local") && !kPluginMode.CompareTo("test") )
+        {
+        TString data_path = GetInputDataPath (file4TestMode);
+        runPeriod = GetPeriod (data_path);
+        }
+    else
+        { runPeriod = GetPeriod (dataPattern); }
+
+    if (!runPeriod.IsNull())
+        { cout << "----->>>>>>> Period : " << runPeriod.Data() << endl; }
+    else
+        {
+        cout << "ERROR ----->>>>>>>   PERIOD IS NULL !!!" << endl;
+        printf("ERROR ############   Set runPeriod by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
+        }
+    // runPeriod = "lhc10e"; // Here it should be set by hand in case automatic procedure did not work
+
+    cout << "Period is MonteCarlo : " << PeriodIsMC (runPeriod) << endl;
 
     //*******************************************
     //   Loading of libraries (script + plugin)
@@ -280,7 +321,7 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     //<><><><><><><><><><>
     //    DEBUGGING
     //<><><><><><><><><><>
-    if ( kUseDebug && ( ( !kAnalysisMode.CompareTo ( "local" ) ) || ( !kPluginMode.CompareTo ( "test" ) ) ) ) { mgr->SetDebugLevel ( 10 ); }
+    if ( kUseDebug && ( ( !kAnalysisMode.CompareTo ( "local" ) ) || ( !kPluginMode.CompareTo ( "test" ) ) ) ) { mgr->SetDebugLevel ( 110 ); }
 
     // Event frequency for collecting system information
     mgr->SetNSysInfo ( kUseSysInfo );
@@ -292,8 +333,9 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
         if ( kGridMergeExclude.Length() ) { kGridMergeExclude += " "; }
         kGridMergeExclude += "syswatch.root";
         }
-    else
-        { AliLog::SetGlobalLogLevel ( AliLog::kError ); }
+
+    mgr->AddClassDebug("AliJetContainer", 100);
+    AliLog::SetGlobalLogLevel ( AliLog::kDebug );
 
 
     //********************
@@ -304,24 +346,21 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
 
     //********************************************
 
+//______________________________________________________________________________
+// handlers definition
+
+// load all Add*Handler scripts
+    gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C" );
+    gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
+
     if ( !dataType.CompareTo("aod") )
         {
-        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C" );
         AliAODInputHandler* aodH = AddAODHandler();
         aodH->SetCheckStatistics ( kTRUE );
         }
     else
-    if ( !dataType.CompareTo("esd") )
-        {
-        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
-        AliESDInputHandler* esdH = AddESDHandler();
-        }
-    else
-    if ( !dataType.CompareTo("sesd") )
-        {
-        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
-        AliESDInputHandler* esdH = AddESDHandler();
-        }
+    if ( !dataType.CompareTo("esd") || !dataType.CompareTo("sesd") )
+        { AliESDInputHandler* esdH = AddESDHandler(); }
     else
         { cout << "Data type not recognized! You have to specify ESD, AOD, or sESD!\n"; return; }
 
@@ -337,7 +376,7 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     // ################# Now: Add some basic tasks
 //______________________________________________________________________________
 // Signature PhysicsSelectionTask
-    Bool_t     isLHC11a          = kFALSE;  // true then skip FastOnly events (only for LHC11a)
+    Bool_t     isLHC11a          = !runPeriod.CompareTo("lhc11a")? kTRUE : kFALSE;  // true then skip FastOnly events (only for LHC11a)
     Bool_t     withHistos        = kTRUE;   // true then write output
     UInt_t     triggers          = pSel;    // if not zero only process given trigges
     Double_t   minE              = 5;       // minimum clus energy (<0 -> do not compute)
@@ -382,7 +421,7 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
         //adjust pass when running locally. On grid give empty string, will be picked up automatically from path to ESD/AOD file
         // const char *perstr  = "LHC11h"
         // const char *pass    = 0 /*should not be needed*/
-        AliAnalysisTaskSE* clusm = AddTaskEmcalPreparation(runPeriod,"pass1");
+        AliAnalysisTaskSE* clusm = AddTaskEmcalPreparation(runPeriod);
         }
 
     // ################# Now: Call jet preparation macro (picotracks, hadronic corrected caloclusters, ...)
@@ -429,7 +468,7 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     Int_t          type            = kCHARGEDJETS; // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
     Double_t       minTrPt         = 0.15;
     Double_t       minClPt         = 0.30;
-    Double_t       ghostArea       = 0.01;
+    Double_t       ghostArea       = 0.005;
     Int_t          recombScheme    = 1;
     const char*    tag             = "Jet";
     Double_t       minJetPt        = 1.;
@@ -442,81 +481,96 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     AliEmcalJetTask* jetFinderTask_015_1_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
     cout << "jetFinder_015_1_04_chg Task Name : " << jetFinderTask_015_1_04_chg->GetName() << endl;
 
-    minTrPt = 0.15;  minJetPt = 1.;  radius = 0.6;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_1_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_1_06_chg Task Name : " << jetFinderTask_015_1_06_chg->GetName() << endl;
 
-    //______________________________________________________________________________
-    minTrPt = 0.15;  minJetPt = 10.;  radius = 0.4;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_10_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_10_04_chg Task Name : " << jetFinderTask_015_10_04_chg->GetName() << endl;
+//     jetFinderTask_015_1_04_chg->SetDebugLevel(100);
+//
+//     cout << "Eta MIN : " << jetFinderTask_015_1_04_chg->GetEtaMin() << " ; Eta MAX : " << jetFinderTask_015_1_04_chg->GetEtaMax() << endl;
+//     cout << "JET Eta MIN : " << jetFinderTask_015_1_04_chg->GetJetEtaMin() << " ; JET Eta MAX : " << jetFinderTask_015_1_04_chg->GetJetEtaMax() << endl;
+//
+//     cout << "Phi MIN : " << jetFinderTask_015_1_04_chg->GetPhiMin() << " ; Phi MAX : " << jetFinderTask_015_1_04_chg->GetPhiMax() << endl;
+//     cout << "JET Phi MIN : " << jetFinderTask_015_1_04_chg->GetJetPhiMin() << " ; JET Phi MAX : " << jetFinderTask_015_1_04_chg->GetJetPhiMax() << endl;
+//
+//
+//     jetFinderTask_015_1_04_chg->Print();
+//     jetFinderTask_015_1_04_chg->PrintTask("all");
+//     jetFinderTask_015_1_04_chg->PrintContainers("all");
 
-    minTrPt = 0.15;  minJetPt = 10.;  radius = 0.6;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_10_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_10_06_chg Task Name : " << jetFinderTask_015_10_06_chg->GetName() << endl;
 
-    //______________________________________________________________________________
-    minTrPt = 0.15;  minJetPt = 20.;  radius = 0.4;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_20_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_20_04_chg Task Name : " << jetFinderTask_015_20_04_chg->GetName() << endl;
-
-    minTrPt = 0.15;  minJetPt = 20.;  radius = 0.6;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_20_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_20_06_chg Task Name : " << jetFinderTask_015_20_06_chg->GetName() << endl;
-
-    //______________________________________________________________________________
-    minTrPt = 0.15;  minJetPt = 30.;  radius = 0.4;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_30_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_30_04_chg Task Name : " << jetFinderTask_015_30_04_chg->GetName() << endl;
-
-    minTrPt = 0.15;  minJetPt = 30.;  radius = 0.6;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_30_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_30_06_chg Task Name : " << jetFinderTask_015_30_06_chg->GetName() << endl;
-
-    //______________________________________________________________________________
-    minTrPt = 0.15;  minJetPt = 40.;  radius = 0.4;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_40_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_40_04_chg Task Name : " << jetFinderTask_015_40_04_chg->GetName() << endl;
-
-    minTrPt = 0.15;  minJetPt = 40.;  radius = 0.6;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_40_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_40_06_chg Task Name : " << jetFinderTask_015_40_06_chg->GetName() << endl;
-
-    //______________________________________________________________________________
-    minTrPt = 0.15;  minJetPt = 50.;  radius = 0.4;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_50_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_50_04_chg Task Name : " << jetFinderTask_015_50_04_chg->GetName() << endl;
-
-    minTrPt = 0.15;  minJetPt = 50.;  radius = 0.6;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_50_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_50_06_chg Task Name : " << jetFinderTask_015_50_06_chg->GetName() << endl;
-
-    //______________________________________________________________________________
-    minTrPt = 0.15;  minJetPt = 60.;  radius = 0.4;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_60_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_60_04_chg Task Name : " << jetFinderTask_015_60_04_chg->GetName() << endl;
-
-    minTrPt = 0.15;  minJetPt = 60.;  radius = 0.6;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_60_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_60_06_chg Task Name : " << jetFinderTask_015_60_06_chg->GetName() << endl;
-
-    //______________________________________________________________________________
-    minTrPt = 0.15;  minJetPt = 70.;  radius = 0.4;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_70_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_70_04_chg Task Name : " << jetFinderTask_015_70_04_chg->GetName() << endl;
-
-    minTrPt = 0.15;  minJetPt = 70.;  radius = 0.6;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_70_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_70_06_chg Task Name : " << jetFinderTask_015_70_06_chg->GetName() << endl;
-
-    //______________________________________________________________________________
-    minTrPt = 0.15;  minJetPt = 80.;  radius = 0.4;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_80_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_80_04_chg Task Name : " << jetFinderTask_015_80_04_chg->GetName() << endl;
-
-    minTrPt = 0.15;  minJetPt = 80.;  radius = 0.6;  type = kCHARGEDJETS;
-    AliEmcalJetTask* jetFinderTask_015_80_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    cout << "jetFinder_015_80_06_chg Task Name : " << jetFinderTask_015_80_06_chg->GetName() << endl;
+//     minTrPt = 0.15;  minJetPt = 1.;  radius = 0.6;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_1_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_1_06_chg Task Name : " << jetFinderTask_015_1_06_chg->GetName() << endl;
+//
+//     //______________________________________________________________________________
+//     minTrPt = 0.15;  minJetPt = 10.;  radius = 0.4;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_10_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_10_04_chg Task Name : " << jetFinderTask_015_10_04_chg->GetName() << endl;
+//
+//     minTrPt = 0.15;  minJetPt = 10.;  radius = 0.6;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_10_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_10_06_chg Task Name : " << jetFinderTask_015_10_06_chg->GetName() << endl;
+//
+//     //______________________________________________________________________________
+//     minTrPt = 0.15;  minJetPt = 20.;  radius = 0.4;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_20_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_20_04_chg Task Name : " << jetFinderTask_015_20_04_chg->GetName() << endl;
+//
+//     minTrPt = 0.15;  minJetPt = 20.;  radius = 0.6;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_20_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_20_06_chg Task Name : " << jetFinderTask_015_20_06_chg->GetName() << endl;
+//
+//     //______________________________________________________________________________
+//     minTrPt = 0.15;  minJetPt = 30.;  radius = 0.4;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_30_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_30_04_chg Task Name : " << jetFinderTask_015_30_04_chg->GetName() << endl;
+//
+//     minTrPt = 0.15;  minJetPt = 30.;  radius = 0.6;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_30_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_30_06_chg Task Name : " << jetFinderTask_015_30_06_chg->GetName() << endl;
+//
+//     //______________________________________________________________________________
+//     minTrPt = 0.15;  minJetPt = 40.;  radius = 0.4;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_40_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_40_04_chg Task Name : " << jetFinderTask_015_40_04_chg->GetName() << endl;
+//
+//     minTrPt = 0.15;  minJetPt = 40.;  radius = 0.6;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_40_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_40_06_chg Task Name : " << jetFinderTask_015_40_06_chg->GetName() << endl;
+//
+//     //______________________________________________________________________________
+//     minTrPt = 0.15;  minJetPt = 50.;  radius = 0.4;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_50_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_50_04_chg Task Name : " << jetFinderTask_015_50_04_chg->GetName() << endl;
+//
+//     minTrPt = 0.15;  minJetPt = 50.;  radius = 0.6;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_50_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_50_06_chg Task Name : " << jetFinderTask_015_50_06_chg->GetName() << endl;
+//
+//     //______________________________________________________________________________
+//     minTrPt = 0.15;  minJetPt = 60.;  radius = 0.4;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_60_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_60_04_chg Task Name : " << jetFinderTask_015_60_04_chg->GetName() << endl;
+//
+//     minTrPt = 0.15;  minJetPt = 60.;  radius = 0.6;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_60_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_60_06_chg Task Name : " << jetFinderTask_015_60_06_chg->GetName() << endl;
+//
+//     //______________________________________________________________________________
+//     minTrPt = 0.15;  minJetPt = 70.;  radius = 0.4;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_70_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_70_04_chg Task Name : " << jetFinderTask_015_70_04_chg->GetName() << endl;
+//
+//     minTrPt = 0.15;  minJetPt = 70.;  radius = 0.6;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_70_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_70_06_chg Task Name : " << jetFinderTask_015_70_06_chg->GetName() << endl;
+//
+//     //______________________________________________________________________________
+//     minTrPt = 0.15;  minJetPt = 80.;  radius = 0.4;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_80_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_80_04_chg Task Name : " << jetFinderTask_015_80_04_chg->GetName() << endl;
+//
+//     minTrPt = 0.15;  minJetPt = 80.;  radius = 0.6;  type = kCHARGEDJETS;
+//     AliEmcalJetTask* jetFinderTask_015_80_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, type, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     cout << "jetFinder_015_80_06_chg Task Name : " << jetFinderTask_015_80_06_chg->GetName() << endl;
 
 //#####################################################################################
 
@@ -527,24 +581,31 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     //     Int_t        leadhadtype  = 0,         // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
     //     const char*  taskname     = "TaskEmcalJetCDF"
 
-    AliAnalysisTaskEmcalJetCDF* anaTask1  = AddTaskEmcalJetCDF (jetFinderTask_015_1_04_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask2  = AddTaskEmcalJetCDF (jetFinderTask_015_1_06_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask3  = AddTaskEmcalJetCDF (jetFinderTask_015_10_04_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask4  = AddTaskEmcalJetCDF (jetFinderTask_015_10_06_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask5  = AddTaskEmcalJetCDF (jetFinderTask_015_20_04_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask6  = AddTaskEmcalJetCDF (jetFinderTask_015_20_06_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask7  = AddTaskEmcalJetCDF (jetFinderTask_015_30_04_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask8  = AddTaskEmcalJetCDF (jetFinderTask_015_30_06_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask9  = AddTaskEmcalJetCDF (jetFinderTask_015_40_04_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask10 = AddTaskEmcalJetCDF (jetFinderTask_015_40_06_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask11 = AddTaskEmcalJetCDF (jetFinderTask_015_50_04_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask12 = AddTaskEmcalJetCDF (jetFinderTask_015_50_06_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask13 = AddTaskEmcalJetCDF (jetFinderTask_015_60_04_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask14 = AddTaskEmcalJetCDF (jetFinderTask_015_60_06_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask15 = AddTaskEmcalJetCDF (jetFinderTask_015_70_04_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask16 = AddTaskEmcalJetCDF (jetFinderTask_015_70_06_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask17 = AddTaskEmcalJetCDF (jetFinderTask_015_80_04_chg);
-    AliAnalysisTaskEmcalJetCDF* anaTask18 = AddTaskEmcalJetCDF (jetFinderTask_015_80_06_chg);
+    AliAnalysisTaskEmcalJetCDF* anaTask1  = AddTaskEmcalJetCDF (jetFinderTask_015_1_04_chg, 0.001, "TPC", 0, "CDF_TPC_chg");
+//     anaTask1->SetDebugLevel(100);
+
+//     AliAnalysisTaskEmcalJetCDF* anaTask2  = AddTaskEmcalJetCDF (jetFinderTask_015_1_04_chg, 0.001, "EMCAL", 0, "CDF_EMCAL_chg");
+//     anaTask2->SetDebugLevel(100);
+
+
+
+//     AliAnalysisTaskEmcalJetCDF* anaTask2  = AddTaskEmcalJetCDF (jetFinderTask_015_1_06_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask3  = AddTaskEmcalJetCDF (jetFinderTask_015_10_04_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask4  = AddTaskEmcalJetCDF (jetFinderTask_015_10_06_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask5  = AddTaskEmcalJetCDF (jetFinderTask_015_20_04_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask6  = AddTaskEmcalJetCDF (jetFinderTask_015_20_06_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask7  = AddTaskEmcalJetCDF (jetFinderTask_015_30_04_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask8  = AddTaskEmcalJetCDF (jetFinderTask_015_30_06_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask9  = AddTaskEmcalJetCDF (jetFinderTask_015_40_04_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask10 = AddTaskEmcalJetCDF (jetFinderTask_015_40_06_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask11 = AddTaskEmcalJetCDF (jetFinderTask_015_50_04_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask12 = AddTaskEmcalJetCDF (jetFinderTask_015_50_06_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask13 = AddTaskEmcalJetCDF (jetFinderTask_015_60_04_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask14 = AddTaskEmcalJetCDF (jetFinderTask_015_60_06_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask15 = AddTaskEmcalJetCDF (jetFinderTask_015_70_04_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask16 = AddTaskEmcalJetCDF (jetFinderTask_015_70_06_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask17 = AddTaskEmcalJetCDF (jetFinderTask_015_80_04_chg);
+//     AliAnalysisTaskEmcalJetCDF* anaTask18 = AddTaskEmcalJetCDF (jetFinderTask_015_80_06_chg);
 
 
 //#################################################################
@@ -570,7 +631,7 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
         mgr->PrintStatus();
 
         // grmpf, aliroot error handler overwrites root
-        AliLog::SetGlobalLogLevel ( AliLog::kError );
+        AliLog::SetGlobalLogLevel ( AliLog::kDebug );
 
         gErrorIgnoreLevel = kErrorIgnoreLevel;
 
@@ -695,6 +756,9 @@ AliAnalysisAlien* CreateAlienHandler ( const char* plugin_mode = "test" )
 
     plugin->SetCheckCopy ( kFALSE );
 
+    // min (nr,4) replicas in grid storage
+    plugin->SetNumberOfReplicas(2);
+
     // Set the number of test files; set to kGridFilesPerJob as to evaluate the memory consumption and ttl on grid
     plugin->SetNtestFiles ( kTestFiles );
 
@@ -744,19 +808,22 @@ AliAnalysisAlien* CreateAlienHandler ( const char* plugin_mode = "test" )
     plugin->SetTTL ( kTTL );
 
     // Optionally set input format (default xml-single)
-    plugin->SetInputFormat ( "xml-single" );
+    plugin->SetInputFormat("xml-single");
 
     // Optionally modify job price (default 1)
-    plugin->SetPrice ( 1 );
+    plugin->SetPrice(1);
 
-    plugin->SetNrunsPerMaster ( kGridRunsPerMaster );
-    plugin->SetMergeViaJDL ( kPluginMergeViaJDL );
+    // Number of runs per masterjob
+    plugin->SetNrunsPerMaster(1);
+
+    // Enable merging via automatic JDL
+    plugin->SetMergeViaJDL(kTRUE);
 
     // write the output to subdirs named after run number
-    plugin->SetOutputToRunNo ( kPluginOutputToRunNumber );
+    plugin->SetOutputToRunNo(1);
 
+    // AliEn directory containing the input packages
     if ( kGridDataSet.Length() > 0 ) { kWorkDir += Form ( "/%s%s", kGridDataSet.Data(), kGridExtraAliendirLevel.Data() ); }
-
     plugin->SetGridWorkingDir ( kWorkDir.Data() );
 
     // Declare alien output directory. Relative to working directory.
@@ -812,7 +879,7 @@ Bool_t LoadPars ( AliAnalysisAlien* plugin, const char *module, Bool_t rec = kFA
 
     if ( !plugin->SetupPar ( module ) ) { return kFALSE; }
 
-    mod += ".par"; plugin->EnablePackage ( mod.Data() ); anaPars += mod.Data();
+    mod += ".par"; plugin->EnablePackage ( mod.Data() ); // anaPars += mod.Data();
 
     //   mod.ReplaceAll(".par",".so"); mod.Prepend("lib"); result = gSystem->Load(mod);
     //   if ( result < 0 ) { cout << "Load PARs : Load library failed : " << mod.Data() << endl; return kFALSE ; }
@@ -867,4 +934,109 @@ Bool_t LoadSource ( const char *source, Bool_t rec = kFALSE )
     }
 
 
-// kate: indent-mode cstyle; indent-width 4; replace-tabs on;
+//______________________________________________________________________________
+TString FindTreeName ( TString file_list ) const
+    {
+    TString fDataType = "";  // result
+    if ( gSystem->AccessPathName ( file_list.Data() ) )
+            { cout << "File not found: " << file_list.Data() << endl; return fDataType; }
+
+    // Open the file
+    ifstream in; in.open ( file_list.Data() );
+    Int_t count = 0;
+    TString line;
+
+    while ( in.good() )
+        {
+        in >> line;
+        if ( line.IsNull() || line.BeginsWith ( "#" ) ) continue;
+        if ( count++ == 1 ) break; // look only over first file;
+
+        TString file ( line );
+
+        // STRICT ORDERING!!! If multiple tree types found last valid will be preffered
+        if (IsTreeType(file,"TreeK"))      { fDataType = "kine";    }
+        if (IsTreeType(file,"TE"))         { fDataType = "galice";  }
+        if (IsTreeType(file,"HLTESDTree")) { fDataType = "hltesd";  }
+        if (IsTreeType(file,"esdTree"))    { fDataType = "esd";     }
+        if (IsTreeType(file,"aodTree"))    { fDataType = "aod";     }
+
+        return fDataType;
+        }
+    in.close();
+    return fDataType ;
+    }
+
+//______________________________________________________________________________
+Bool_t IsTreeType (TString fileInput, TString treeName)
+    {
+    TFile* f = TFile::Open (fileInput.Data());
+    if ( f && !f->IsZombie() )
+        {
+        TKey* key = f->FindKeyAny(treeName.Data());
+        if (key)
+            { f->Close(); return kTRUE;  }
+        else
+            { f->Close(); return kFALSE; }
+        }
+    else
+        { cout << " :: Skipping un-openable file: << " << fileInput.Data()  << endl; return kFALSE; }
+    }
+
+//______________________________________________________________________________
+TString GetInputDataPath (TString file_list) const
+    {
+    TString line = "";
+    if ( gSystem->AccessPathName ( file_list.Data() ) )
+        { cout << "File not found: " << file_list.Data() << endl; return line; }
+
+    // Open the file
+    ifstream in; in.open ( file_list.Data() );
+    Int_t count = 0;
+
+    while ( in.good() )
+        {
+        in >> line;
+        if ( line.IsNull() || line.BeginsWith ( "#" ) ) continue;
+        if ( count++ == 1 ) break; // look only over first file;
+        }
+    in.close();
+    return line ;
+    }
+
+//______________________________________________________________________________
+TString GetPeriod (TString file_path)
+    {
+    TString period = "";
+
+    if (!file_path.IsNull())
+        {
+        // split string in tokens (libs)
+        TObjArray* tokens_list = file_path.Tokenize("/"); //tokens_list->Compress();
+        TIter next_str(tokens_list);
+        TObjString* token=0;
+        Int_t j=0;
+        while ((token=(TObjString*)next_str()))
+            {
+            TString token_str = token->GetString(); token_str.ToLower();
+            if ( token_str.Contains("lhc") ) { period = token_str; }
+            }
+        delete tokens_list;
+        }
+
+    return period;
+    }
+
+//______________________________________________________________________________
+Bool_t PeriodIsMC ( TString period )
+    {
+    if (!period.IsNull())
+        {
+        period.ToLower();
+        if ( period.BeginsWith("lhc") && (period.Length() > 6) ) {return kTRUE;}
+        }
+    return kFALSE;
+    }
+
+
+// kate: indent-mode none; indent-width 4; replace-tabs on;
