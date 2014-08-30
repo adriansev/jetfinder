@@ -1,16 +1,18 @@
-
 #ifndef __CINT__
 // Standard includes
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
+#include <ctime>
+#include <fstream>
 
 // ROOT includes
 #include "Riostream.h"
 #include "Rtypes.h"
 #include "TROOT.h"
 #include "TSystem.h"
+#include "TApplication.h"
 #include "TString.h"
 #include "TList.h"
 #include "TEnv.h"
@@ -23,14 +25,6 @@
 #include "TChain.h"
 #include "TObjString.h"
 #include "TObjArray.h"
-#include "TMacro.h"
-#include "TGrid.h"
-#include "TGridResult.h"
-#include "TGridCollection.h"
-#include "TGridJDL.h"
-#include "TGridJobStatusList.h"
-#include "TGridJobStatus.h"
-#include "TFileMerger.h"
 
 // AliROOT includes
 #include "AliAnalysisManager.h"
@@ -55,6 +49,10 @@
 #include "AliAnalysisTaskEmcal.h"
 #include "AliAnalysisTaskEmcalJet.h"
 
+#include "AddAODHandler.C"
+#include "AddESDHandler.C"
+#include "AddMCHandler.C"
+
 #include "AddTaskEmcalPhysicsSelection.C"
 #include "AddTaskEmcalCompat.C" //$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalCompat.C
 #include "AddTaskEmcalSetup.C" //$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalSetup.C
@@ -68,20 +66,8 @@
 #include "AddTaskEmcalJetCDF.C"
 #include "InputData.C"
 
-// JETAN
-#include "AddAODHandler.C"
-#include "AddESDHandler.C"
-
 #endif
 
-#include <ctime>
-#include <Rtypes.h>
-#include <TROOT.h>
-#include <TSystem.h>
-#include "TGrid.h"
-#include <TObject.h>
-#include <TTree.h>
-#include <Riostream.h>
 
 //______________________________________________________________________________
 // enum Jets used
@@ -179,8 +165,10 @@ class AliAnalysisGrid;
 class AliAnalysisAlien;
 class AliAnalysisManager;
 
-void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode = "local", const char* input = "data.txt" )
+void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
     {
+    gSystem->SetFPEMask(); // because is used in reference script
+
     //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     //@@@     ANALYSIS STEERING VARIABLES     @@@
     //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -190,47 +178,64 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     Bool_t         useTender           = kTRUE;           // trigger, if tender task should be used
     Bool_t         isMC                = kFALSE;          // trigger, if MC handler should be used
 
-    //______________________________________________________________________________
-    //  DEFINED INPUT DATA LIST IN InputData.C
-    TString   kInputData =
-                            "pp_lhc11a";
-    //                      "pp_lhc10e";
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
     // LIBRARIES LOADING
     LoadLibs( kTRUE ); // load FJ3 libs  // Load necessary libraries for the script
 
     TString   kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
     TString   kAnalysisMode = analysis_mode ; kAnalysisMode.ToLower();  // local, grid, proof
 
+    // if analysis is done on localhost do not use PARs
     if ( ( !kAnalysisMode.CompareTo ( "local" ) ) || ( !kPluginMode.CompareTo ( "test" ) ) ) { kUsePAR = kFALSE; }
-
-    gSystem->SetFPEMask(); // because is used in reference script
 
     //==========================================================================
     // SET UP AliEn handler -> main analysis engine : we will use many internal tools of AliAnalysisAlien
     //==========================================================================
     AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );
 
+    //###   ANALYSIS MANAGER   ###
+    // Make the analysis manager and connect event handlers
+    AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );
+
+    if ( kCommonOutputFileName.Length() > 0 ) { mgr->SetCommonFileName ( kCommonOutputFileName.Data() ); }
+
+    mgr->SetSkipTerminate ( kSkipTerminate );
+
     //______________________________________________________________________________
-    // Prepare input decisions
-    TString input_data = input;
-
-    if ( input_data.EndsWith ( ".txt" ) )
-        { kDatafile = input_data; }
-    else
-        { kDataset  = input_data; }
-
     //******************
     //    DATA INPUT
     //******************
-    // Load InputData macro ++++++++++++
-    gROOT->LoadMacro ( "InputData.C" );
-    //++++++++++++++++++++++++++++++++++
-    InputData ( plugin, kInputData );   // fDataPattern
+    // Prepare input decisions
+    TString kInputDataLabel = "";
+    TString input_data = input;
 
-    // .txt file containing the list of files to be chained in test mode
-    plugin->SetFileForTestMode ( kDatafile.Data() );   //fFileForTestMode
+    std::ifstream ifs (input_data.Data()); // try to open as file
+
+    if ( ifs.is_open() ) // if input is file
+        {
+        kDatafile = input_data;
+
+        // if input data is file then analysis mode must be local or proof (if forgotten to grid, will revert to local)
+        if ( kAnalysisMode.EqualTo("grid") ) { kAnalysisMode = "local" ;}
+
+        // .txt file containing the list of files to be chained in test mode; even if analysis is PROOF (plugin is test)
+        plugin->SetFileForTestMode ( kDatafile.Data() );   //fFileForTestMode
+        }
+    else if ( input_data.IsAscii() ) // either grid (tags from InputData.C) either dataset
+        {
+        if ( kAnalysisMode.EqualTo("grid"))
+            {
+            kInputDataLabel = input_data ; // input field must corespond with defined tags in InputData.C macro
+            gROOT->LoadMacro ( "InputData.C" );    // Load InputData macro
+            if ( !InputData(kInputDataLabel) ) { cout << "Analysis mode is GRID but no InputData.C label was recognized!! exiting..." << endl; gApplication->Terminate(); }
+            }
+        else
+            {
+            kDataset = input_data; // all other conditions means input_data is a proof dataset name
+            if ( !kDataset.BeginsWith("/") ) { cout << "Dataset is not beggining with \"/\". Check the arguments passed to script. exiting..." << endl; gApplication->Terminate();  }
+            }
+        }
+    //++++++++++++++++++++++++++++++++++
+
 
     //   *****************************
     //         DATA TYPE SETTINGS
@@ -280,19 +285,33 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
 
     cout << "Period is MonteCarlo : " << PeriodIsMC (runPeriod) << endl;
 
+    TString kPass = "";
+    //   *****************************
+    //         PASS SETTINGS
+    //   *****************************
+    // extract (if possible) the Pass from input path
+    if ( !kAnalysisMode.CompareTo("local") && !kPluginMode.CompareTo("test") )
+        {
+        TString data_path = GetInputDataPath (file4TestMode);
+        kPass = GetPass (data_path);
+        }
+    else
+        { kPass = GetPass (dataPattern); }
+
+
     //*******************************************
     //   Loading of libraries (script + plugin)
     //*******************************************
     //compile and load the task in local macro
-    TString myTaskCompileOpt = "AliAnalysisTaskEmcalJetCDF.cxx";
-    if ( !kAnalysisMode.CompareTo("local") ) { myTaskCompileOpt += "+g"  ;}
-    if ( !kAnalysisMode.CompareTo("grid") || !kAnalysisMode.CompareTo("proof") ) { myTaskCompileOpt += "++";}
-
-    if ( gROOT->LoadMacro ( myTaskCompileOpt.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
+    TString myTask = "AliAnalysisTaskEmcalJetCDF.cxx";
 
     // Load aditional code (my task) to alien plugin ;
-    // TProof.html#TProof:Load -> a basename(macro).h or .hh will be automatically loaded if in the same directory
-    ListSources += " AliAnalysisTaskEmcalJetCDF.cxx"; // extra space at beginning in case is not first source; it will be stripped.
+    ListSources += " " + myTask.Data(); // extra space at beginning in case is not first source; it will be stripped.
+
+    if ( kAnalysisMode.EqualTo("local") ) { myTask += "+g"  ;}
+    if ( kAnalysisMode.EqualTo("grid") || kAnalysisMode.EqualTo("proof") ) { myTask += "++";}
+    if ( gROOT->LoadMacro ( myTask.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
+
 
     //////////////////////////////////////////
     ////   LIBRARIES TO BE LOADED BY PLUGIN
@@ -307,21 +326,11 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     if ( ListLibsExtra.Length() )  { plugin->SetAdditionalRootLibs ( ListLibsExtra.Data() ); }
     if ( ListSources.Length() )    { plugin->SetAnalysisSource     ( ListSources.Data() ); }
 
-//______________________________________________________________________________
-    //#######################
-    //   ANALYSIS MANAGER
-    //#######################
-    // Make the analysis manager and connect event handlers
-    AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );
-
-    if ( kCommonOutputFileName.Length() > 0 ) { mgr->SetCommonFileName ( kCommonOutputFileName.Data() ); }
-
-    mgr->SetSkipTerminate ( kSkipTerminate );
 
     //<><><><><><><><><><>
     //    DEBUGGING
     //<><><><><><><><><><>
-    if ( kUseDebug && ( ( !kAnalysisMode.CompareTo ( "local" ) ) || ( !kPluginMode.CompareTo ( "test" ) ) ) ) { mgr->SetDebugLevel ( 110 ); }
+    if ( kUseDebug && ( kAnalysisMode.EqualTo("local") || kPluginMode.EqualTo("test") ) ) { mgr->SetDebugLevel ( 110 ); }
 
     // Event frequency for collecting system information
     mgr->SetNSysInfo ( kUseSysInfo );
@@ -334,9 +343,8 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
         kGridMergeExclude += "syswatch.root";
         }
 
-    mgr->AddClassDebug("AliJetContainer", 100);
-    AliLog::SetGlobalLogLevel ( AliLog::kDebug );
-
+//     mgr->AddClassDebug("AliJetContainer", 100);
+//     AliLog::SetGlobalLogLevel ( AliLog::kDebug );
 
     //********************
     //    DATA OUTPUT
@@ -348,29 +356,26 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
 
 //______________________________________________________________________________
 // handlers definition
-
-// load all Add*Handler scripts
-    gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C" );
-    gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
-
     if ( !dataType.CompareTo("aod") )
         {
+        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C" );
         AliAODInputHandler* aodH = AddAODHandler();
         aodH->SetCheckStatistics ( kTRUE );
         }
     else
     if ( !dataType.CompareTo("esd") || !dataType.CompareTo("sesd") )
-        { AliESDInputHandler* esdH = AddESDHandler(); }
+        {
+        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
+        AliESDInputHandler* esdH = AddESDHandler();
+        }
     else
         { cout << "Data type not recognized! You have to specify ESD, AOD, or sESD!\n"; return; }
 
     // Create MC handler, if MC is demanded
     if ( isMC && dataType.CompareTo("aod") ) // CompareTo returns 0 for matching - aod is excluded
         {
-        AliMCEventHandler* mcH = new AliMCEventHandler();
-        mcH->SetPreReadMode ( AliMCEventHandler::kLmPreRead );
-        mcH->SetReadTR ( kTRUE );
-        mgr->SetMCtruthEventHandler ( mcH );
+        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddMCHandler.C" );
+        AliMCEventHandler* mcH = AddMCHandler (kTRUE);
         }
 
     // ################# Now: Add some basic tasks
@@ -395,14 +400,14 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
 
 //______________________________________________________________________________
     // Centrality task
-    if ( !dataType.CompareTo("esd") )
+    if ( dataType.EqualTo("esd") )
         {
         gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/AddTaskCentrality.C" );
         AliCentralitySelectionTask* centralityTask = AddTaskCentrality ( kTRUE );
         }
 //______________________________________________________________________________
     // Compatibility task, only needed for skimmed ESD
-    if ( !dataType.CompareTo("sesd") )
+    if ( dataType.EqualTo("sesd") )
         {
         gROOT->LoadMacro ( "$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalCompat.C" );
         AliEmcalCompatTask* comptask = AddTaskEmcalCompat();
@@ -418,10 +423,11 @@ void EmcalJetCDF ( const char* plugin_mode = "test" , const char* analysis_mode 
     if (useTender)
         {
         gROOT->LoadMacro("$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalPreparation.C");
-        //adjust pass when running locally. On grid give empty string, will be picked up automatically from path to ESD/AOD file
+        // adjust pass when running locally. On grid give empty string, will be picked up automatically from path to ESD/AOD file
         // const char *perstr  = "LHC11h"
         // const char *pass    = 0 /*should not be needed*/
-        AliAnalysisTaskSE* clusm = AddTaskEmcalPreparation(runPeriod);
+        if ( kAnalysisMode.EqualTo("grid") ) { kPass = "";}
+        AliAnalysisTaskSE* clusm = AddTaskEmcalPreparation(runPeriod.Data(),kPass.Data());
         }
 
     // ################# Now: Call jet preparation macro (picotracks, hadronic corrected caloclusters, ...)
@@ -1025,6 +1031,29 @@ TString GetPeriod (TString file_path)
         }
 
     return period;
+    }
+
+//______________________________________________________________________________
+TString GetPass (TString file_path)
+    {
+    TString pass = "";
+
+    if (!file_path.IsNull())
+        {
+        // split string in tokens (libs)
+        TObjArray* tokens_list = file_path.Tokenize("/"); //tokens_list->Compress();
+        TIter next_str(tokens_list);
+        TObjString* token=0;
+        Int_t j=0;
+        while ((token=(TObjString*)next_str()))
+            {
+            TString token_str = token->GetString(); token_str.ToLower();
+            if ( token_str.Contains("pass") ) { pass = token_str; }
+            }
+        delete tokens_list;
+        }
+
+    return pass;
     }
 
 //______________________________________________________________________________
