@@ -24,11 +24,11 @@ echo "RUN DIR : " $DIR_JOBS
 
 split -a 6 -d -l $JOBS_PACK data.txt $DATA_PREFIX
 
-PROGRAM='aliroot -l -b -q EmcalJetCDF.C\(\"test\",\"local\",\"data.txt\"\)'
+PROGRAM='aliroot -l -b -q EmcalJetCDF.C\(\"local\",\"test\",\"data.txt\"\)'
 
 JOB_FILES="EmcalJetCDF.C AddTaskEmcalJetCDF.C AliAnalysisTaskEmcalJetCDF.cxx AliAnalysisTaskEmcalJetCDF.h InputData.C AliAnalysisTaskEmcalJetCDF_cxx.d AliAnalysisTaskEmcalJetCDF_cxx.so"
 
-compileC_aliroot AliAnalysisTaskEmcalJetCDF.cxx
+##compileC_aliroot AliAnalysisTaskEmcalJetCDF.cxx
 
 for data in `ls -1 $DATA_PREFIX*`
 {
@@ -50,7 +50,7 @@ for data in `ls -1 $DATA_PREFIX*`
 
   for file in $JOB_FILES
   do
-    cp -L $file $SUBJOB_DIR/
+    cp $file $SUBJOB_DIR/
   done
 
 }
