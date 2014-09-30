@@ -592,8 +592,11 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         mgr->PrintStatus();
 
         // grmpf, aliroot error handler overwrites root
-        if ( debug > 1 )  { AliLog::SetGlobalLogLevel ( AliLog::kDebug );   }
-        if ( debug == 0 ) { AliLog::SetGlobalLogLevel ( AliLog::kWarning ); }
+        if ( debug == 0 )      { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
+        else if ( debug < 11 ) { AliLog::SetGlobalLogLevel ( AliLog::kError ); }
+        else if ( debug < 21 ) { AliLog::SetGlobalLogLevel ( AliLog::kWarning ); }
+        else if ( debug < 31 ) { AliLog::SetGlobalLogLevel ( AliLog::kInfo ); }
+        else if ( debug > 30 ) { AliLog::SetGlobalLogLevel ( AliLog::kDebug ); }
 
         gErrorIgnoreLevel = kErrorIgnoreLevel;
         if ( gErrorIgnoreLevel > 3000 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
