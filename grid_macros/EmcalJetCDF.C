@@ -6,6 +6,7 @@
 #include <iostream>
 #include <ctime>
 #include <fstream>
+#include <cstdio>
 
 // ROOT includes
 #include "Riostream.h"
@@ -90,7 +91,7 @@ Long64_t    nentries                 = 1234567890; // for local and proof mode, 
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
 TString     kTrainName               = "sev_jets";           // *CHANGE ME* (no blancs or special characters)
-TString     kWorkDir                 = "emcalcdf_histos1";   // AliEn work dir; relative to AliEn $HOME
+TString     kWorkDir                 = "emcalcdf";           // AliEn work dir; relative to AliEn $HOME
 TString     kJobTag                  = "sev_jet_analysis";   // *CHANGE ME*
 
 TString     kPluginExecutableCommand = "aliroot -b -q";
@@ -104,20 +105,22 @@ TString     kPackage1                = "boost::v1_53_0";
 TString     kPackage2                = "cgal::v4.4";
 TString     kPackage3                = "fastjet::v3.0.6_1.012";
 
-
 Bool_t      kPluginFastReadOption    = kFALSE;         // use xrootd tweaks
 Bool_t      kPluginOverwriteMode     = kTRUE;          // overwrite existing collections
 
-Int_t       kGridFilesPerJob         = 70;    // Maximum number of files per job (gives size of AOD)
-Int_t       kGridMaxMergeFiles       = 100;   // Number of files merged in a chunk grid run range
-Int_t       kMaxInitFailed           = 10 ;    // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
+Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
+Bool_t      kUsePAR                  = kFALSE;         // use par files for extra libs
 
-Int_t       kTTL                     = 14400 ; // Time To Live
-Int_t       kMergeTTL                = 1800 ;  // Time To Live merging
+Int_t       kGridFilesPerJob         = 70;             // Maximum number of files per job (gives size of AOD)
+Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
+Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
 
-TString     kGridOutdir              = "out"; // AliEn output directory. If blank will become output_<kTrainName>
-TString     kGridDataSet             = ""; // sub working directory not to confuse different run xmls
-TString     kGridExtraAliendirLevel  = ""; // sub working directory not to confuse different run xmls
+Int_t       kTTL                     = 14400 ;         // Time To Live
+Int_t       kMergeTTL                = 1800 ;          // Time To Live merging
+
+TString     kGridOutdir              = "out";          // AliEn output directory. If blank will become output_<kTrainName>
+TString     kGridDataSet             = "";             // sub working directory not to confuse different run xmls
+TString     kGridExtraAliendirLevel  = "";             // sub working directory not to confuse different run xmls
 
 TString     kAlirootMode             = "ALIROOT";     // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
 //  alirootMode="ALIROOT";   // $ALICE_ROOT/macros/loadlibs.C
@@ -135,23 +138,21 @@ TString kAAF        =
 
 Int_t   kProofReset = 0  ; Int_t   kWorkers    = 20 ; Int_t   kCores      = 8  ;
 
-// Debug
-Int_t           debug              = 100 ;
-unsigned int    kUseSysInfo        =   0 ; // activate debugging
-Int_t           kErrorIgnoreLevel  =  -1 ; // takes the errror print level from .rootrc
 
 //==============================================================================
-Bool_t      kSkipTerminate      = kTRUE; // Do not call Terminate
-Bool_t      kUseDebug           = kTRUE; // activate debugging
-Bool_t      kUsePAR             = kFALSE; // use par files for extra libs
+//      DEBUG
+Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
+unsigned int    kUseSysInfo        =  0 ; // activate debugging
+Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
 
-//______________________________________________________________________________
+
+//==============================================================================
 // Containers for IO file names
 TString kDataset = "";
 TString kDatafile = "";
 
 // FILES USED IN MACRO
-TString     kCommonOutputFileName   = "CDFanalysis.root";
+TString     kCommonOutputFileName    = "CDFanalysis.root";
 
 // == grid plugin files rules
 TString     kGridExtraFiles          = ""; // LIBRARIES files that will be added to the input list in the JDL
@@ -258,12 +259,12 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         }
 
     if (!dataType.IsNull())
-        { cout << "----->>>>>>> Data type : " << dataType.Data() << " analysis chosen" << endl; }
+        { cout << "----->>>>>>> Data type : " << dataType.Data() << endl; }
     else
         {
         dataType = "aod";
         cout << "ERROR ----->>>>>>>   Data type IS NULL !!! ; dataType fallback to AOD type" << endl;
-        printf("ERROR ############   Set dataType by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
+        printf ("ERROR ############   Set dataType by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
         }
     // dataType = "esd"; // Here it should be set by hand in case automatic procedure did not work
 
@@ -287,11 +288,11 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     else
         {
         cout << "ERROR ----->>>>>>>   PERIOD IS NULL !!!" << endl;
-        printf("ERROR ############   Set runPeriod by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
+        printf ("ERROR ############   Set runPeriod by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
         }
     // runPeriod = "lhc10e"; // Here it should be set by hand in case automatic procedure did not work
 
-    cout << "Period is MonteCarlo : " << PeriodIsMC (runPeriod) << endl;
+    cout << "----->>>>>>> Period is MonteCarlo? : " << PeriodIsMC (runPeriod) << endl;
 
     //   *****************************
     //         PASS SETTINGS
@@ -305,6 +306,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     else
         { kPass = GetPass (dataPattern); }
 
+    cout << "----->>>>>>> Pass is : " << kPass.Data() << endl;
 
     //*******************************************
     //   Loading of libraries (script + plugin)
@@ -325,9 +327,9 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     /////////////////////////////////////////
     ListLibs += kGridExtraFiles;
 
-    ListLibs       = ListLibs.Strip();         Printf ( "### ListLibs : %s", ListLibs.Data() );
-    ListLibsExtra  = ListLibsExtra.Strip();    Printf ( "### ListLibsExtra : %s", ListLibsExtra.Data() );
-    ListSources    = ListSources.Strip();      Printf ( "### ListSources : %s", ListSources.Data() );
+    ListLibs       = ListLibs.Strip();      if ( debug > 3 ) {  Printf ( "### ListLibs : %s", ListLibs.Data() ); }
+    ListLibsExtra  = ListLibsExtra.Strip(); if ( debug > 3 ) {  Printf ( "### ListLibsExtra : %s", ListLibsExtra.Data() ); }
+    ListSources    = ListSources.Strip();   if ( debug > 3 ) {  Printf ( "### ListSources : %s", ListSources.Data() ); }
 
     if ( ListLibs.Length() )       { plugin->SetAdditionalLibs     ( ListLibs.Data() ); }
     if ( ListLibsExtra.Length() )  { plugin->SetAdditionalRootLibs ( ListLibsExtra.Data() ); }
@@ -337,7 +339,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     //<><><><><><><><><><>
     //    DEBUGGING
     //<><><><><><><><><><>
-    if ( kUseDebug && ( kAnalysisMode.EqualTo("local") || kPluginMode.EqualTo("test") ) ) { mgr->SetDebugLevel ( 110 ); }
+    mgr->SetDebugLevel(debug);
 
     // Event frequency for collecting system information
     mgr->SetNSysInfo ( kUseSysInfo );
@@ -350,8 +352,6 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         kGridMergeExclude += "syswatch.root";
         }
 
-//     mgr->AddClassDebug("AliJetContainer", 100);
-//     AliLog::SetGlobalLogLevel ( AliLog::kDebug );
 
     //********************
     //    DATA OUTPUT
@@ -359,7 +359,6 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     plugin->SetMergeExcludes  ( kGridMergeExclude );
     plugin->SetDefaultOutputs ( kTRUE );
 
-    //********************************************
 
 //______________________________________________________________________________
 // handlers definition
@@ -401,7 +400,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
     Int_t          leadhadtype         = 0;               // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
 
-    // sanaty checks
+    // sanity checks
     if ( (jettype == kFULLJETS) || (jettype == kNEUTRALJETS)) { acceptance_type = "EMCAL"; }
     if ( leadhadtype == 1 ) { acceptance_type = "EMCAL" ; jettype = kNEUTRALJETS; }
     if ( leadhadtype == 2 ) { acceptance_type = "EMCAL" ; jettype = kFULLJETS; }
@@ -520,12 +519,12 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 //_______________________________________________________________________________
     minTrPt = 0.15;  radius = 0.4;
     AliEmcalJetTask* jetFinderTask_015_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    PrintInfoJF (jetFinderTask_015_04_chg);
+    PrintInfoJF ( jetFinderTask_015_04_chg->GetName() );
 
     //_______________________________________________________________________________
     minTrPt = 0.15;  radius = 0.6;
     AliEmcalJetTask* jetFinderTask_015_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    PrintInfoJF (jetFinderTask_015_06_chg);
+    PrintInfoJF ( jetFinderTask_015_06_chg->GetName() );
 
 //#####################################################################################
 
@@ -593,10 +592,10 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
         // grmpf, aliroot error handler overwrites root
         if ( debug == 0 )      { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
-        else if ( debug < 11 ) { AliLog::SetGlobalLogLevel ( AliLog::kError ); }
-        else if ( debug < 21 ) { AliLog::SetGlobalLogLevel ( AliLog::kWarning ); }
-        else if ( debug < 31 ) { AliLog::SetGlobalLogLevel ( AliLog::kInfo ); }
-        else if ( debug > 30 ) { AliLog::SetGlobalLogLevel ( AliLog::kDebug ); }
+        else if ( debug == 1 ) { AliLog::SetGlobalLogLevel ( AliLog::kError ); }
+        else if ( debug == 2 ) { AliLog::SetGlobalLogLevel ( AliLog::kWarning ); }
+        else if ( debug == 3 ) { AliLog::SetGlobalLogLevel ( AliLog::kInfo ); }
+        else if ( debug >= 4 ) { AliLog::SetGlobalLogLevel ( AliLog::kDebug ); }
 
         gErrorIgnoreLevel = kErrorIgnoreLevel;
         if ( gErrorIgnoreLevel > 3000 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
@@ -620,15 +619,22 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     }
 
 //______________________________________________________________________________
-void PrintInfoJF (AliEmcalJetTask* jf)
+void PrintInfoJF ( const char* taskname )
     {
-    cout << "Jet Finder Task Name : " << jf->GetName() << endl;
+    AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
+    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to.");  return NULL; }
+
+    AliEmcalJetTask* jf = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask(taskname));
+
+    cout << "\nJet Finder Task Name : " << jf->GetName() << endl;
 
     cout << "Track Eta MIN : " << jf->GetEtaMin()    << " ; Track Eta MAX : " << jf->GetEtaMax() << endl;
     cout << "JET Eta MIN : "   << jf->GetJetEtaMin() << " ; JET Eta MAX : "   << jf->GetJetEtaMax() << endl;
 
     cout << "Track Phi MIN : " << jf->GetPhiMin()    << " ; Track Phi MAX : " << jf->GetPhiMax() << endl;
     cout << "JET Phi MIN : "   << jf->GetJetPhiMin() << " ; JET Phi MAX : "   << jf->GetJetPhiMax() << endl;
+
+    cout << "\n"<< endl;
     }
 
 //______________________________________________________________________________
@@ -913,9 +919,11 @@ Bool_t IsTreeType (TString fileInput, TString treeName)
     }
 
 //______________________________________________________________________________
-TString GetInputDataPath (TString file_list) const
+TString GetInputDataPath (TString file_list)
     {
-    TString line = "";
+    std::string line_str;
+    TString line = line_str.c_str();
+
     if ( gSystem->AccessPathName ( file_list.Data() ) )
         { cout << "File not found: " << file_list.Data() << endl; return line; }
 
@@ -925,12 +933,15 @@ TString GetInputDataPath (TString file_list) const
 
     while ( in.good() )
         {
-        in >> line;
-        if ( line.IsNull() || line.BeginsWith ( "#" ) ) continue;
-        if ( count++ == 1 ) break; // look only over first file;
+        in >> line_str;
+        line = line_str.c_str();
+        if ( line.IsNull() || line.BeginsWith ( "#" ) ) { continue; }
+        if ( count == 1 ) { break; }  // look only over first file;
+        count++;
         }
     in.close();
-    return line ;
+    line = line_str.c_str();
+    return line;
     }
 
 //______________________________________________________________________________
@@ -943,7 +954,7 @@ TString GetPeriod (TString file_path)
         // split string in tokens (libs)
         TObjArray* tokens_list = file_path.Tokenize("/"); //tokens_list->Compress();
         TIter next_str(tokens_list);
-        TObjString* token=0;
+        TObjString* token = NULL;
         Int_t j=0;
         while ((token=(TObjString*)next_str()))
             {
