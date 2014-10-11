@@ -546,10 +546,10 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     jetminpt = 10.;
     AliAnalysisTaskEmcalJetCDF* anaTask3    = AddTaskEmcalJetCDF (jetFinderTask_015_04_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF3");
 
-    jetminpt = 15.;
+    jetminpt = 20.;
     AliAnalysisTaskEmcalJetCDF* anaTask4    = AddTaskEmcalJetCDF (jetFinderTask_015_04_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF4");
 
-    jetminpt = 20.;
+    jetminpt = 30.;
     AliAnalysisTaskEmcalJetCDF* anaTask5    = AddTaskEmcalJetCDF (jetFinderTask_015_04_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF5");
 
 
@@ -563,10 +563,10 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     jetminpt = 10.;
     AliAnalysisTaskEmcalJetCDF* anaTask3_2    = AddTaskEmcalJetCDF (jetFinderTask_015_06_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF9");
 
-    jetminpt = 15.;
+    jetminpt = 20.;
     AliAnalysisTaskEmcalJetCDF* anaTask4_2    = AddTaskEmcalJetCDF (jetFinderTask_015_06_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF10");
 
-    jetminpt = 20.;
+    jetminpt = 30.;
     AliAnalysisTaskEmcalJetCDF* anaTask5_2    = AddTaskEmcalJetCDF (jetFinderTask_015_06_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF11");
 
 
