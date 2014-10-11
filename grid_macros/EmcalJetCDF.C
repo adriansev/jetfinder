@@ -21,6 +21,9 @@
 #include "TKey.h"
 #include "TBits.h"
 #include "TError.h"
+#include "TNamed.h"
+#include "TDirectory.h"
+#include "TDirectoryFile.h"
 #include "TFile.h"
 #include "TFileCollection.h"
 #include "TCollection.h"
@@ -86,7 +89,7 @@ enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS};
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
 
-Int_t       kTestFiles               = 1;    // Number of test files
+Int_t       kTestFiles               = 10;    // Number of test files
 Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
@@ -264,7 +267,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         {
         dataType = "aod";
         cout << "ERROR ----->>>>>>>   Data type IS NULL !!! ; dataType fallback to AOD type" << endl;
-        printf ("ERROR ############   Set dataType by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
+        Printf ("ERROR ############   Set dataType by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
         }
     // dataType = "esd"; // Here it should be set by hand in case automatic procedure did not work
 
@@ -288,7 +291,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     else
         {
         cout << "ERROR ----->>>>>>>   PERIOD IS NULL !!!" << endl;
-        printf ("ERROR ############   Set runPeriod by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
+        Printf ("ERROR ############   Set runPeriod by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
         }
     // runPeriod = "lhc10e"; // Here it should be set by hand in case automatic procedure did not work
 
@@ -787,7 +790,7 @@ Bool_t LoadLibrary ( const char* module )
     }
 
 //______________________________________________________________________________
-void LoadLibList ( TString list )
+void LoadLibList ( const TString& list )
     {
     TObjArray *arr;
     TObjString *objstr;
@@ -870,7 +873,7 @@ Bool_t LoadSource ( const char* source, Bool_t rec = kFALSE )
 
 
 //______________________________________________________________________________
-TString FindTreeName ( TString file_list ) const
+TString FindTreeName ( const TString& file_list ) const
     {
     TString fDataType = "";  // result
     if ( gSystem->AccessPathName ( file_list.Data() ) )
@@ -903,23 +906,22 @@ TString FindTreeName ( TString file_list ) const
     }
 
 //______________________________________________________________________________
-Bool_t IsTreeType (TString fileInput, TString treeName)
+Bool_t IsTreeType ( const TString& fileInput, const TString& treeName)
     {
     TFile* f = TFile::Open (fileInput.Data());
-    if ( !f->IsZombie() )
-        {
-        TKey* key = f->FindKeyAny(treeName.Data());
-        if (key)
-            { f->Close(); return kTRUE;  }
-        else
-            { f->Close(); return kFALSE; }
-        }
-    else
+
+    if ( f->IsZombie() )
         { cout << " :: Skipping un-openable file: << " << fileInput.Data()  << endl; return kFALSE; }
+    else
+        {
+        TKey* key = f->FindKeyAny (treeName.Data());
+        if (key) { f->Close(); return kTRUE;  }
+        else     { f->Close(); return kFALSE; }
+        }
     }
 
 //______________________________________________________________________________
-TString GetInputDataPath (TString file_list)
+TString GetInputDataPath ( const TString& file_list)
     {
     std::string line_str;
     TString line = line_str.c_str();
@@ -945,7 +947,7 @@ TString GetInputDataPath (TString file_list)
     }
 
 //______________________________________________________________________________
-TString GetPeriod (TString file_path)
+TString GetPeriod ( const TString& file_path)
     {
     TString period = "";
 
@@ -968,7 +970,7 @@ TString GetPeriod (TString file_path)
     }
 
 //______________________________________________________________________________
-TString GetPass (TString file_path)
+TString GetPass ( const TString& file_path)
     {
     TString pass = "";
 
@@ -991,7 +993,7 @@ TString GetPass (TString file_path)
     }
 
 //______________________________________________________________________________
-Bool_t PeriodIsMC ( TString period )
+Bool_t PeriodIsMC ( const TString& period )
     {
     if (!period.IsNull())
         {
