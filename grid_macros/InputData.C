@@ -9,7 +9,7 @@
 
 //______________________________________________________________________________
 // function to add specific data to be processed
-Bool_t InputData ( TString dataruns )
+Bool_t InputData ( const TString& datarun )
     {
     // Get the pointer to the existing analysis manager via the static access method.
     //==============================================================================
@@ -21,20 +21,20 @@ Bool_t InputData ( TString dataruns )
     AliAnalysisAlien* plugin =  dynamic_cast <AliAnalysisAlien*> ( mgr->GetGridHandler() );
     if ( !plugin ) { ::Error ( "InputData.C", "InputData :: plugin invalid" ); return kFALSE; }
 
-//______________________________________________________________________________
-//  DEFINED INPUT DATA
-    if ( dataruns.IsNull() ) { printf ( "InputData :: no data input" ); return kFALSE; }
+    //______________________________________________________________________________
+    //  DEFINED INPUT DATA
+    if ( datarun.IsNull() ) { printf ( "InputData :: no data input" ); return kFALSE; }
 
     TString     kGridRunPattern = "%09d"; // important for leading zeroes!!
 
-    Printf ( "data = %s" , dataruns.Data() );
+    Printf ( "data = %s" , datarun.Data() );
 
 // ##################################################################################
 
 // FILTER_p-p_113_LHC11a: Standard AODs + deltas  pp 2.76 GeV
 // https://aliceinfo.cern.ch/Notes/node/46
 // https://aliceinfo.cern.ch/Notes/node/128
-    if ( dataruns.EqualTo ( "pp_lhc11a_aod_AN" ) )
+    if ( datarun.EqualTo ( "pp_lhc11a_aod_AN" ) )
             {
             plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
@@ -50,7 +50,7 @@ Bool_t InputData ( TString dataruns )
             return kTRUE;
             }
 
-    else if ( dataruns.EqualTo ( "pp_lhc11a_aod_SDD_ALL" ) )
+    else if ( datarun.EqualTo ( "pp_lhc11a_aod_SDD_ALL" ) )
             {
             plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
@@ -66,7 +66,7 @@ Bool_t InputData ( TString dataruns )
             return kTRUE;
             }
 
-    else if ( dataruns.EqualTo ( "pp_lhc11a_aod_NOSDD_ALL" ) )
+    else if ( datarun.EqualTo ( "pp_lhc11a_aod_NOSDD_ALL" ) )
             {
             plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
@@ -87,7 +87,7 @@ Bool_t InputData ( TString dataruns )
 // AOD LHC10d; 7 TeV
 // https://aliceinfo.cern.ch/Notes/node/128
 // https://aliceinfo.cern.ch/Notes/node/205
-    else if ( dataruns.EqualTo ( "pp_lhc10d_aod_AN" ) )
+    else if ( datarun.EqualTo ( "pp_lhc10d_aod_AN" ) )
             {
             plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
@@ -109,7 +109,7 @@ Bool_t InputData ( TString dataruns )
             return kTRUE;
             }
 
-    else if ( dataruns.EqualTo ( "pp_lhc10d_aod_ALL" ) )
+    else if ( datarun.EqualTo ( "pp_lhc10d_aod_ALL" ) )
             {
             plugin->SetRunPrefix ( kGridRunPattern.Data() );
             // AliEn data production directory
@@ -141,7 +141,7 @@ Bool_t InputData ( TString dataruns )
 // AOD LHC10e; 7 TeV
 // https://aliceinfo.cern.ch/Notes/node/128
 // https://aliceinfo.cern.ch/Notes/node/205
-    else if ( dataruns.EqualTo ( "pp_lhc10e_aod_AN" ) )
+    else if ( datarun.EqualTo ( "pp_lhc10e_aod_AN" ) )
             {
             plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
@@ -163,7 +163,7 @@ Bool_t InputData ( TString dataruns )
             return kTRUE;
             }
 
-    else if ( dataruns.EqualTo ( "pp_lhc10e_aod_ALL" ) )
+    else if ( datarun.EqualTo ( "pp_lhc10e_aod_ALL" ) )
             {
             plugin->SetRunPrefix ( kGridRunPattern.Data() );
             // AliEn data production directory
@@ -206,7 +206,7 @@ Bool_t InputData ( TString dataruns )
 // ##################################################################################
 
 // AOD LHC13g; 2.76 TeV
-    else if ( dataruns.EqualTo ( "pp_lhc13g_aod" ) )
+    else if ( datarun.EqualTo ( "pp_lhc13g_aod" ) )
             {
             plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
@@ -227,7 +227,7 @@ Bool_t InputData ( TString dataruns )
 
 // ##################################################################################
     else
-        { Printf ( "InputData :: NO DEFINED INPUT DATA RECOGNIZED !!! = %s", dataruns.Data() ); return kFALSE; }
+        { Printf ( "InputData :: NO DEFINED INPUT DATA RECOGNIZED !!! = %s", datarun.Data() ); return kFALSE; }
 
     }
 // kate: indent-mode none; indent-width 4; replace-tabs on;
