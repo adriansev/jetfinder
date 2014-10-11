@@ -89,7 +89,7 @@ enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS};
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
 
-Int_t       kTestFiles               = 10;    // Number of test files
+Int_t       kTestFiles               = 20;    // Number of test files
 Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
