@@ -102,7 +102,7 @@ Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in prod
 
 TString     kPluginAPIVersion        = "V1.1x";
 TString     kPluginRootVersion       = "v5-34-08-6";
-TString     kPluginAliRootVersion    = "vAN-20140902";
+TString     kPluginAliRootVersion    = "vAN-20141014";
 
 TString     kPackage1                = "boost::v1_53_0";
 TString     kPackage2                = "cgal::v4.4";
@@ -114,7 +114,7 @@ Bool_t      kPluginOverwriteMode     = kTRUE;          // overwrite existing col
 Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
 Bool_t      kUsePAR                  = kFALSE;         // use par files for extra libs
 
-Int_t       kGridFilesPerJob         = 70;             // Maximum number of files per job (gives size of AOD)
+Int_t       kGridFilesPerJob         = 25;             // Maximum number of files per job (gives size of AOD)
 Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
 Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
 
@@ -177,15 +177,39 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     {
     gSystem->SetFPEMask(); // because is used in reference script
 
-    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    //@@@     ANALYSIS STEERING VARIABLES     @@@
-    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // definition of variables to be used later - autodetected
     TString        runPeriod           = "";              // run period (to be determined automatically form path to files; if path is not GRID like, set by hand)
     TString        dataType            = "";              // analysis type, AOD, ESD or sESD (to be automatically determined below; if detection does not work, set by hand after detection)
     TString        kPass               = "";              // pass string
-    Bool_t         isMC                = kFALSE;          // trigger, if MC handler should be used
 
-    // ANALYSIS STEERING VARIABLES ARE SETUP JUST BEFORE THE ANALYSIS TASKS
+//______________________________________________________________________________
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    //@@@     ANALYSIS STEERING VARIABLES     @@@
+    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+    Bool_t         isMC                = kFALSE;          // trigger, if MC handler should be used
+    Bool_t         useTender           = kTRUE;           // trigger, if tender task should be used
+    Bool_t         doBkg               = kFALSE;          // background estimation with AliAnalysisTaskRho
+
+    UInt_t         pSel                = AliVEvent::kMB;  // used event selection for every task except for the analysis tasks
+
+    Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
+
+    const char*    acceptance_type     = "TPC";           // TPC or EMCAL
+    Int_t          leadhadtype         = 0;               // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
+
+    // sanity checks
+    if ( jettype != kCHARGEDJETS )  { acceptance_type = "EMCAL"; }
+    if ( jettype == kNEUTRALJETS )  { leadhadtype == 1; }
+    if ( jettype == kFULLJETS )     { leadhadtype == 2; }
+
+//______________________________________________________________________________
+    // Objects (branch names) used in Jet framework
+    TString tracksName         = "PicoTracks";
+    TString clustersName       = "EmcCaloClusters";
+    TString clustersCorrName   = "CaloClustersCorr";
+    TString rhoName            = "";
+
 
     // LIBRARIES LOADING
     LoadLibs(); // Load necessary libraries for the script
@@ -314,7 +338,8 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     //*******************************************
     //   Loading of libraries (script + plugin)
     //*******************************************
-    //compile and load the task in local macro
+
+    //compile and load the custom local task in local macro
     TString myTask = "AliAnalysisTaskEmcalJetCDF.cxx";
 
     // Load aditional code (my task) to alien plugin ;
@@ -355,7 +380,6 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         kGridMergeExclude += "syswatch.root";
         }
 
-
     //********************
     //    DATA OUTPUT
     //********************
@@ -390,32 +414,6 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 //####################################################
 //#######        ANALYSIS TASKS
 //####################################################
-
-//___________________________________________________
-//               ANALYSIS STEERING
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    UInt_t         pSel                = AliVEvent::kMB;  // used event selection for every task except for the analysis tasks
-    Bool_t         useTender           = kTRUE;           // trigger, if tender task should be used
-    Bool_t         doBkg               = kFALSE;          // background estimation with AliAnalysisTaskRho
-
-    const char*    acceptance_type     = "TPC" ;          // TPC or EMCAL
-    Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
-    Int_t          leadhadtype         = 0;               // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
-
-    // sanity checks
-    if ( (jettype == kFULLJETS) || (jettype == kNEUTRALJETS)) { acceptance_type = "EMCAL"; }
-    if ( leadhadtype == 1 ) { acceptance_type = "EMCAL" ; jettype = kNEUTRALJETS; }
-    if ( leadhadtype == 2 ) { acceptance_type = "EMCAL" ; jettype = kFULLJETS; }
-
-
-//______________________________________________________________________________
-// Objects (branch names) used in Jet framework
-    TString tracksName         = "PicoTracks";
-    TString clustersName       = "EmcCaloClusters";
-    TString clustersCorrName   = "CaloClustersCorr";
-    TString rhoName            = "";
-
 
 //______________________________________________________________________________
 // Signature PhysicsSelectionTask
@@ -520,14 +518,14 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Bool_t         lockTask        = kTRUE;      // default: kTRUE
 
 //_______________________________________________________________________________
-    minTrPt = 0.15;  radius = 0.4;
-    AliEmcalJetTask* jetFinderTask_015_04_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    PrintInfoJF ( jetFinderTask_015_04_chg->GetName() );
+    minTrPt = 0.15;  radius = 0.2;
+    AliEmcalJetTask* jetFinderTask_015_02_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+    PrintInfoJF ( jetFinderTask_015_02_chg->GetName() );
 
     //_______________________________________________________________________________
-    minTrPt = 0.15;  radius = 0.6;
-    AliEmcalJetTask* jetFinderTask_015_06_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    PrintInfoJF ( jetFinderTask_015_06_chg->GetName() );
+    minTrPt = 0.15;  radius = 0.3;
+    AliEmcalJetTask* jetFinderTask_015_03_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+    PrintInfoJF ( jetFinderTask_015_03_chg->GetName() );
 
 //#####################################################################################
 
@@ -538,36 +536,36 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     const char*  taskname             = "Jet";
 
     jetminpt = 1.;
-    AliAnalysisTaskEmcalJetCDF* anaTask1    = AddTaskEmcalJetCDF (jetFinderTask_015_04_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF1");
+    AliAnalysisTaskEmcalJetCDF* anaTask1    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF1");
 
     jetminpt = 5.;
-    AliAnalysisTaskEmcalJetCDF* anaTask2    = AddTaskEmcalJetCDF (jetFinderTask_015_04_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF2");
+    AliAnalysisTaskEmcalJetCDF* anaTask2    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF2");
 
     jetminpt = 10.;
-    AliAnalysisTaskEmcalJetCDF* anaTask3    = AddTaskEmcalJetCDF (jetFinderTask_015_04_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF3");
+    AliAnalysisTaskEmcalJetCDF* anaTask3    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF3");
 
     jetminpt = 20.;
-    AliAnalysisTaskEmcalJetCDF* anaTask4    = AddTaskEmcalJetCDF (jetFinderTask_015_04_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF4");
+    AliAnalysisTaskEmcalJetCDF* anaTask4    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF4");
 
     jetminpt = 30.;
-    AliAnalysisTaskEmcalJetCDF* anaTask5    = AddTaskEmcalJetCDF (jetFinderTask_015_04_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF5");
+    AliAnalysisTaskEmcalJetCDF* anaTask5    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF5");
 
 
     // R = 0.6
     jetminpt = 1.;
-    AliAnalysisTaskEmcalJetCDF* anaTask1_2    = AddTaskEmcalJetCDF (jetFinderTask_015_06_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF7");
+    AliAnalysisTaskEmcalJetCDF* anaTask1_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF7");
 
     jetminpt = 5.;
-    AliAnalysisTaskEmcalJetCDF* anaTask2_2    = AddTaskEmcalJetCDF (jetFinderTask_015_06_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF8");
+    AliAnalysisTaskEmcalJetCDF* anaTask2_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF8");
 
     jetminpt = 10.;
-    AliAnalysisTaskEmcalJetCDF* anaTask3_2    = AddTaskEmcalJetCDF (jetFinderTask_015_06_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF9");
+    AliAnalysisTaskEmcalJetCDF* anaTask3_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF9");
 
     jetminpt = 20.;
-    AliAnalysisTaskEmcalJetCDF* anaTask4_2    = AddTaskEmcalJetCDF (jetFinderTask_015_06_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF10");
+    AliAnalysisTaskEmcalJetCDF* anaTask4_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF10");
 
     jetminpt = 30.;
-    AliAnalysisTaskEmcalJetCDF* anaTask5_2    = AddTaskEmcalJetCDF (jetFinderTask_015_06_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF11");
+    AliAnalysisTaskEmcalJetCDF* anaTask5_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF11");
 
 
 
@@ -796,7 +794,12 @@ void LoadLibList ( const TString& list )
     TObjString *objstr;
     arr = list.Tokenize(" ");
     TIter next(arr);
-    while ( (objstr=(TObjString*)next()) ) { TString module = objstr->GetString(); module.Prepend("lib"); LoadLibrary ( module.Data() ); }
+    while ( (objstr=(TObjString*)next()) )
+        {
+        TString module = objstr->GetString();
+        module.Prepend("lib");
+        if ( !LoadLibrary (module.Data()) ) { gApplication->Terminate(); }
+        }
     delete arr;
     }
 
