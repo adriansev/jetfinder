@@ -195,7 +195,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
     Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
 
-    const char*    acceptance_type     = "TPC";           // TPC or EMCAL
+    const char*    acceptance_type     = "TPC";         // TPC or EMCAL
     Int_t          leadhadtype         = 0;               // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
 
     // sanity checks
@@ -493,7 +493,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     const Double_t minPtEt            = 0.15;                      // default: 0.15
     const UInt_t   pSel_jetprep       = pSel;                      // default: AliVEvent::kAny
     const Bool_t   trackclus          = kTRUE;                     // default: kTRUE
-    const Bool_t   doHistos           = kFALSE;                    // default: kFALSE
+    const Bool_t   doHistos           = kFALSE;                     // default: kFALSE
     const Bool_t   makePicoTracks     = kTRUE;                     // default: kTRUE
     const Bool_t   makeTrigger        = kTRUE;                     // default: kTRUE
     const Bool_t   isEmcalTrain       = kFALSE;                    // default: kFALSE
@@ -519,15 +519,25 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Bool_t         selectPhysPrim  = kFALSE;     // default: kFALSE
     Bool_t         lockTask        = kTRUE;      // default: kTRUE
 
-//_______________________________________________________________________________
-    minTrPt = 0.15;  radius = 0.2;
-    AliEmcalJetTask* jetFinderTask_015_02_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    PrintInfoJF ( jetFinderTask_015_02_chg->GetName() );
+    //_______________________________________________________________________________
+//     minTrPt = 0.15;  radius = 0.2;
+//     AliEmcalJetTask* jetFinderTask_015_02 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     PrintInfoJF ( jetFinderTask_015_02->GetName() );
 
     //_______________________________________________________________________________
-    minTrPt = 0.15;  radius = 0.3;
-    AliEmcalJetTask* jetFinderTask_015_03_chg = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    PrintInfoJF ( jetFinderTask_015_03_chg->GetName() );
+//     minTrPt = 0.15;  radius = 0.3;
+//     AliEmcalJetTask* jetFinderTask_015_03 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     PrintInfoJF ( jetFinderTask_015_03->GetName() );
+
+    //_______________________________________________________________________________
+    minTrPt = 0.15;  radius = 0.4;
+    AliEmcalJetTask* jetFinderTask_015_04 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+    PrintInfoJF ( jetFinderTask_015_04->GetName() );
+
+    //_______________________________________________________________________________
+    minTrPt = 0.15;  radius = 0.6;
+    AliEmcalJetTask* jetFinderTask_015_06 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+    PrintInfoJF ( jetFinderTask_015_06->GetName() );
 
 //#####################################################################################
 
@@ -537,37 +547,38 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Double_t     jetareacut           = 0.001 ;
     const char*  taskname             = "Jet";
 
+    AliAnalysisTaskEmcalJetCDF* anaTask = NULL;
+
     jetminpt = 1.;
-    AliAnalysisTaskEmcalJetCDF* anaTask1    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF1");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF1");
 
     jetminpt = 5.;
-    AliAnalysisTaskEmcalJetCDF* anaTask2    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF2");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF2");
 
     jetminpt = 10.;
-    AliAnalysisTaskEmcalJetCDF* anaTask3    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF3");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF3");
 
     jetminpt = 20.;
-    AliAnalysisTaskEmcalJetCDF* anaTask4    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF4");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF4");
 
     jetminpt = 30.;
-    AliAnalysisTaskEmcalJetCDF* anaTask5    = AddTaskEmcalJetCDF (jetFinderTask_015_02_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF5");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF5");
 
 
-    // R = 0.6
     jetminpt = 1.;
-    AliAnalysisTaskEmcalJetCDF* anaTask1_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF7");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF7");
 
     jetminpt = 5.;
-    AliAnalysisTaskEmcalJetCDF* anaTask2_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF8");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF8");
 
     jetminpt = 10.;
-    AliAnalysisTaskEmcalJetCDF* anaTask3_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF9");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF9");
 
     jetminpt = 20.;
-    AliAnalysisTaskEmcalJetCDF* anaTask4_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF10");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF10");
 
     jetminpt = 30.;
-    AliAnalysisTaskEmcalJetCDF* anaTask5_2    = AddTaskEmcalJetCDF (jetFinderTask_015_03_chg, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF11");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF11");
 
 
 
