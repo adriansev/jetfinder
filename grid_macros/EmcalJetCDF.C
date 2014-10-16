@@ -195,8 +195,8 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
     Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
 
-    const char*    acceptance_type     = "TPC";         // TPC or EMCAL
-    Int_t          leadhadtype         = 0;               // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
+    TString        acceptance_type     = "TPC";         // TPC or EMCAL
+    Int_t          leadhadtype         = 0;             // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
 
     // sanity checks
     if ( jettype != kCHARGEDJETS )  { acceptance_type = "EMCAL"; }
@@ -450,7 +450,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         }
 //______________________________________________________________________________
 // Setup task
-    if ( jettype != kCHARGEDJETS )
+    if ( acceptance_type.EqualTo("EMCAL") )
         {
         gROOT->LoadMacro ( "$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalSetup.C" );
         const char* geop    = 0; // default: 0 /*path to geometry folder*/
@@ -550,35 +550,35 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     AliAnalysisTaskEmcalJetCDF* anaTask = NULL;
 
     jetminpt = 1.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF1");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF1");
 
     jetminpt = 5.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF2");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF2");
 
     jetminpt = 10.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF3");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF3");
 
     jetminpt = 20.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF4");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF4");
 
     jetminpt = 30.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF5");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF5");
 
 
     jetminpt = 1.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF7");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF6");
 
     jetminpt = 5.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF8");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF7");
 
     jetminpt = 10.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF9");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF8");
 
     jetminpt = 20.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF10");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF9");
 
     jetminpt = 30.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type, leadhadtype, "CDF11");
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF10");
 
 
 
