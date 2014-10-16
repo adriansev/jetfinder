@@ -565,20 +565,20 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF5");
 
 
-    jetminpt = 1.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF6");
-
-    jetminpt = 5.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF7");
-
-    jetminpt = 10.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF8");
-
-    jetminpt = 20.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF9");
-
-    jetminpt = 30.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF10");
+//     jetminpt = 1.;
+//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF6");
+//
+//     jetminpt = 5.;
+//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF7");
+//
+//     jetminpt = 10.;
+//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF8");
+//
+//     jetminpt = 20.;
+//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF9");
+//
+//     jetminpt = 30.;
+//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF10");
 
 
 
