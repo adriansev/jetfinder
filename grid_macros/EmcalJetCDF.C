@@ -141,14 +141,6 @@ TString kAAF        =
 
 Int_t   kProofReset = 0  ; Int_t   kWorkers    = 20 ; Int_t   kCores      = 8  ;
 
-
-//==============================================================================
-//      DEBUG
-Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
-unsigned int    kUseSysInfo        =  0 ; // activate debugging
-Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
-
-
 //==============================================================================
 // Containers for IO file names
 TString kDataset = "";
@@ -162,25 +154,33 @@ TString     kGridExtraFiles          = ""; // LIBRARIES files that will be added
 TString     kGridMergeExclude        = "AliAOD.root AliAOD.Jets.root"; // Files that should not be merged
 TString     kGridOutputStorages      = "disk=2"; // Make replicas on the storages
 
-TString ListPars = "";
-TString ListLibs = "";
-TString ListLibsExtra = "";
-TString ListSources = "";
+// == Lists of libraries, pars and sources to be added to the alien plugin
+TString     ListPars      = "";
+TString     ListLibs      = "";
+TString     ListLibsExtra = "";
+TString     ListSources   = "";
 
+// definition of variables to be used later - autodetected
+TString     runPeriod           = ""; // run period (to be determined automatically form path to files; if path is not GRID like, set by hand)
+TString     dataType            = ""; // analysis type, AOD, ESD or sESD (to be automatically determined below; if detection does not work, set by hand after detection)
+TString     kPass               = ""; // pass string
 
 // Function signatures
 class AliAnalysisGrid;
 class AliAnalysisAlien;
 class AliAnalysisManager;
 
+
+//==============================================================================
+//      DEBUG
+Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
+unsigned int    kUseSysInfo        =  0 ; // activate debugging
+Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
+
+
 void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
     {
     gSystem->SetFPEMask(); // because is used in reference script
-
-    // definition of variables to be used later - autodetected
-    TString        runPeriod           = "";              // run period (to be determined automatically form path to files; if path is not GRID like, set by hand)
-    TString        dataType            = "";              // analysis type, AOD, ESD or sESD (to be automatically determined below; if detection does not work, set by hand after detection)
-    TString        kPass               = "";              // pass string
 
 //______________________________________________________________________________
     //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -501,7 +501,9 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     const Bool_t   doAODTrackProp     = kTRUE;                     // default: kTRUE
     const Bool_t   modifyMatchObjs    = kTRUE;                     // default: kTRUE
 
-    AddTaskJetPreparation(periodstr, pTracksName, usedMCParticles, usedClusters, outClusName, hadcorr, Eexcl, phiMatch, etaMatch, minPtEt, pSel_jetprep, trackclus, doHistos, makePicoTracks, makeTrigger, isEmcalTrain, trackeff, modifyMatchObjs);
+    AddTaskJetPreparation( periodstr, pTracksName, usedMCParticles, usedClusters, outClusName, hadcorr,
+                           Eexcl, phiMatch, etaMatch, minPtEt, pSel_jetprep, trackclus, doHistos,
+                           makePicoTracks, makeTrigger, isEmcalTrain, trackeff, doAODTrackProp, modifyMatchObjs );
 
 
 // ################# Now: Add jet finders+analyzers
