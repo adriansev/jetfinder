@@ -205,9 +205,9 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
 //______________________________________________________________________________
     // Objects (branch names) used in Jet framework
-    TString tracksName         = "PicoTracks";
-    TString clustersName       = "EmcCaloClusters";
-    TString clustersCorrName   = "CaloClustersCorr";
+    TString tracksName         = "PicoTracks";        // runEmcalJetAnalysis default = PicoTracks
+    TString clustersName       = "EmcCaloClusters";      // runEmcalJetAnalysis default = EmcCaloClusters
+    TString clustersCorrName   = "CaloClustersCorr";  // runEmcalJetAnalysis default = CaloClustersCorr
     TString rhoName            = "";
 
 
@@ -547,39 +547,52 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Double_t     jetareacut           = 0.001 ;
     const char*  taskname             = "Jet";
 
+//     mgr->AddClassDebug("AliJetContainer", 100); // adding debug for AliJetContainer for printout of rejecting resons
+
     AliAnalysisTaskEmcalJetCDF* anaTask = NULL;
 
+    // R = 0.4
     jetminpt = 1.;
     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF1");
+    anaTask->SetDebugLevel(debug);
 
     jetminpt = 5.;
     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF2");
+    anaTask->SetDebugLevel(debug);
 
     jetminpt = 10.;
     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF3");
+    anaTask->SetDebugLevel(debug);
 
     jetminpt = 20.;
     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF4");
+    anaTask->SetDebugLevel(debug);
 
     jetminpt = 30.;
     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF5");
+    anaTask->SetDebugLevel(debug);
 
 
-//     jetminpt = 1.;
-//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF6");
-//
-//     jetminpt = 5.;
-//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF7");
-//
-//     jetminpt = 10.;
-//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF8");
-//
-//     jetminpt = 20.;
-//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF9");
-//
-//     jetminpt = 30.;
-//     anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF10");
+    // R = 0.6
+    jetminpt = 1.;
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF6");
+    anaTask->SetDebugLevel(debug);
 
+    jetminpt = 5.;
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF7");
+    anaTask->SetDebugLevel(debug);
+
+    jetminpt = 10.;
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF8");
+    anaTask->SetDebugLevel(debug);
+
+    jetminpt = 20.;
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF9");
+    anaTask->SetDebugLevel(debug);
+
+    jetminpt = 30.;
+    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF10");
+    anaTask->SetDebugLevel(debug);
 
 
 //#################################################################
