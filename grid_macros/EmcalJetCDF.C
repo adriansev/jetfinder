@@ -523,8 +523,6 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Bool_t         selectPhysPrim  = kFALSE;     // default: kFALSE
     Bool_t         lockTask        = kTRUE;      // default: kTRUE
 
-
-
     //_______________________________________________________________________________
 //     minTrPt = 0.15;  radius = 0.2;
 //     AliEmcalJetTask* jetFinderTask_015_02 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
@@ -544,6 +542,35 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 //     minTrPt = 0.15;  radius = 0.6;
 //     AliEmcalJetTask* jetFinderTask_015_06 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
 //     PrintInfoJF ( jetFinderTask_015_06->GetName() );
+
+//#####################################################################################
+  if (doBkg)
+    {
+    algo    = kKT;
+    AliEmcalJetTask* jetFinderTaskKT = AddTaskEmcalJet (tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt);
+    TString kTpcKtJetsName = jetFinderTaskKT->GetName();
+
+    gROOT->LoadMacro("$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskRho.C");
+//     const char*    nJets       = "Jets";          // DEFAULT
+//     const char*    nTracks     = "PicoTracks";    // DEFAULT
+//     const char*    nClusters   = "CaloClusters";  // DEFAULT
+//     const char*    nRho        = "Rho";           // DEFAULT
+//     Double_t       jetradius   = 0.2;             // DEFAULT
+//     const char*    cutType     = "TPC";           // DEFAULT
+    Double_t       rhojetareacut  = 0.01;
+    Double_t       emcareacut  = 0;
+    TF1*           sfunc       = 0;
+    const UInt_t   exclJets    = 2;
+    const Bool_t   histo       = kFALSE;
+    const char*    taskname    = "Rho";
+
+    rhoName = "Rho";
+    AliAnalysisTaskRho* rhotask = AddTaskRho (jetFinderTaskKT->GetName(), tracksName, clustersCorrName, rhoName.Data(), radius, acceptance_type.Data(),
+                                              rhojetareacut, emcareacut, sfunc, exclJets, kTRUE);
+    //rhotask->SetScaleFunction(sfunc);
+    //rhotask->SelectCollisionCandidates(kPhysSel);
+    rhotask->SetHistoBins(100,0,250);
+    }
 
 //#####################################################################################
 
