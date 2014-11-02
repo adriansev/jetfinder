@@ -412,6 +412,9 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         AliMCEventHandler* mcH = AddMCHandler (kTRUE);
         }
 
+    // somehow required by LHC10d
+    ((AliInputEventHandler*)mgr->GetInputEventHandler())->SetNeedField();
+
 //####################################################
 //#######        ANALYSIS TASKS
 //####################################################
@@ -580,9 +583,6 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Double_t     jetareacut           = 0.001 ;
     const char*  taskname             = "Jet";
 
-//     mgr->AddClassDebug("AliJetContainer", 100); // adding debug for AliJetContainer for printout of rejecting resons
-//     mgr->AddClassDebug("AliEmcalJetTask", 100); // adding debug for AliJetContainer for printout of rejecting resons
-
     AliAnalysisTaskEmcalJetCDF* anaTask = NULL;
 
     Double_t jetpt_cuts[] = {1., 5., 10. ,20., 30., 40., 50.};
@@ -596,6 +596,12 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         PrintInfoCDFtask(anaTask->GetName());
         }
 
+    if ( debug > 3 )
+        {
+        mgr->AddClassDebug("AliJetContainer", 100);
+        mgr->AddClassDebug("AliEmcalJetTask", 100);
+        mgr->AddClassDebug("AliAnalysisTaskEmcalJetCDF", 100);
+        }
 
 
 //#################################################################
