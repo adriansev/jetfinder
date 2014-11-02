@@ -82,6 +82,7 @@
 // enum Jets used
 enum AlgoType {kKT, kANTIKT};
 enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS};
+enum JetAcceptanceType { kTPC, kEMCAL, kUser };
 
 //______________________________________________________________________________
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
@@ -89,8 +90,8 @@ enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS};
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
 
-Int_t       kTestFiles               = 20;    // Number of test files
-Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+Int_t       kTestFiles               = 1;    // Number of test files
+Long64_t    nentries                 = 1200; //34567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
 TString     kTrainName               = "sev_jets";           // *CHANGE ME* (no blancs or special characters)
@@ -493,7 +494,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     const Double_t minPtEt            = 0.15;                      // default: 0.15
     const UInt_t   pSel_jetprep       = pSel;                      // default: AliVEvent::kAny
     const Bool_t   trackclus          = kTRUE;                     // default: kTRUE
-    const Bool_t   doHistos           = kFALSE;                     // default: kFALSE
+    const Bool_t   doHistos           = kFALSE;                    // default: kFALSE
     const Bool_t   makePicoTracks     = kTRUE;                     // default: kTRUE
     const Bool_t   makeTrigger        = kTRUE;                     // default: kTRUE
     const Bool_t   isEmcalTrain       = kFALSE;                    // default: kFALSE
@@ -508,8 +509,11 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
 // ################# Now: Add jet finders+analyzers
     gROOT->LoadMacro ( "$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C" );
+    const char*    nTracks         = tracksName.Data();       // default: "Tracks";
+    const char*    nClusters       = clustersCorrName.Data(); // default: "CaloClusters";
     Int_t          algo            = kANTIKT;    // default: 1 ; 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
     Double_t       radius          = 0.4;        // default: 0.4
+    Int_t          type            = jettype;    // default: 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
     Double_t       minTrPt         = 0.15;       // default: 0.15  // min jet track momentum   (applied before clustering)
     Double_t       minClPt         = 0.30;       // default: 0.30  // min jet cluster momentum (applied before clustering)
     Double_t       ghostArea       = 0.005;      // default: 0.005 // ghost area
@@ -518,6 +522,8 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Double_t       minJetPt        = 1.;         // default: 0.
     Bool_t         selectPhysPrim  = kFALSE;     // default: kFALSE
     Bool_t         lockTask        = kTRUE;      // default: kTRUE
+
+
 
     //_______________________________________________________________________________
 //     minTrPt = 0.15;  radius = 0.2;
@@ -535,9 +541,9 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     PrintInfoJF ( jetFinderTask_015_04->GetName() );
 
     //_______________________________________________________________________________
-    minTrPt = 0.15;  radius = 0.6;
-    AliEmcalJetTask* jetFinderTask_015_06 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    PrintInfoJF ( jetFinderTask_015_06->GetName() );
+//     minTrPt = 0.15;  radius = 0.6;
+//     AliEmcalJetTask* jetFinderTask_015_06 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+//     PrintInfoJF ( jetFinderTask_015_06->GetName() );
 
 //#####################################################################################
 
@@ -548,51 +554,21 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     const char*  taskname             = "Jet";
 
 //     mgr->AddClassDebug("AliJetContainer", 100); // adding debug for AliJetContainer for printout of rejecting resons
+//     mgr->AddClassDebug("AliEmcalJetTask", 100); // adding debug for AliJetContainer for printout of rejecting resons
 
     AliAnalysisTaskEmcalJetCDF* anaTask = NULL;
 
-    // R = 0.4
-    jetminpt = 1.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF1");
-    anaTask->SetDebugLevel(debug);
+    Double_t jetpt_cuts[] = {1., 5., 10. ,20., 30., 40., 50.};
 
-    jetminpt = 5.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF2");
-    anaTask->SetDebugLevel(debug);
+    for (UInt_t k = 0; k < sizeof(jetpt_cuts)/sizeof(Double_t); k++ )
+        {
+        taskname = Form ("CDF%i", k);
+        anaTask  = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, taskname);
 
-    jetminpt = 10.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF3");
-    anaTask->SetDebugLevel(debug);
+        anaTask->SetDebugLevel(debug);
+        PrintInfoCDFtask(anaTask->GetName());
+        }
 
-    jetminpt = 20.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF4");
-    anaTask->SetDebugLevel(debug);
-
-    jetminpt = 30.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF5");
-    anaTask->SetDebugLevel(debug);
-
-
-    // R = 0.6
-    jetminpt = 1.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF6");
-    anaTask->SetDebugLevel(debug);
-
-    jetminpt = 5.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF7");
-    anaTask->SetDebugLevel(debug);
-
-    jetminpt = 10.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF8");
-    anaTask->SetDebugLevel(debug);
-
-    jetminpt = 20.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF9");
-    anaTask->SetDebugLevel(debug);
-
-    jetminpt = 30.;
-    anaTask    = AddTaskEmcalJetCDF (jetFinderTask_015_06, jetminpt, jetareacut, acceptance_type.Data(), leadhadtype, "CDF10");
-    anaTask->SetDebugLevel(debug);
 
 
 //#################################################################
@@ -663,6 +639,21 @@ void PrintInfoJF ( const char* taskname )
 
     cout << "\n"<< endl;
     }
+
+//______________________________________________________________________________
+void PrintInfoCDFtask ( const char* taskname, Int_t i = 0 )
+    {
+    AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
+    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to.");  return NULL; }
+
+    AliAnalysisTaskEmcalJetCDF* cdftask = dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(mgr->GetTask(taskname));
+    cout << "\nJet Finder Task Name : " << cdftask->GetName() << endl;
+
+    AliJetContainer* jetcont = cdftask->GetJetContainer(i);
+    jetcont->PrintCuts();
+
+    }
+
 
 //______________________________________________________________________________
 void LoadLibs ()
