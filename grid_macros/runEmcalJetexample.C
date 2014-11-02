@@ -91,16 +91,16 @@ Int_t       kTestFiles               = 1;    // Number of test files
 Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
-TString     kTrainName               = "sev_jets";           // *CHANGE ME* (no blancs or special characters)
-TString     kWorkDir                 = "emcalcdf";           // AliEn work dir; relative to AliEn $HOME
-TString     kJobTag                  = "sev_jet_analysis";   // *CHANGE ME*
+TString     kTrainName               = "jets";           // *CHANGE ME* (no blancs or special characters)
+TString     kWorkDir                 = "emcal";           // AliEn work dir; relative to AliEn $HOME
+TString     kJobTag                  = "jet_analysis";   // *CHANGE ME*
 
 TString     kPluginExecutableCommand = "aliroot -b -q";
 Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in production mode
 
 TString     kPluginAPIVersion        = "V1.1x";
 TString     kPluginRootVersion       = "v5-34-08-6";
-TString     kPluginAliRootVersion    = "vAN-20141014";
+TString     kPluginAliRootVersion    = "vAN-20141101";
 
 TString     kPackage1                = "boost::v1_53_0";
 TString     kPackage2                = "cgal::v4.4";
@@ -145,7 +145,7 @@ TString kDataset = "";
 TString kDatafile = "";
 
 // FILES USED IN MACRO
-TString     kCommonOutputFileName    = "CDFanalysis.root";
+TString     kCommonOutputFileName    = "analysis_example_out.root";
 
 // == grid plugin files rules
 TString     kGridExtraFiles          = ""; // LIBRARIES files that will be added to the input list in the JDL
