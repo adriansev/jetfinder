@@ -90,8 +90,8 @@ enum JetAcceptanceType { kTPC, kEMCAL, kUser };
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
 
-Int_t       kTestFiles               = 1;    // Number of test files
-Long64_t    nentries                 = 1200; //34567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+Int_t       kTestFiles               = 20;    // Number of test files
+Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
 TString     kTrainName               = "sev_jets";           // *CHANGE ME* (no blancs or special characters)
@@ -103,7 +103,7 @@ Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in prod
 
 TString     kPluginAPIVersion        = "V1.1x";
 TString     kPluginRootVersion       = "v5-34-08-6";
-TString     kPluginAliRootVersion    = "vAN-20141014";
+TString     kPluginAliRootVersion    = "vAN-20141106";
 
 TString     kPackage1                = "boost::v1_53_0";
 TString     kPackage2                = "cgal::v4.4";
@@ -198,6 +198,8 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
     TString        acceptance_type     = "TPC";         // TPC or EMCAL
     Int_t          leadhadtype         = 0;             // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
+
+    Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
 
     // sanity checks
     if ( jettype != kCHARGEDJETS )  { acceptance_type = "EMCAL"; }
@@ -524,7 +526,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     const char*    tag             = "Jet";      // default: "Jet"
     Double_t       minJetPt        = 1.;         // default: 0.
     Bool_t         selectPhysPrim  = kFALSE;     // default: kFALSE
-    Bool_t         lockTask        = kTRUE;      // default: kTRUE
+    Bool_t         lockTask        = kFALSE;      // default: kTRUE
 
     //_______________________________________________________________________________
 //     minTrPt = 0.15;  radius = 0.2;
@@ -545,6 +547,15 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 //     minTrPt = 0.15;  radius = 0.6;
 //     AliEmcalJetTask* jetFinderTask_015_06 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
 //     PrintInfoJF ( jetFinderTask_015_06->GetName() );
+
+
+    // set eta-phi fiducial cuts on jetfinders
+    if ( tracks_etaphi_cuts ) // acceptance cuts on constituents tracks
+        {
+        //     SetJFAccFid (jetFinderTask_015_02, acceptance_type);
+        //     SetJFAccFid (jetFinderTask_015_03, acceptance_type);
+        SetJFAccFid (jetFinderTask_015_04, acceptance_type);
+        }
 
 //#####################################################################################
   if (doBkg)
@@ -585,11 +596,12 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
     AliAnalysisTaskEmcalJetCDF* anaTask = NULL;
 
-    Double_t jetpt_cuts[] = {1., 5., 10. ,20., 30., 40., 50.};
+    Double_t jetpt_cuts[] = {1., 5., 10. ,20., 30., 40., 50., 60.};
 
     for (UInt_t k = 0; k < sizeof(jetpt_cuts)/sizeof(Double_t); k++ )
         {
         taskname = Form ("CDF%i", k);
+        if ( tracks_etaphi_cuts ) { acceptance_type = "TPC"; } // if acc cuts on tracks remove the acc cuts on jets
         anaTask  = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, taskname);
 
         anaTask->SetDebugLevel(debug);
@@ -648,19 +660,47 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
         mgr->StartAnalysis ( kAnalysisMode.Data(), nentries, firstentry );
         }
+        // END of mgr->InitAnalysis()
+}
 
-    // END of mgr->InitAnalysis()
 
+//________________________________________________________________________
+void SetJFAccFid( const char* taskname, TString cut = "TPC")
+    {
+    cut.ToLower();
 
+    AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
+    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
+
+    AliEmcalJetTask* jf = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask(taskname));
+    if (!jf) { AliError("No jet finder in SetJFAccFid()");}
+
+    Float radius = jf->GetRadius();
+
+    Float_t fJetMinEta = -0.9, fJetMaxEta = 0.9 ;
+    Float_t fJetMinPhi = -10., fJetMaxPhi = 10. ;
+
+    if ( cut.EqualTo("emcal"))
+        {
+        fJetMinEta = -0.7   ; fJetMaxEta =  0.7 ;
+        fJetMinPhi =  1.405 ; fJetMaxPhi =  3.135 ;
+
+        fJetMinPhi += radius;
+        fJetMaxPhi -= radius;
+        }
+
+    jf->SetPhiRange( fJetMinPhi, fJetMaxPhi );
+    jf->SetEtaRange( fJetMinEta + radius, fJetMaxEta - radius );
     }
 
 //______________________________________________________________________________
 void PrintInfoJF ( const char* taskname )
     {
     AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
-    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to.");  return NULL; }
+    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
 
     AliEmcalJetTask* jf = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask(taskname));
+    if (!jf) { AliError("No jet finder in PrintInfoJF");}
 
     cout << "\nJet Finder Task Name : " << jf->GetName() << endl;
 
@@ -677,16 +717,14 @@ void PrintInfoJF ( const char* taskname )
 void PrintInfoCDFtask ( const char* taskname, Int_t i = 0 )
     {
     AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
-    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to.");  return NULL; }
+    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
 
     AliAnalysisTaskEmcalJetCDF* cdftask = dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(mgr->GetTask(taskname));
     cout << "\nJet Finder Task Name : " << cdftask->GetName() << endl;
 
     AliJetContainer* jetcont = cdftask->GetJetContainer(i);
     jetcont->PrintCuts();
-
     }
-
 
 //______________________________________________________________________________
 void LoadLibs ()
