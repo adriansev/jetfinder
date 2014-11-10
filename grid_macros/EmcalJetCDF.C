@@ -580,9 +580,8 @@ std::vector<TString> GetJetFinderList()
         {
         AliAnalysisTaskSE* task = dynamic_cast<AliAnalysisTaskSE*> ( tasks_list->At ( t_idx ) );
         if ( !task ) { continue; }
-        TString class_name = task->Class_Name();
         TString task_name = task->GetName();
-        if ( task->InheritsFrom ( "AliEmcalJetTask" ) || class_name.EqualTo("AliEmcalJetTask") ) { jf_list.push_back(task_name); }
+        if ( task->IsA()->InheritsFrom(AliEmcalJetTask::Class()) ) { jf_list.push_back(task_name); }
         }
 
     return jf_list;
