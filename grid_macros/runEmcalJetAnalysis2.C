@@ -206,6 +206,13 @@ Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts 
 
 Int_t          leadhadtype         = 0;             // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
 
+//__________________________________________________________________________________
+// Objects (branch names) used in Jet framework
+TString tracksName         = "PicoTracks";          // runEmcalJetAnalysis default = PicoTracks
+TString clustersName       = "EmcCaloClusters";     // runEmcalJetAnalysis default = EmcCaloClusters
+TString clustersCorrName   = "CaloClustersCorr";    // runEmcalJetAnalysis default = CaloClustersCorr
+TString rhoName            = "";
+
 void runEmcalJetAnalysis2 (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
     {
     gSystem->SetFPEMask(); // because is used in reference script
@@ -223,13 +230,6 @@ void runEmcalJetAnalysis2 (const char* analysis_mode = "local", const char* plug
 
     // if acceptance cut on input contituents then do not cut in acceptance of jets
     if ( tracks_etaphi_cuts ) { acceptance_type = "TPC" ; acceptance_type_i = 0; }
-
-//__________________________________________________________________________________
-    // Objects (branch names) used in Jet framework
-    TString tracksName         = "PicoTracks";          // runEmcalJetAnalysis default = PicoTracks
-    TString clustersName       = "EmcCaloClusters";     // runEmcalJetAnalysis default = EmcCaloClusters
-    TString clustersCorrName   = "CaloClustersCorr";    // runEmcalJetAnalysis default = CaloClustersCorr
-    TString rhoName            = "";
 
     LoadLibs(); // Load necessary libraries for the script and for the plugin
 
