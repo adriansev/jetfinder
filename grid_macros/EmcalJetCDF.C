@@ -244,10 +244,9 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     if ( kAnalysisMode.EqualTo ("local") || kPluginMode.EqualTo ("test")  ) { kUsePAR = kFALSE; }
 
 //__________________________________________________________________________________
-    // ###   SET UP AliEn handler ### -> main analysis engine : we will use many internal tools of AliAnalysisAlien
+    // ###   SET UP AliEn handler ###
     AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );
-
-    // ###   ANALYSIS MANAGER   ###  // Make the analysis manager and connect event handlers
+    // ###   ANALYSIS MANAGER     ###
     AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );
 
 //__________________________________________________________________________________
@@ -265,7 +264,6 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     if ( gROOT->LoadMacro ( myTask.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
 
 //__________________________________________________________________________________
-    // prepare the environment for analysis;
     // NOTE!!! after the custom task part to be pick up and loaded by alien plugin
     PrepareAnalysisEnvironment();
 
@@ -340,7 +338,8 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     gROOT->LoadMacro ( "$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskJetPreparation.C" );
     const char*    periodstr          = runPeriod.Data();          // default: "LHC11h";
     const char*    pTracksName        = tracksName.Data();         // default: "PicoTracks"
-    const char*    usedMCParticles    = "" ; if (isMC) { usedMCParticles  = "MCParticlesSelected";} // default: "MCParticlesSelected"
+    const char*    usedMCParticles    = "" ;                       // default: "MCParticlesSelected"
+    if (isMC)    { usedMCParticles    = "MCParticlesSelected"; }
     const char*    usedClusters       = clustersName.Data();       // default: "CaloClusters"
     const char*    outClusName        = clustersCorrName.Data();   // default: "CaloClustersCorr"
     const Double_t hadcorr            = 2.0;                       // default: 2.0
@@ -414,7 +413,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
         rhoName = "Rho";
         AliAnalysisTaskRho* rhotask = AddTaskRho (jetFinderTaskKT->GetName(), tracksName, clustersCorrName, rhoName.Data(), radius, acceptance_type.Data(),
-                                                rhojetareacut, emcareacut, sfunc, exclJets, kTRUE);
+                                                  rhojetareacut, emcareacut, sfunc, exclJets, kTRUE);
         //rhotask->SetScaleFunction(sfunc);
         //rhotask->SelectCollisionCandidates(kPhysSel);
         rhotask->SetHistoBins(100,0,250);
@@ -427,17 +426,16 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 //#####################################################################################
     gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
     //     AliEmcalJetTask* jetFinderTask;
-    Double_t     jetminpt             = 1.;
     Double_t     jetareacut           = 0.001 ;
     const char*  taskname             = "Jet";
 
     AliAnalysisTaskEmcalJetCDF* anaTask = NULL;
 
-    Double_t jetpt_cuts[] = {1., 5., 10. ,20., 30., 40., 50., 60.};
+    Double_t jetpt_cuts[] = {1., 5., 10. ,15., 20., 25., 30., 35., 40.};
 
-    for ( std::vector<TString>::iterator jf_it = jf_names.begin(); jf_it != jf_names.end(); ++jf_it)
+    for ( std::vector<TString>::iterator jf_it = jf_names.begin(); jf_it != jf_names.end(); ++jf_it)  // loop over jet finders
         {
-        for (UInt_t k = 0; k < sizeof(jetpt_cuts)/sizeof(Double_t); ++k )
+        for (UInt_t k = 0; k < sizeof(jetpt_cuts)/sizeof(Double_t); ++k )  // loop over all jet pt cuts
             {
             AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask((*jf_it)));
             if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
