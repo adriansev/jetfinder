@@ -90,7 +90,7 @@ enum JetAcceptanceType { kTPC, kEMCAL, kUser };
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
 
-Int_t       kTestFiles               = 20;    // Number of test files
+Int_t       kTestFiles               = 1;    // Number of test files
 Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
@@ -141,11 +141,26 @@ TString kAAF        =
     "asevcenc@skaf.saske.sk";
 
 Int_t   kProofReset = 0  ; Int_t   kWorkers    = 20 ; Int_t   kCores      = 8  ;
+//------------------------------------------------------------------------------
 
 //==============================================================================
+// Global objects to be access by utility functions
+TString kInputDataLabel = "";
+
 // Containers for IO file names
 TString kDataset = "";
 TString kDatafile = "";
+
+// definition of variables to be used later - autodetected
+TString     runPeriod           = ""; // run period (to be determined automatically form path to files; if path is not GRID like, set by hand)
+TString     dataType            = ""; // analysis type, AOD, ESD or sESD (to be automatically determined below; if detection does not work, set by hand after detection)
+TString     kPass               = ""; // pass string
+
+TString   kPluginMode   = ""; // test, offline, submit, terminate, full
+TString   kAnalysisMode = ""; // local, grid, proof
+TString   kInputStr = ""; // input string
+
+//==============================================================================
 
 // FILES USED IN MACRO
 TString     kCommonOutputFileName    = "CDFanalysis.root";
@@ -161,11 +176,6 @@ TString     ListLibs      = "";
 TString     ListLibsExtra = "";
 TString     ListSources   = "";
 
-// definition of variables to be used later - autodetected
-TString     runPeriod           = ""; // run period (to be determined automatically form path to files; if path is not GRID like, set by hand)
-TString     dataType            = ""; // analysis type, AOD, ESD or sESD (to be automatically determined below; if detection does not work, set by hand after detection)
-TString     kPass               = ""; // pass string
-
 // Function signatures
 class AliAnalysisGrid;
 class AliAnalysisAlien;
@@ -178,170 +188,72 @@ Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo
 unsigned int    kUseSysInfo        =  0 ; // activate debugging
 Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
 
+//______________________________________________________________________________
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@     ANALYSIS STEERING VARIABLES     @@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+Bool_t         isMC                = kFALSE;          // trigger, if MC handler should be used
+Bool_t         useTender           = kTRUE;           // trigger, if tender task should be used
+Bool_t         doBkg               = kFALSE;          // background estimation with AliAnalysisTaskRho
+
+UInt_t         pSel                = AliVEvent::kMB;  // used event selection for every task except for the analysis tasks
+
+Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
+
+// acceptance cuts on jets
+TString        acceptance_type     = "TPC";         // TPC, EMCAL, kUSER
+UInt_t         acceptance_type_i   = -1;            // AliJetContainer enum ... will be set in sync to string value below
+
+Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
+
+Int_t          leadhadtype         = 0;             // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
 
 void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
     {
     gSystem->SetFPEMask(); // because is used in reference script
-
-//______________________________________________________________________________
-    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    //@@@     ANALYSIS STEERING VARIABLES     @@@
-    //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-    Bool_t         isMC                = kFALSE;          // trigger, if MC handler should be used
-    Bool_t         useTender           = kTRUE;           // trigger, if tender task should be used
-    Bool_t         doBkg               = kFALSE;          // background estimation with AliAnalysisTaskRho
-
-    UInt_t         pSel                = AliVEvent::kMB;  // used event selection for every task except for the analysis tasks
-
-    Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
-
-    TString        acceptance_type     = "TPC";         // TPC or EMCAL
-    Int_t          leadhadtype         = 0;             // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
-
-    Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
 
     // sanity checks
     if ( jettype != kCHARGEDJETS )  { acceptance_type = "EMCAL"; }
     if ( jettype == kNEUTRALJETS )  { leadhadtype == 1; }
     if ( jettype == kFULLJETS )     { leadhadtype == 2; }
 
-//______________________________________________________________________________
+    if ( acceptance_type.EqualTo("TPC"))   { acceptance_type_i = 0; }
+    else
+    if ( acceptance_type.EqualTo("EMCAL")) { acceptance_type_i = 1; }
+    else
+        { acceptance_type_i = 2; }
+
+    // if acceptance cut on input contituents then do not cut in acceptance of jets
+    if ( tracks_etaphi_cuts ) { acceptance_type = "TPC" ; acceptance_type_i = 0; }
+
+//__________________________________________________________________________________
     // Objects (branch names) used in Jet framework
-    TString tracksName         = "PicoTracks";        // runEmcalJetAnalysis default = PicoTracks
-    TString clustersName       = "EmcCaloClusters";      // runEmcalJetAnalysis default = EmcCaloClusters
-    TString clustersCorrName   = "CaloClustersCorr";  // runEmcalJetAnalysis default = CaloClustersCorr
+    TString tracksName         = "PicoTracks";          // runEmcalJetAnalysis default = PicoTracks
+    TString clustersName       = "EmcCaloClusters";     // runEmcalJetAnalysis default = EmcCaloClusters
+    TString clustersCorrName   = "CaloClustersCorr";    // runEmcalJetAnalysis default = CaloClustersCorr
     TString rhoName            = "";
 
+    LoadLibs(); // Load necessary libraries for the script and for the plugin
 
-    // LIBRARIES LOADING
-    LoadLibs(); // Load necessary libraries for the script
-
-    TString   kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
-    TString   kAnalysisMode = analysis_mode ; kAnalysisMode.ToLower();  // local, grid, proof
+    kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
+    kAnalysisMode = analysis_mode ; kAnalysisMode.ToLower();  // local, grid, proof
+    kInputStr     = input;
 
     // if analysis is done on localhost do not use PARs
     if ( kAnalysisMode.EqualTo ("local") || kPluginMode.EqualTo ("test")  ) { kUsePAR = kFALSE; }
 
-    //==========================================================================
-    // SET UP AliEn handler -> main analysis engine : we will use many internal tools of AliAnalysisAlien
-    //==========================================================================
+//__________________________________________________________________________________
+    // ###   SET UP AliEn handler ### -> main analysis engine : we will use many internal tools of AliAnalysisAlien
     AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );
 
-    //###   ANALYSIS MANAGER   ###
-    // Make the analysis manager and connect event handlers
+    // ###   ANALYSIS MANAGER   ###  // Make the analysis manager and connect event handlers
     AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );
 
-    if ( kCommonOutputFileName.Length() > 0 ) { mgr->SetCommonFileName ( kCommonOutputFileName.Data() ); }
-
-    mgr->SetSkipTerminate ( kSkipTerminate );
-
-    //______________________________________________________________________________
-    //******************
-    //    DATA INPUT
-    //******************
-    // Prepare input decisions
-    TString kInputDataLabel = "";
-    TString input_data = input;
-
-    std::ifstream ifs (input_data.Data()); // try to open as file
-
-    if ( ifs.is_open() ) // if input is file
-        {
-        kDatafile = input_data;
-
-        // if input data is file then analysis mode must be local or proof (if forgotten to grid, will revert to local)
-        if ( kAnalysisMode.EqualTo("grid") ) { kAnalysisMode = "local" ;}
-
-        // .txt file containing the list of files to be chained in test mode; even if analysis is PROOF (plugin is test)
-        plugin->SetFileForTestMode ( kDatafile.Data() );   //fFileForTestMode
-        }
-    else if ( input_data.IsAscii() ) // either grid (tags from InputData.C) either dataset
-        {
-        if ( kAnalysisMode.EqualTo("grid"))
-            {
-            kInputDataLabel = input_data ; // input field must corespond with defined tags in InputData.C macro
-            gROOT->LoadMacro ( "InputData.C" );    // Load InputData macro
-            if ( !InputData(kInputDataLabel) ) { cout << "Analysis mode is GRID but no InputData.C label was recognized!! exiting..." << endl; gApplication->Terminate(); }
-            }
-        else
-            {
-            kDataset = input_data; // all other conditions means input_data is a proof dataset name
-            if ( !kDataset.BeginsWith("/") ) { cout << "Dataset is not beggining with \"/\". Check the arguments passed to script. exiting..." << endl; gApplication->Terminate();  }
-            }
-        }
-    //++++++++++++++++++++++++++++++++++
-
-
-    //   *****************************
-    //         DATA TYPE SETTINGS
-    //   *****************************
-    // extract (if possible) the data type from input path
-    TString dataPattern   = plugin->GetDataPattern();
-    TString file4TestMode = plugin->GetFileForTestMode();
-
-    if ( kPluginMode.EqualTo("test") && ( kAnalysisMode.EqualTo("local") || kAnalysisMode.EqualTo("proof") ) )
-        { dataType = FindTreeName(file4TestMode); }
-    else
-        {
-        if (dataPattern.Contains("AliAOD.root")) { dataType = "aod"; }
-        if (dataPattern.Contains("AliESD.root")) { dataType = "esd"; }
-        }
-
-    if (!dataType.IsNull())
-        { cout << "----->>>>>>> Data type : " << dataType.Data() << endl; }
-    else
-        {
-        dataType = "aod";
-        cout << "ERROR ----->>>>>>>   Data type IS NULL !!! ; dataType fallback to AOD type" << endl;
-        Printf ("ERROR ############   Set dataType by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
-        }
-    // dataType = "esd"; // Here it should be set by hand in case automatic procedure did not work
-
-    //   *****************************
-    //         PERIOD SETTINGS
-    //   *****************************
-    // extract (if possible) the Period from input path
-    if ( kPluginMode.EqualTo("test") && ( kAnalysisMode.EqualTo("local") || kAnalysisMode.EqualTo("proof") ) )
-        {
-        TString data_path = GetInputDataPath (file4TestMode);
-        runPeriod = GetPeriod (data_path);
-        }
-    else
-        {
-        TString griddatadir = plugin->GetGridDataDir();
-        runPeriod = GetPeriod ( griddatadir );
-        }
-
-    if (!runPeriod.IsNull())
-        { cout << "----->>>>>>> Period : " << runPeriod.Data() << endl; }
-    else
-        {
-        cout << "ERROR ----->>>>>>>   PERIOD IS NULL !!!" << endl;
-        Printf ("ERROR ############   Set runPeriod by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
-        }
-    // runPeriod = "lhc10e"; // Here it should be set by hand in case automatic procedure did not work
-
-    cout << "----->>>>>>> Period is MonteCarlo? : " << PeriodIsMC (runPeriod) << endl;
-
-    //   *****************************
-    //         PASS SETTINGS
-    //   *****************************
-    // extract (if possible) the Pass from input path
-    if ( kPluginMode.EqualTo("test") && ( kAnalysisMode.EqualTo("local") || kAnalysisMode.EqualTo("proof") ) )
-        {
-        TString data_path = GetInputDataPath (file4TestMode);
-        kPass = GetPass (data_path);
-        }
-    else
-        { kPass = GetPass (dataPattern); }
-
-    cout << "----->>>>>>> Pass is : " << kPass.Data() << endl;
-
+//__________________________________________________________________________________
     //*******************************************
     //   Loading of libraries (script + plugin)
     //*******************************************
-
     //compile and load the custom local task in local macro
     TString myTask = "AliAnalysisTaskEmcalJetCDF.cxx";
 
@@ -352,79 +264,19 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     if ( kAnalysisMode.EqualTo("grid") || kAnalysisMode.EqualTo("proof") ) { myTask += "++";}
     if ( gROOT->LoadMacro ( myTask.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
 
-
-    //////////////////////////////////////////
-    ////   LIBRARIES TO BE LOADED BY PLUGIN
-    /////////////////////////////////////////
-    ListLibs += kGridExtraFiles;
-
-    ListLibs       = ListLibs.Strip();      if ( debug > 3 ) {  Printf ( "### ListLibs : %s", ListLibs.Data() ); }
-    ListLibsExtra  = ListLibsExtra.Strip(); if ( debug > 3 ) {  Printf ( "### ListLibsExtra : %s", ListLibsExtra.Data() ); }
-    ListSources    = ListSources.Strip();   if ( debug > 3 ) {  Printf ( "### ListSources : %s", ListSources.Data() ); }
-
-    if ( ListLibs.Length() )       { plugin->SetAdditionalLibs     ( ListLibs.Data() ); }
-    if ( ListLibsExtra.Length() )  { plugin->SetAdditionalRootLibs ( ListLibsExtra.Data() ); }
-    if ( ListSources.Length() )    { plugin->SetAnalysisSource     ( ListSources.Data() ); }
-
-
-    //<><><><><><><><><><>
-    //    DEBUGGING
-    //<><><><><><><><><><>
-    mgr->SetDebugLevel(debug);
-
-    // Event frequency for collecting system information
-    mgr->SetNSysInfo ( kUseSysInfo );
-
-    if ( kUseSysInfo > 0 )
-        {
-        mgr->RegisterExtraFile ( "syswatch.root" );
-
-        if ( kGridMergeExclude.Length() ) { kGridMergeExclude += " "; }
-        kGridMergeExclude += "syswatch.root";
-        }
-
-    //********************
-    //    DATA OUTPUT
-    //********************
-    plugin->SetMergeExcludes  ( kGridMergeExclude );
-    plugin->SetDefaultOutputs ( kTRUE );
-
-
-//______________________________________________________________________________
-// handlers definition
-    if ( dataType.EqualTo("aod") )
-        {
-        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C" );
-        AliAODInputHandler* aodH = AddAODHandler();
-        aodH->SetCheckStatistics ( kTRUE );
-        }
-    else
-    if ( dataType.EqualTo("esd") || dataType.EqualTo("sesd") )
-        {
-        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
-        AliESDInputHandler* esdH = AddESDHandler();
-        }
-    else
-        { cout << "Data type not recognized! You have to specify ESD, AOD, or sESD!\n"; return; }
-
-    // Create MC handler, if MC is demanded
-    if ( isMC && !dataType.EqualTo("aod") )
-        {
-        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddMCHandler.C" );
-        AliMCEventHandler* mcH = AddMCHandler (kTRUE);
-        }
-
-    // somehow required by LHC10d
-    ((AliInputEventHandler*)mgr->GetInputEventHandler())->SetNeedField();
+//__________________________________________________________________________________
+    // prepare the environment for analysis;
+    // NOTE!!! after the custom task part to be pick up and loaded by alien plugin
+    PrepareAnalysisEnvironment();
 
 //####################################################
-//#######        ANALYSIS TASKS
+//#######        ANALYSIS TASKS LIST
 //####################################################
 
 //______________________________________________________________________________
 // Signature PhysicsSelectionTask
     Bool_t     isLHC11a          = runPeriod.EqualTo("lhc11a");  // true then skip FastOnly events (only for LHC11a)
-    Bool_t     withHistos        = kFALSE;   // true then write output
+    Bool_t     withHistos        = kFALSE;  // true then write output
     UInt_t     triggers          = pSel;    // if not zero only process given trigges
     Double_t   minE              = 1;       // minimum clus energy (<0 -> do not compute)
     Double_t   minPt             = 1;       // minimum track pt (<0 -> do not compute)
@@ -480,7 +332,6 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         AliAnalysisTaskSE* clusm = AddTaskEmcalPreparation(runPeriod.Data(),kPass.Data());
         }
 
-
 //__________________________________________________________________________________
 // ################# Now: Call jet preparation macro (picotracks, hadronic corrected caloclusters, ...)
 
@@ -528,66 +379,52 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Bool_t         selectPhysPrim  = kFALSE;     // default: kFALSE
     Bool_t         lockTask        = kFALSE;      // default: kTRUE
 
-    //_______________________________________________________________________________
-//     minTrPt = 0.15;  radius = 0.2;
-//     AliEmcalJetTask* jetFinderTask_015_02 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-//     PrintInfoJF ( jetFinderTask_015_02->GetName() );
+    AliEmcalJetTask* jf = NULL;
 
-    //_______________________________________________________________________________
-//     minTrPt = 0.15;  radius = 0.3;
-//     AliEmcalJetTask* jetFinderTask_015_03 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-//     PrintInfoJF ( jetFinderTask_015_03->GetName() );
+    Double_t radius_list[] = {0.2, 0.4}; // for each radius make a jetfinder
 
-    //_______________________________________________________________________________
-    minTrPt = 0.15;  radius = 0.4;
-    AliEmcalJetTask* jetFinderTask_015_04 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-    PrintInfoJF ( jetFinderTask_015_04->GetName() );
-
-    //_______________________________________________________________________________
-//     minTrPt = 0.15;  radius = 0.6;
-//     AliEmcalJetTask* jetFinderTask_015_06 = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-//     PrintInfoJF ( jetFinderTask_015_06->GetName() );
-
-
-    // set eta-phi fiducial cuts on jetfinders
-    if ( tracks_etaphi_cuts ) // acceptance cuts on constituents tracks
+    for (UInt_t j = 0; j < sizeof(radius_list)/sizeof(Double_t); ++j )
         {
-        //     SetJFAccFid (jetFinderTask_015_02, acceptance_type);
-        //     SetJFAccFid (jetFinderTask_015_03, acceptance_type);
-        SetJFAccFid (jetFinderTask_015_04, acceptance_type);
+        jf = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius_list[j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+        PrintInfoJF ( jf->GetName() );
+
+        if ( tracks_etaphi_cuts ) { SetJFAccFid (jf, acceptance_type); }
+        }
+
+
+//#####################################################################################
+    if (doBkg)
+        {
+        AliEmcalJetTask* jetFinderTaskKT = AddTaskEmcalJet (tracksName.Data(), clustersCorrName.Data(), kKT, radius, jettype, minTrPt, minClPt);
+        TString kTpcKtJetsName = jetFinderTaskKT->GetName();
+
+        gROOT->LoadMacro("$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskRho.C");
+    //     const char*    nJets       = "Jets";          // DEFAULT
+    //     const char*    nTracks     = "PicoTracks";    // DEFAULT
+    //     const char*    nClusters   = "CaloClusters";  // DEFAULT
+    //     const char*    nRho        = "Rho";           // DEFAULT
+    //     Double_t       jetradius   = 0.2;             // DEFAULT
+    //     const char*    cutType     = "TPC";           // DEFAULT
+        Double_t       rhojetareacut  = 0.01;
+        Double_t       emcareacut  = 0;
+        TF1*           sfunc       = 0;
+        const UInt_t   exclJets    = 2;
+        const Bool_t   histo       = kFALSE;
+        const char*    taskname    = "Rho";
+
+        rhoName = "Rho";
+        AliAnalysisTaskRho* rhotask = AddTaskRho (jetFinderTaskKT->GetName(), tracksName, clustersCorrName, rhoName.Data(), radius, acceptance_type.Data(),
+                                                rhojetareacut, emcareacut, sfunc, exclJets, kTRUE);
+        //rhotask->SetScaleFunction(sfunc);
+        //rhotask->SelectCollisionCandidates(kPhysSel);
+        rhotask->SetHistoBins(100,0,250);
         }
 
 //#####################################################################################
-  if (doBkg)
-    {
-    algo    = kKT;
-    AliEmcalJetTask* jetFinderTaskKT = AddTaskEmcalJet (tracksName.Data(), clustersCorrName.Data(), algo, radius, jettype, minTrPt, minClPt);
-    TString kTpcKtJetsName = jetFinderTaskKT->GetName();
-
-    gROOT->LoadMacro("$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskRho.C");
-//     const char*    nJets       = "Jets";          // DEFAULT
-//     const char*    nTracks     = "PicoTracks";    // DEFAULT
-//     const char*    nClusters   = "CaloClusters";  // DEFAULT
-//     const char*    nRho        = "Rho";           // DEFAULT
-//     Double_t       jetradius   = 0.2;             // DEFAULT
-//     const char*    cutType     = "TPC";           // DEFAULT
-    Double_t       rhojetareacut  = 0.01;
-    Double_t       emcareacut  = 0;
-    TF1*           sfunc       = 0;
-    const UInt_t   exclJets    = 2;
-    const Bool_t   histo       = kFALSE;
-    const char*    taskname    = "Rho";
-
-    rhoName = "Rho";
-    AliAnalysisTaskRho* rhotask = AddTaskRho (jetFinderTaskKT->GetName(), tracksName, clustersCorrName, rhoName.Data(), radius, acceptance_type.Data(),
-                                              rhojetareacut, emcareacut, sfunc, exclJets, kTRUE);
-    //rhotask->SetScaleFunction(sfunc);
-    //rhotask->SelectCollisionCandidates(kPhysSel);
-    rhotask->SetHistoBins(100,0,250);
-    }
+    // Get list off all jetfinders in order to use analysis tasks for each of them
+    std::vector<TString> jf_names = GetJetFinderList();
 
 //#####################################################################################
-
     gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
     //     AliEmcalJetTask* jetFinderTask;
     Double_t     jetminpt             = 1.;
@@ -598,16 +435,22 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
     Double_t jetpt_cuts[] = {1., 5., 10. ,20., 30., 40., 50., 60.};
 
-    for (UInt_t k = 0; k < sizeof(jetpt_cuts)/sizeof(Double_t); k++ )
+    for ( std::vector<TString>::iterator jf_it = jf_names.begin(); jf_it != jf_names.end(); ++jf_it)
         {
-        taskname = Form ("CDF%i", k);
-        if ( tracks_etaphi_cuts ) { acceptance_type = "TPC"; } // if acc cuts on tracks remove the acc cuts on jets
-        anaTask  = AddTaskEmcalJetCDF (jetFinderTask_015_04, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, taskname);
+        for (UInt_t k = 0; k < sizeof(jetpt_cuts)/sizeof(Double_t); ++k )
+            {
+            AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask((*jf_it)));
+            if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
 
-        anaTask->SetDebugLevel(debug);
-        PrintInfoCDFtask(anaTask->GetName());
+            taskname = Form ("CDF%i", k);
+            anaTask  = AddTaskEmcalJetCDF (jf_task, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, taskname);
+
+            anaTask->SetDebugLevel(debug);
+            PrintInfoCDFtask(anaTask->GetName());
+            }
         }
 
+    // enable class level debugging for these classes
     if ( debug > 3 )
         {
         mgr->AddClassDebug("AliJetContainer", 100);
@@ -618,7 +461,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
 //#################################################################
     // Set the physics selection for all given tasks
-    TObjArray *toptasks = mgr->GetTasks();
+    TObjArray* toptasks = mgr->GetTasks();
 
     for ( Int_t i = 0; i < toptasks->GetEntries(); ++i )
         {
@@ -724,6 +567,209 @@ void PrintInfoCDFtask ( const char* taskname, Int_t i = 0 )
 
     AliJetContainer* jetcont = cdftask->GetJetContainer(i);
     jetcont->PrintCuts();
+    }
+
+//______________________________________________________________________________
+std::vector<TString> GetJetFinderList()
+    {
+    AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
+    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
+
+    TObjArray* tasks_list = mgr->GetTasks(); // get list of of tasks
+    std::vector<TString> jf_list; // vector of strings (names of jet finder tasks)
+
+    for ( Int_t t_idx = 0; t_idx < tasks_list->GetEntries(); ++t_idx )
+        {
+        AliAnalysisTaskSE* task = dynamic_cast<AliAnalysisTaskSE*> ( tasks_list->At ( t_idx ) );
+        if ( !task ) { continue; }
+        TString class_name = task->Class_Name();
+        TString task_name = task->GetName();
+        if ( task->InheritsFrom ( "AliEmcalJetTask" ) || class_name.EqualTo("AliEmcalJetTask") ) { jf_list.push_back(task_name); }
+        }
+
+    return jf_list;
+    }
+
+//______________________________________________________________________________
+void PrepareAnalysisEnvironment()
+    {
+    // get analysis manager
+    AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
+    if (!mgr) { ::Error("EmcalJetCDF::PrepareAnalysisEnvironment()", "No analysis manager to connect to."); }
+
+    // get alien plugin
+    AliAnalysisAlien* plugin =  dynamic_cast <AliAnalysisAlien*> ( mgr->GetGridHandler() );
+    if ( !plugin ) { ::Error ( "EmcalJetCDF::PrepareAnalysisEnvironment()", "no alien plugin" ); return kFALSE; }
+
+    if ( kCommonOutputFileName.Length() > 0 ) { mgr->SetCommonFileName ( kCommonOutputFileName.Data() ); }
+
+    mgr->SetSkipTerminate ( kSkipTerminate );
+
+//__________________________________________________________________________________
+    //////////////////////////////////////////
+    ////   LIBRARIES TO BE LOADED BY PLUGIN
+    /////////////////////////////////////////
+    ListLibs += kGridExtraFiles;
+
+    ListLibs       = ListLibs.Strip();      if ( debug > 3 ) {  Printf ( "### ListLibs : %s", ListLibs.Data() ); }
+    ListLibsExtra  = ListLibsExtra.Strip(); if ( debug > 3 ) {  Printf ( "### ListLibsExtra : %s", ListLibsExtra.Data() ); }
+    ListSources    = ListSources.Strip();   if ( debug > 3 ) {  Printf ( "### ListSources : %s", ListSources.Data() ); }
+
+    if ( ListLibs.Length() )       { plugin->SetAdditionalLibs     ( ListLibs.Data() ); }
+    if ( ListLibsExtra.Length() )  { plugin->SetAdditionalRootLibs ( ListLibsExtra.Data() ); }
+    if ( ListSources.Length() )    { plugin->SetAnalysisSource     ( ListSources.Data() ); }
+
+//______________________________________________________________________________
+    //******************
+    //    DATA INPUT
+    //******************
+    // Prepare input decisions
+    kInputDataLabel = "";
+
+    std::ifstream ifs (kInputStr.Data()); // try to open as file
+
+    if ( ifs.is_open() ) // if input is file
+        {
+        kDatafile = kInputStr;
+
+        // if input data is file then analysis mode must be local or proof (if forgotten to grid, will revert to local)
+        if ( kAnalysisMode.EqualTo("grid") ) { kAnalysisMode = "local" ;}
+
+        // .txt file containing the list of files to be chained in test mode; even if analysis is PROOF (plugin is test)
+        plugin->SetFileForTestMode ( kDatafile.Data() );   //fFileForTestMode
+        }
+    else if ( kInputStr.IsAscii() ) // either grid (tags from InputData.C) either dataset
+        {
+        if ( kAnalysisMode.EqualTo("grid"))
+            {
+            kInputDataLabel = kInputStr ; // input field must corespond with defined tags in InputData.C macro
+            gROOT->LoadMacro ( "InputData.C" );    // Load InputData macro
+            if ( !InputData(kInputDataLabel) ) { cout << "Analysis mode is GRID but no InputData.C label was recognized!! exiting..." << endl; gApplication->Terminate(); }
+            }
+        else
+            {
+            kDataset = kInputStr; // all other conditions means kInputStr is a proof dataset name
+            if ( !kDataset.BeginsWith("/") ) { cout << "Dataset is not beggining with \"/\". Check the arguments passed to script. exiting..." << endl; gApplication->Terminate();  }
+            }
+        }
+    //++++++++++++++++++++++++++++++++++
+
+
+    //   *****************************
+    //         DATA TYPE SETTINGS
+    //   *****************************
+    // extract (if possible) the data type from input path
+    TString dataPattern   = plugin->GetDataPattern();
+    TString file4TestMode = plugin->GetFileForTestMode();
+
+    if ( kPluginMode.EqualTo("test") && ( kAnalysisMode.EqualTo("local") || kAnalysisMode.EqualTo("proof") ) )
+        { dataType = FindTreeName(file4TestMode); }
+    else
+        {
+        if (dataPattern.Contains("AliAOD.root")) { dataType = "aod"; }
+        if (dataPattern.Contains("AliESD.root")) { dataType = "esd"; }
+        }
+
+    if (!dataType.IsNull())
+        { cout << "----->>>>>>> Data type : " << dataType.Data() << endl; }
+    else
+        {
+        dataType = "aod";
+        cout << "ERROR ----->>>>>>>   Data type IS NULL !!! ; dataType fallback to AOD type" << endl;
+        Printf ("ERROR ############   Set dataType by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
+        }
+    // dataType = "esd"; // Here it should be set by hand in case automatic procedure did not work
+
+    //   *****************************
+    //         PERIOD SETTINGS
+    //   *****************************
+    // extract (if possible) the Period from input path
+    if ( kPluginMode.EqualTo("test") && ( kAnalysisMode.EqualTo("local") || kAnalysisMode.EqualTo("proof") ) )
+        {
+        TString data_path = GetInputDataPath (file4TestMode);
+        runPeriod = GetPeriod (data_path);
+        }
+    else
+        {
+        TString griddatadir = plugin->GetGridDataDir();
+        runPeriod = GetPeriod ( griddatadir );
+        }
+
+    if (!runPeriod.IsNull())
+        { cout << "----->>>>>>> Period : " << runPeriod.Data() << endl; }
+    else
+        {
+        cout << "ERROR ----->>>>>>>   PERIOD IS NULL !!!" << endl;
+        Printf ("ERROR ############   Set runPeriod by hand in %s at line %d\n",(char*)__FILE__,__LINE__+2);
+        }
+    // runPeriod = "lhc10e"; // Here it should be set by hand in case automatic procedure did not work
+
+    cout << "----->>>>>>> Period is MonteCarlo? : " << PeriodIsMC (runPeriod) << endl;
+
+    //   *****************************
+    //         PASS SETTINGS
+    //   *****************************
+    // extract (if possible) the Pass from input path
+    if ( kPluginMode.EqualTo("test") && ( kAnalysisMode.EqualTo("local") || kAnalysisMode.EqualTo("proof") ) )
+        {
+        TString data_path = GetInputDataPath (file4TestMode);
+        kPass = GetPass (data_path);
+        }
+    else
+        { kPass = GetPass (dataPattern); }
+
+    cout << "----->>>>>>> Pass is : " << kPass.Data() << endl;
+
+    //<><><><><><><><><><>
+    //    DEBUGGING
+    //<><><><><><><><><><>
+    mgr->SetDebugLevel(debug);
+
+    // Event frequency for collecting system information
+    mgr->SetNSysInfo ( kUseSysInfo );
+
+    if ( kUseSysInfo > 0 )
+        {
+        mgr->RegisterExtraFile ( "syswatch.root" );
+
+        if ( kGridMergeExclude.Length() ) { kGridMergeExclude += " "; }
+        kGridMergeExclude += "syswatch.root";
+        }
+
+    //********************
+    //    DATA OUTPUT
+    //********************
+    plugin->SetMergeExcludes  ( kGridMergeExclude );
+    plugin->SetDefaultOutputs ( kTRUE );
+
+
+//______________________________________________________________________________
+// handlers definition
+    if ( dataType.EqualTo("aod") )
+        {
+        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C" );
+        AliAODInputHandler* aodH = AddAODHandler();
+        aodH->SetCheckStatistics ( kTRUE );
+        }
+    else
+    if ( dataType.EqualTo("esd") || dataType.EqualTo("sesd") )
+        {
+        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
+        AliESDInputHandler* esdH = AddESDHandler();
+        }
+    else
+        { cout << "Data type not recognized! You have to specify ESD, AOD, or sESD!\n"; return; }
+
+    // Create MC handler, if MC is demanded
+    if ( isMC && !dataType.EqualTo("aod") )
+        {
+        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddMCHandler.C" );
+        AliMCEventHandler* mcH = AddMCHandler (kTRUE);
+        }
+
+    // somehow required by LHC10d
+    ((AliInputEventHandler*)mgr->GetInputEventHandler())->SetNeedField();
+
     }
 
 //______________________________________________________________________________
