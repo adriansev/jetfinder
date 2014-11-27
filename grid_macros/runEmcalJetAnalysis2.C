@@ -198,6 +198,8 @@ UInt_t         pSel                = AliVEvent::kMB;  // used event selection fo
 
 Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
 
+TString        kFriendChainName    = "";              // File name to construct friend chain (for AOD)
+
 // acceptance cuts on jets
 TString        acceptance_type     = "TPC";         // TPC, EMCAL, kUSER
 UInt_t         acceptance_type_i   = -1;            // AliJetContainer enum : will be set in sync to string in "sanity checks" part
@@ -629,6 +631,7 @@ void PrepareAnalysisEnvironment()
 
         // .txt file containing the list of files to be chained in test mode; even if analysis is PROOF (plugin is test)
         plugin->SetFileForTestMode ( kDatafile.Data() );   //fFileForTestMode
+        if ( !kFriendChainName.IsNull() ) { plugin->SetFriendChainName(kFriendChainName.Data() ); }
         }
     else if ( kInputStr.IsAscii() ) // either grid (tags from InputData.C) either dataset
         {
@@ -637,6 +640,7 @@ void PrepareAnalysisEnvironment()
             kInputDataLabel = kInputStr ; // input field must corespond with defined tags in InputData.C macro
             gROOT->LoadMacro ( "InputData.C" );    // Load InputData macro
             if ( !InputData(kInputDataLabel) ) { cout << "Analysis mode is GRID but no InputData.C label was recognized!! exiting..." << endl; gApplication->Terminate(); }
+            if ( !kFriendChainName.IsNull() ) { plugin->SetFriendChainName(kFriendChainName.Data() ); }
             }
         else
             {
