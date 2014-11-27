@@ -80,9 +80,11 @@
 
 //______________________________________________________________________________
 // enum Jets used
-enum AlgoType {kKT, kANTIKT};
-enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS};
-enum JetAcceptanceType { kTPC, kEMCAL, kUser };
+enum AlgoType {kKT, kANTIKT}; // AddTaskEmcalJet.C
+enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS}; // AddTaskEmcalJet.C
+enum JetAcceptanceType { kTPC, kEMCAL, kUser }; // AliJetContainer
+enum runModeType {  kLocal, kGrid };  // AliAnalysisTaskLocalRho
+enum fitModulationType { kNoFit, kV2, kV3, kCombined, kFourierSeries, kIntegratedFlow, kQC2, kQC4 }; // AliAnalysisTaskLocalRho
 
 //______________________________________________________________________________
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
