@@ -105,7 +105,7 @@ Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in prod
 
 TString     kPluginAPIVersion        = "V1.1x";
 TString     kPluginRootVersion       = "v5-34-08-6";
-TString     kPluginAliRootVersion    = "vAN-20141106";
+TString     kPluginAliRootVersion    = "vAN-20141201";
 
 TString     kPackage1                = "boost::v1_53_0";
 TString     kPackage2                = "cgal::v4.4";
@@ -158,9 +158,9 @@ TString     runPeriod           = ""; // run period (to be determined automatica
 TString     dataType            = ""; // analysis type, AOD, ESD or sESD (to be automatically determined below; if detection does not work, set by hand after detection)
 TString     kPass               = ""; // pass string
 
-TString   kPluginMode   = ""; // test, offline, submit, terminate, full
-TString   kAnalysisMode = ""; // local, grid, proof
-TString   kInputStr = ""; // input string
+TString     kPluginMode     = ""; // test, offline, submit, terminate, full
+TString     kAnalysisMode   = ""; // local, grid, proof
+TString     kInputStr       = ""; // input string
 
 //==============================================================================
 
@@ -222,22 +222,11 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     {
     gSystem->SetFPEMask(); // because is used in reference script
 
-    // sanity checks
-    if ( jettype != kCHARGEDJETS )  { acceptance_type = "EMCAL"; }
-    if ( jettype == kNEUTRALJETS )  { leadhadtype == 1; }
-    if ( jettype == kFULLJETS )     { leadhadtype == 2; }
-
-    if ( acceptance_type.EqualTo("TPC"))   { acceptance_type_i = 0; }
-    else
-    if ( acceptance_type.EqualTo("EMCAL")) { acceptance_type_i = 1; }
-    else
-        { acceptance_type_i = 2; }
-
-    // if acceptance cut on input contituents then do not cut in acceptance of jets
-    if ( tracks_etaphi_cuts ) { acceptance_type = "TPC" ; acceptance_type_i = 0; }
-
     LoadLibs(); // Load necessary libraries for the script and for the plugin
 
+    acceptance_type.ToLower();
+
+    // set function arguments
     kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
     kAnalysisMode = analysis_mode ; kAnalysisMode.ToLower();  // local, grid, proof
     kInputStr     = input;
@@ -245,11 +234,23 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     // if analysis is done on localhost do not use PARs
     if ( kAnalysisMode.EqualTo ("local") || kPluginMode.EqualTo ("test")  ) { kUsePAR = kFALSE; }
 
+    // sanity checks
+    if ( jettype != kCHARGEDJETS )  { acceptance_type = "emcal"; }
+    if ( jettype == kNEUTRALJETS )  { leadhadtype == 1; }
+    if ( jettype == kFULLJETS )     { leadhadtype == 2; }
+
+    if ( acceptance_type.EqualTo("tpc"))   { acceptance_type_i = 0; }
+    else
+    if ( acceptance_type.EqualTo("emcal")) { acceptance_type_i = 1; }
+    else
+        { acceptance_type_i = 2; }
+
+    // if acceptance cut on input contituents then do not cut in acceptance of jets
+    if ( tracks_etaphi_cuts ) { acceptance_type = "tpc" ; acceptance_type_i = 0; }
+
 //__________________________________________________________________________________
-    // ###   SET UP AliEn handler ###
-    AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );
-    // ###   ANALYSIS MANAGER     ###
-    AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );
+    AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );             // ###   SET UP AliEn handler ###
+    AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );     // ###   ANALYSIS MANAGER     ###
 
 //__________________________________________________________________________________
     //*******************************************
@@ -266,7 +267,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     if ( gROOT->LoadMacro ( myTask.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
 
 //__________________________________________________________________________________
-    // NOTE!!! after the custom task part to be pick up and loaded by alien plugin
+    // NOTE!!! after the custom task part to be picked up and loaded by alien plugin
     PrepareAnalysisEnvironment();
 
 //####################################################
@@ -308,7 +309,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         }
 //______________________________________________________________________________
 // Setup task
-    if ( acceptance_type.EqualTo("EMCAL") )
+    if ( acceptance_type.EqualTo("emcal") )
         {
         gROOT->LoadMacro ( "$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalSetup.C" );
         const char* geop    = 0; // default: 0 /*path to geometry folder*/
@@ -465,9 +466,9 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
     for ( Int_t i = 0; i < toptasks->GetEntries(); ++i )
         {
-        AliAnalysisTaskSE* task = dynamic_cast<AliAnalysisTaskSE*> ( toptasks->At ( i ) );
+        AliAnalysisTaskSE* task = dynamic_cast<AliAnalysisTaskSE*> ( toptasks->At (i) );
         if ( !task ) { continue; }
-        if ( task->InheritsFrom ( "AliPhysicsSelectionTask" ) ) { continue; }
+        if ( task->InheritsFrom ( AliPhysicsSelectionTask::Class() ) ) { continue; }
         ::Info ( "setPSel", "Set physics selection for %s (%s)", task->GetName(), task->ClassName() );
         task->SelectCollisionCandidates ( pSel );
         }
@@ -475,7 +476,6 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 //==========================================
 // ######       START ANALYSIS       #######
 //==========================================
-
     if ( mgr->InitAnalysis() )
         {
         cout << "##-->> Initialising Analysis :: Status :" << endl;
@@ -506,6 +506,8 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         // END of mgr->InitAnalysis()
 }
 
+//>>>>>>  END of void EmcalJetCDF (.....)   <<<<<<<<<
+//##########################################################################################################################
 
 //________________________________________________________________________
 void SetJFAccFid( const char* taskname, TString cut = "TPC")
