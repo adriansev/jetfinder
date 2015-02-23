@@ -1,3 +1,4 @@
+
 #ifndef __CINT__
 // Standard includes
 #include <cstdio>
@@ -11,6 +12,7 @@
 // ROOT includes
 #include "Riostream.h"
 #include "Rtypes.h"
+#include "TRint.h"
 #include "TROOT.h"
 #include "TObject.h"
 #include "TSystem.h"
@@ -22,6 +24,7 @@
 #include "TBits.h"
 #include "TError.h"
 #include "TNamed.h"
+#include "TTask.h"
 #include "TDirectory.h"
 #include "TDirectoryFile.h"
 #include "TFile.h"
@@ -38,9 +41,11 @@
 #include "AliAnalysisDataContainer.h"
 #include "AliMultiInputEventHandler.h"
 #include "AliLog.h"
+#include "AliVEventHandler.h"
 #include "AliAODHandler.h"
 #include "AliAODInputHandler.h"
 #include "AliESDInputHandler.h"
+#include "AliInputEventHandler.h"
 #include "AliMCEventHandler.h"
 #include "AliAnalysisTaskTagCreator.h"
 #include "AliPhysicsSelectionTask.h"
@@ -61,15 +66,15 @@
 #include "AddMCHandler.C"
 
 #include "AddTaskEmcalPhysicsSelection.C"
-#include "AddTaskEmcalCompat.C" //$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalCompat.C
-#include "AddTaskEmcalSetup.C" //$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalSetup.C
-#include "AddTaskEMCALTender.C" //$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEMCALTender.C
-#include "AddTaskJetPreparation.C" //$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskJetPreparation.C
-#include "AddTaskEmcalJet.C"  //$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C
-#include "AddTaskEmcalPreparation.C" // $ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalPreparation.C
-#include "AddTaskCentrality.C" //$ALICE_ROOT/ANALYSIS/macros/AddTaskCentrality.C
-#include "AddTaskRho.C" //$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskRho.C
-#include "AddTaskEmcalJetSample.C" // $ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSample.C
+#include "AddTaskEmcalCompat.C"
+#include "AddTaskEmcalSetup.C"
+#include "AddTaskEMCALTender.C"
+#include "AddTaskJetPreparation.C"
+#include "AddTaskEmcalJet.C"
+#include "AddTaskEmcalPreparation.C"
+#include "AddTaskCentrality.C"
+#include "AddTaskRho.C"
+#include "AddTaskEmcalJetSample.C"
 
 #include "AliAnalysisTaskEmcalJetCDF.h"
 #include "AddTaskEmcalJetCDF.C"
@@ -103,9 +108,10 @@ TString     kJobTag                  = "sev_jet_analysis";   // *CHANGE ME*
 TString     kPluginExecutableCommand = "aliroot -b -q";
 Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in production mode
 
-TString     kPluginAPIVersion        = "V1.1x";
-TString     kPluginRootVersion       = "v5-34-08-6";
-TString     kPluginAliRootVersion    = "vAN-20141201";
+TString     kAPIVersion           = "V1.1x";
+TString     kRootVersion          = "v5-34-08-7";
+TString     kAliRootVersion       = "v5-06-03";
+TString     kAliPhysicsVersion    = "vAN-20150223";
 
 TString     kPackage1                = "boost::v1_53_0";
 TString     kPackage2                = "cgal::v4.4";
@@ -178,12 +184,6 @@ TString     ListLibs      = "";
 TString     ListLibsExtra = "";
 TString     ListSources   = "";
 
-// Function signatures
-class AliAnalysisGrid;
-class AliAnalysisAlien;
-class AliAnalysisManager;
-
-
 //==============================================================================
 //      DEBUG
 Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
@@ -218,7 +218,7 @@ TString clustersName       = "EmcCaloClusters";     // runEmcalJetAnalysis defau
 TString clustersCorrName   = "CaloClustersCorr";    // runEmcalJetAnalysis default = CaloClustersCorr
 TString rhoName            = "";
 
-void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
+int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
     {
     gSystem->SetFPEMask(); // because is used in reference script
 
@@ -289,7 +289,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     Double_t   maxCellTrackScale = -1;      // maximum cells over tracks scale
 
     // Physics selection task
-    gROOT->LoadMacro ( "$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalPhysicsSelection.C" );
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalPhysicsSelection.C" );
     AliPhysicsSelectionTask* physSelTask = AddTaskEmcalPhysicsSelection ( isLHC11a, withHistos, triggers, minE, minPt, vz, vzdiff, cmin, cmax, minCellTrackScale, maxCellTrackScale );
     if ( !physSelTask ) { cout << "----------  no physSelTask"; return; }
 
@@ -297,38 +297,38 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 // Centrality task
     if ( dataType.EqualTo("esd") )
         {
-        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/AddTaskCentrality.C" );
+        gROOT->LoadMacro ( "$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C" );
         AliCentralitySelectionTask* centralityTask = AddTaskCentrality ( kTRUE );
         }
 //______________________________________________________________________________
 // Compatibility task, only needed for skimmed ESD
     if ( dataType.EqualTo("sesd") )
         {
-        gROOT->LoadMacro ( "$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalCompat.C" );
+        gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalCompat.C" );
         AliEmcalCompatTask* comptask = AddTaskEmcalCompat();
         }
 //______________________________________________________________________________
 // Setup task
-    if ( acceptance_type.EqualTo("emcal") )
+//    if ( acceptance_type.EqualTo("EMCAL") )
+    if ( kTRUE )
         {
-        gROOT->LoadMacro ( "$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalSetup.C" );
-        const char* geop    = 0; // default: 0 /*path to geometry folder*/
-        const char* oadp    = 0; // default: 0 /*path to OADB folder*/
-        const char* ocdp    = 0; // default: 0 /*path to OCDB (if "uselocal", a copy placed in ALIROOT will be used*/
-        const char* objs    = 0; // default: 0 /*objects for which alignment should be applied*/
-        const Bool_t noOCDB = 0; // default: 0 /*if true then do not mess with OCDB */
+        gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalSetup.C" );
+        const char* geop    = "$ALICE_PHYSICS/OADB/EMCAL"; // default = 0; path to geometry folder
+        const char* oadp    = ""; // default = 0; path to OADB folder
+        const char* ocdp    = ""; // default = 0; path to OCDB (if "uselocal", a copy placed in ALIROOT will be used
+        const char* objs    = ""; // default = 0; objects for which alignment should be applied
+        const Bool_t noOCDB = kFALSE; // default = false; if true then do not mess with OCDB
 
         AliEmcalSetupTask* emcalsetupTask = AddTaskEmcalSetup(geop, oadp, ocdp, objs, noOCDB);
-        emcalsetupTask->SetGeoPath ( "$ALICE_ROOT/OADB/EMCAL" );
         }
 //______________________________________________________________________________
 // Tender Supplies
     if (useTender)
         {
-        gROOT->LoadMacro("$ALICE_ROOT/PWG/EMCAL/macros/AddTaskEmcalPreparation.C");
+        gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalPreparation.C");
         // adjust pass when running locally. On grid give empty string, will be picked up automatically from path to ESD/AOD file
         // const char *perstr  = "LHC11h"
-        // const char *pass    = 0 /*should not be needed*/
+        // const char *pass    = 0 //should not be needed
         if ( kAnalysisMode.EqualTo("grid") ) { kPass = "";}
         AliAnalysisTaskSE* clusm = AddTaskEmcalPreparation(runPeriod.Data(),kPass.Data());
         }
@@ -338,7 +338,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
 //______________________________________________________________________________
 // Jet preparation
-    gROOT->LoadMacro ( "$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskJetPreparation.C" );
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskJetPreparation.C" );
     const char*    periodstr          = runPeriod.Data();          // default: "LHC11h";
     const char*    pTracksName        = tracksName.Data();         // default: "PicoTracks"
     const char*    usedMCParticles    = "" ;                       // default: "MCParticlesSelected"
@@ -366,7 +366,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
 
 // ################# Now: Add jet finders+analyzers
-    gROOT->LoadMacro ( "$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C" );
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C" );
     const char*    nTracks         = tracksName.Data();       // default: "Tracks";
     const char*    nClusters       = clustersCorrName.Data(); // default: "CaloClusters";
     Int_t          algo            = kANTIKT;    // default: 1 ; 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
@@ -383,7 +383,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
 
     AliEmcalJetTask* jf = NULL;
 
-    Double_t radius_list[] = {0.2, 0.4}; // for each radius make a jetfinder
+    Double_t radius_list[] = {0.4}; // for each radius make a jetfinder
 
     for (UInt_t j = 0; j < sizeof(radius_list)/sizeof(Double_t); ++j )
         {
@@ -415,8 +415,9 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         const char*    taskname    = "Rho";
 
         rhoName = "Rho";
-        AliAnalysisTaskRho* rhotask = AddTaskRho (jetFinderTaskKT->GetName(), tracksName, clustersCorrName, rhoName.Data(), radius, acceptance_type.Data(),
-                                                  rhojetareacut, emcareacut, sfunc, exclJets, kTRUE);
+        acceptance_type.ToUpper();
+        AliAnalysisTaskRho* rhotask = AddTaskRho ( jetFinderTaskKT->GetName(), tracksName, clustersCorrName, rhoName.Data(), radius, acceptance_type.Data(),
+                                                  rhojetareacut, emcareacut, sfunc, exclJets, kTRUE );
         //rhotask->SetScaleFunction(sfunc);
         //rhotask->SelectCollisionCandidates(kPhysSel);
         rhotask->SetHistoBins(100,0,250);
@@ -430,7 +431,8 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
     gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
     //     AliEmcalJetTask* jetFinderTask;
     Double_t     jetareacut           = 0.001 ;
-    const char*  taskname             = "Jet";
+    const char*  taskname             = "CDF";
+    const char*  nrho                 = "";
 
     AliAnalysisTaskEmcalJetCDF* anaTask = NULL;
 
@@ -444,7 +446,7 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
             if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
 
             taskname = Form ("CDF%i", k);
-            anaTask  = AddTaskEmcalJetCDF (jf_task, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, taskname);
+            anaTask  = AddTaskEmcalJetCDF (jf_task, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, taskname);
 
             anaTask->SetDebugLevel(debug);
             PrintInfoCDFtask(anaTask->GetName());
@@ -504,22 +506,79 @@ void EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode =
         mgr->StartAnalysis ( kAnalysisMode.Data(), nentries, firstentry );
         }
         // END of mgr->InitAnalysis()
-}
 
+    return 0;
+    }
 //>>>>>>  END of void EmcalJetCDF (.....)   <<<<<<<<<
 //##########################################################################################################################
 
-//________________________________________________________________________
-void SetJFAccFid( const char* taskname, TString cut = "TPC")
-    {
-    cut.ToLower();
 
+//______________________________________________________________________________
+void LoadLibs ()
+    {
+    gSystem->AddIncludePath("-Wno-deprecated");
+    gSystem->AddIncludePath("-I$. -I$CGAL_DIR/include -I$FASTJET/include -I$ROOTSYS/include -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
+
+    TString list_fj         = "CGAL fastjet siscone siscone_spherical fastjetplugins fastjettools fastjetcontribfragile";
+    TString list_alicejets  = "PWGEMCAL EventMixing PWGJE FASTJETAN PWGJEEMCALJetTasks";
+
+    LoadLibList (list_fj);
+    LoadLibList (list_alicejets);
+
+    ::Info ( "EmcalJetCDF::LoadROOTLibs", "Load ROOT libraries:    SUCCESS" );
+
+    }
+
+//______________________________________________________________________________
+void LoadLibList ( const TString& list )
+    {
+    TObjArray* arr = list.Tokenize(" ");;
+    TObjString *objstr = NULL;
+
+    TIter next(arr);
+    while ( (objstr=(TObjString*)next()) )
+        {
+        TString module = objstr->GetString();
+        module.Prepend("lib");
+        if ( !LoadLibrary (module) ) { gApplication->Terminate(); }
+        }
+    delete arr;
+    }
+
+//______________________________________________________________________________
+Bool_t LoadLibrary ( const TString& lib  )
+    {
+    Int_t result = -999 ;
+
+    if ( !lib.Length() ) { ::Error ( "AnalysisCDFjets::LoadLibrary", "Empty module name" ); return kFALSE; }
+
+    if ( lib.EndsWith ( ".so" ) ) { lib.Remove ( lib.Index (".so") ); }
+
+    cout << "loading module :" << lib.Data() << " ... " ;
+
+    result = gSystem->Load ( lib.Data() );
+    if ( result < 0 ) { ::Error ( "EmcalJetCDF::LoadLibrary", "Could not load library %s", lib.Data() ); return kFALSE; }
+    cout << result << endl;
+
+    TString lib_in_list = "";
+    lib_in_list = lib + ".so "; // blank after .so
+
+    ListLibs      += lib_in_list;
+    ListLibsExtra += lib_in_list;
+
+    return kTRUE;
+    }
+
+//________________________________________________________________________
+void SetJFAccFid( const char* taskname, TString cut = "TPC" )
+    {
     AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
     if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
 
     AliEmcalJetTask* jf = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask(taskname));
-    if (!jf) { AliError("No jet finder in SetJFAccFid()");}
+    if (!jf) { AliError("SetJFAccFid() :: task is not EmcalJetTask");}
 
+    cut.ToLower();
     Float radius = jf->GetRadius();
 
     Float_t fJetMinEta = -0.9, fJetMaxEta = 0.9 ;
@@ -538,6 +597,37 @@ void SetJFAccFid( const char* taskname, TString cut = "TPC")
     jf->SetEtaRange( fJetMinEta + radius, fJetMaxEta - radius );
     }
 
+
+//________________________________________________________________________
+void SetCDFAccFid( const char* taskname, Int_t i = 0 , TString cut = "TPC" )
+    {
+    AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
+    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
+
+    AliAnalysisTaskEmcalJetCDF* cdftask = dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(mgr->GetTask(taskname));
+    if (!cdftask) { AliError("SetCDFAccFid() :: The task is not TaskEmcalJetCDF");}
+
+    AliJetContainer* jetCont = cdftask->GetJetContainer(i);
+
+    cut.ToLower();
+    Float_t radius = jetCont->GetJetRadius();
+
+    Float_t fJetMinEta = -0.9, fJetMaxEta = 0.9 ;
+    Float_t fJetMinPhi = -10., fJetMaxPhi = 10. ;
+
+    if ( cut.EqualTo("emcal"))
+        {
+        fJetMinEta = -0.7   ; fJetMaxEta =  0.7 ;
+        fJetMinPhi =  1.405 ; fJetMaxPhi =  3.135 ;
+
+        fJetMinPhi += radius;
+        fJetMaxPhi -= radius;
+        }
+
+    jetCont->SetJetPhiLimits( fJetMinPhi, fJetMaxPhi );
+    jetCont->SetJetEtaLimits( fJetMinEta + radius, fJetMaxEta - radius );
+    }
+
 //______________________________________________________________________________
 void PrintInfoJF ( const char* taskname )
     {
@@ -545,7 +635,7 @@ void PrintInfoJF ( const char* taskname )
     if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
 
     AliEmcalJetTask* jf = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask(taskname));
-    if (!jf) { AliError("No jet finder in PrintInfoJF");}
+    if (!jf) { AliError("PrintInfoJF() :: task is not EmcalJetTask");}
 
     cout << "\nJet Finder Task Name : " << jf->GetName() << endl;
 
@@ -768,32 +858,9 @@ void PrepareAnalysisEnvironment()
         AliMCEventHandler* mcH = AddMCHandler (kTRUE);
         }
 
-    // somehow required by LHC10d
-    ((AliInputEventHandler*)mgr->GetInputEventHandler())->SetNeedField();
+    AliInputEventHandler* inputh = mgr->GetInputEventHandler();
+    inputh->SetNeedField(kTRUE);
 
-    }
-
-//______________________________________________________________________________
-void LoadLibs ()
-    {
-    TString list_fj         = "CGAL fastjet siscone siscone_spherical fastjetplugins fastjettools fastjetcontribfragile";
-    TString list_root       = "Tree VMC Geom Gui XMLParser Minuit Minuit2 Proof Physics";
-    TString list_alicebase  = "STEERBase ESD AOD OADB ANALYSIS CDB RAWDatabase STEER EVGEN ANALYSISalice ESDfilter CORRFW TENDER TENDERSupplies STAT";
-    TString list_alicemisc1 = "RAWDatabase RAWDatarec TPCbase TPCrec ITSbase ITSrec TRDbase  TRDbase TRDrec HMPIDbase PWGPP PWGHFbase PWGDQdielectron PWGHFhfe PWGCaloTrackCorrBase TOFbase VZERObase VZEROrec";
-    TString list_alicejets  = "EMCALUtils PHOSUtils EMCALraw EMCALbase EMCALrec PWGTools PWGEMCAL PWGGAEMCALTasks PWGTools PWGCFCorrelationsBase PWGCFCorrelationsDPhi JETAN FASTJETAN PWGJEEMCALJetTasks";
-
-    LoadLibList (list_fj);
-    LoadLibList (list_root);
-    LoadLibList (list_alicebase);
-    LoadLibList (list_alicemisc1);
-    LoadLibList (list_alicejets);
-
-    ::Info ( "EmcalJetCDF::LoadROOTLibs", "Load ROOT libraries:    SUCCESS" );
-
-    // include paths
-    gSystem->AddIncludePath ( "-Wno-deprecated" );
-    gSystem->AddIncludePath ( "-I$. -I$ROOTSYS/include -I$CGAL_DIR/include -I$FASTJET/include -I$ALICE_ROOT/include -I$ALICE_ROOT/JETAN -I$ALICE_ROOT/EMCAL" );
-//     gSystem->AddIncludePath("-I$ALICE_ROOT/PWGDQ/dielectron -I$ALICE_ROOT/PWGHF/hfe");
     }
 
 //______________________________________________________________________________
@@ -824,9 +891,10 @@ AliAnalysisAlien* CreateAlienHandler ( const char* plugin_mode = "test" )
     plugin->SetJobTag ( kJobTag );
 
     // Set versions of used packages
-    plugin->SetAPIVersion     ( kPluginAPIVersion );
-    plugin->SetROOTVersion    ( kPluginRootVersion );
-    plugin->SetAliROOTVersion ( kPluginAliRootVersion );
+    plugin->SetAPIVersion        ( kAPIVersion.Data() );
+    plugin->SetROOTVersion       ( kRootVersion.Data() );
+    plugin->SetAliROOTVersion    ( kAliRootVersion.Data() );
+    plugin->SetAliPhysicsVersion ( kAliPhysicsVersion.Data() );
 
     // Add external packages
     plugin->AddExternalPackage ( kPackage1.Data() );
@@ -903,40 +971,6 @@ AliAnalysisAlien* CreateAlienHandler ( const char* plugin_mode = "test" )
     return plugin;
     }
 
-//______________________________________________________________________________
-Bool_t LoadLibrary ( const char* module )
-    {
-    Int_t result = -999 ; TString mod ( module );
-
-    if ( !mod.Length() ) { ::Error ( "AnalysisCDFjets::LoadLibrary", "Empty module name" ); return kFALSE; }
-
-    if ( mod.EndsWith ( ".so" ) ) { mod.Remove ( mod.Index ( ".so" ) ); }
-
-    result = gSystem->Load ( mod );
-
-    if ( result < 0 ) { ::Error ( "EmcalJetCDF::LoadLibrary", "Could not load library %s", module ); return kFALSE; }
-
-    ListLibs      += Form ( "%s.so ", mod.Data() );
-    ListLibsExtra += Form ( "%s.so ", mod.Data() );
-
-    return kTRUE;
-    }
-
-//______________________________________________________________________________
-void LoadLibList ( const TString& list )
-    {
-    TObjArray *arr;
-    TObjString *objstr;
-    arr = list.Tokenize(" ");
-    TIter next(arr);
-    while ( (objstr=(TObjString*)next()) )
-        {
-        TString module = objstr->GetString();
-        module.Prepend("lib");
-        if ( !LoadLibrary (module.Data()) ) { gApplication->Terminate(); }
-        }
-    delete arr;
-    }
 
 //______________________________________________________________________________
 Bool_t LoadPars ( const char* module )
@@ -967,7 +1001,7 @@ Bool_t LoadPars ( const char* module )
     }
 
 //______________________________________________________________________________
-Bool_t LoadSource ( const char* source, Bool_t rec = kFALSE )
+Bool_t LoadSource ( const char* source, Bool_t rec = kFALSE  )
     {
     // Load a module library in a given mode. Reports success.
     Int_t result = -1;
