@@ -123,7 +123,7 @@ Bool_t      kPluginOverwriteMode     = kTRUE;          // overwrite existing col
 Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
 Bool_t      kUsePAR                  = kFALSE;         // use par files for extra libs
 
-Int_t       kGridFilesPerJob         = 25;             // Maximum number of files per job (gives size of AOD)
+Int_t       kGridFilesPerJob         = 10;             // Maximum number of files per job (gives size of AOD)
 Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
 Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
 
@@ -310,17 +310,17 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 //______________________________________________________________________________
 // Setup task
 //    if ( acceptance_type.EqualTo("EMCAL") )
-    if ( kTRUE )
-        {
-        gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalSetup.C" );
-        const char* geop    = "$ALICE_PHYSICS/OADB/EMCAL"; // default = 0; path to geometry folder
-        const char* oadp    = ""; // default = 0; path to OADB folder
-        const char* ocdp    = ""; // default = 0; path to OCDB (if "uselocal", a copy placed in ALIROOT will be used
-        const char* objs    = ""; // default = 0; objects for which alignment should be applied
-        const Bool_t noOCDB = kFALSE; // default = false; if true then do not mess with OCDB
+//     if ( kTRUE ) {     }
+// seems to be required
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalSetup.C" );
+    const char* geop    = "$ALICE_PHYSICS/OADB/EMCAL"; // default = 0; path to geometry folder
+    const char* oadp    = ""; // default = 0; path to OADB folder
+    const char* ocdp    = ""; // default = 0; path to OCDB (if "uselocal", a copy placed in ALIROOT will be used
+    const char* objs    = ""; // default = 0; objects for which alignment should be applied
+    const Bool_t noOCDB = kFALSE; // default = false; if true then do not mess with OCDB
 
-        AliEmcalSetupTask* emcalsetupTask = AddTaskEmcalSetup(geop, oadp, ocdp, objs, noOCDB);
-        }
+    AliEmcalSetupTask* emcalsetupTask = AddTaskEmcalSetup(geop, oadp, ocdp, objs, noOCDB);
+
 //______________________________________________________________________________
 // Tender Supplies
     if (useTender)
@@ -383,7 +383,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
     AliEmcalJetTask* jf = NULL;
 
-    Double_t radius_list[] = {0.4}; // for each radius make a jetfinder
+    Double_t radius_list[] = {0.2, 0.4, 0.6}; // for each radius make a jetfinder
 
     for (UInt_t j = 0; j < sizeof(radius_list)/sizeof(Double_t); ++j )
         {
@@ -904,7 +904,7 @@ AliAnalysisAlien* CreateAlienHandler ( const char* plugin_mode = "test" )
     // Use fastread option
     plugin->SetFastReadOption ( kPluginFastReadOption );
 
-    // UseOverwrite mode
+    // Overwrite existing files if any
     plugin->SetOverwriteMode ( kPluginOverwriteMode );
 
     // Optionally set a name for the generated analysis macro (default MyAnalysis.C)
@@ -939,6 +939,9 @@ AliAnalysisAlien* CreateAlienHandler ( const char* plugin_mode = "test" )
 
     // Number of runs per masterjob
     plugin->SetNrunsPerMaster(1);
+
+    // We split per SE or file
+    plugin->SetSplitMode("se");
 
     // Enable merging via automatic JDL
     plugin->SetMergeViaJDL(kTRUE);
