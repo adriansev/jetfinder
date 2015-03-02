@@ -97,21 +97,21 @@ enum fitModulationType { kNoFit, kV2, kV3, kCombined, kFourierSeries, kIntegrate
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
 
-Int_t       kTestFiles               = 1;    // Number of test files
+Int_t       kTestFiles               = 2;    // Number of test files
 Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
-TString     kTrainName               = "sev_jets";           // *CHANGE ME* (no blancs or special characters)
-TString     kWorkDir                 = "emcalcdf";           // AliEn work dir; relative to AliEn $HOME
-TString     kJobTag                  = "sev_jet_analysis";   // *CHANGE ME*
+TString     kWorkDir                 = "emcalcdf";    // AliEn work dir; relative to AliEn $HOME
+TString     kTrainName               = "sevjets";     // *CHANGE ME* (no blancs or special characters)
+TString     kJobTag                  = "sevcdfjet";   // *CHANGE ME*
 
 TString     kPluginExecutableCommand = "aliroot -b -q";
 Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in production mode
 
 TString     kAPIVersion           = "V1.1x";
 TString     kRootVersion          = "v5-34-08-7";
-TString     kAliRootVersion       = "v5-06-03";
-TString     kAliPhysicsVersion    = "vAN-20150223";
+TString     kAliRootVersion       = "v5-06-05";
+TString     kAliPhysicsVersion    = "vAN-20150301";
 
 TString     kPackage1                = "boost::v1_53_0";
 TString     kPackage2                = "cgal::v4.4";
@@ -222,8 +222,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     {
     gSystem->SetFPEMask(); // because is used in reference script
 
-    LoadLibs(); // Load necessary libraries for the script and for the plugin
-
     acceptance_type.ToLower();
 
     // set function arguments
@@ -251,6 +249,9 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 //__________________________________________________________________________________
     AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );             // ###   SET UP AliEn handler ###
     AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );     // ###   ANALYSIS MANAGER     ###
+
+    AddIncludePaths(); // Add include paths for local task and plugin
+    LoadLibs(); // Load necessary libraries for the script and for the plugin
 
 //__________________________________________________________________________________
     //*******************************************
@@ -502,8 +503,8 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
             for ( int i = 0; i < mgr->GetTopTasks()->GetEntries(); i++ ) { mgr->ProfileTask (i); }
             }
-
-        mgr->StartAnalysis ( kAnalysisMode.Data(), nentries, firstentry );
+        mgr->SetDebugLevel(0);
+        mgr->StartAnalysis ( kAnalysisMode.Data(), nentries );
         }
         // END of mgr->InitAnalysis()
 
@@ -512,13 +513,23 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 //>>>>>>  END of void EmcalJetCDF (.....)   <<<<<<<<<
 //##########################################################################################################################
 
+void AddIncludePaths ()
+    {
+    TString includes_str = "-Wno-deprecated -I$. -I$CGAL_DIR/include -I$FASTJET/include -I$ROOTSYS/include -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include";
+
+    AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
+    if ( !mgr ) { ::Error ( "EmcalJetCDF.C", "IncludePaths :: No analysis manager to connect to." ); return kFALSE; }
+
+    AliAnalysisAlien* plugin =  dynamic_cast <AliAnalysisAlien*> ( mgr->GetGridHandler() );
+    if ( !plugin ) { ::Error ( "EmcalJetCDF.C", "IncludePaths :: plugin invalid" ); return kFALSE; }
+
+    gSystem->AddIncludePath(includes_str.Data());
+    plugin->AddIncludePath(includes_str.Data());
+    }
 
 //______________________________________________________________________________
 void LoadLibs ()
     {
-    gSystem->AddIncludePath("-Wno-deprecated");
-    gSystem->AddIncludePath("-I$. -I$CGAL_DIR/include -I$FASTJET/include -I$ROOTSYS/include -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
-
     TString list_fj         = "CGAL fastjet siscone siscone_spherical fastjetplugins fastjettools fastjetcontribfragile";
     TString list_alicejets  = "PWGEMCAL EventMixing PWGJE FASTJETAN PWGJEEMCALJetTasks";
 
