@@ -25,7 +25,7 @@ Bool_t InputData ( const TString& datarun )
     //  DEFINED INPUT DATA
     if ( datarun.IsNull() ) { printf ( "InputData :: no data input" ); return kFALSE; }
 
-    TString     kGridRunPattern = "%09d"; // important for leading zeroes!!
+    TString     kGridRunPattern = "000"; // important for leading zeroes!!
 
     Printf ( "data = %s" , datarun.Data() );
 
@@ -42,7 +42,7 @@ Bool_t InputData ( const TString& datarun )
             plugin->SetGridDataDir ( "/alice/data/2011/LHC11a" );
 
             // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
-            plugin->SetDataPattern ( "*/ESDs/pass4_without_SDD/AOD113/*AliAOD.root" );
+            plugin->SetDataPattern ( "*ESDs/pass4_without_SDD/AOD113/*AliAOD.root" );
 
             TString list_lhc11a_AN_1 = "146746 146747 146748 146801 146802 146803 146804 146805 146806 146807 146817 146824 146856 146858 146859 146860";
 
@@ -95,7 +95,7 @@ Bool_t InputData ( const TString& datarun )
             plugin->SetGridDataDir ( "/alice/data/2010/LHC10d" );
 
             // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
-            plugin->SetDataPattern ( "*/ESDs/pass2/AOD147/*AliAOD.root" );
+            plugin->SetDataPattern ( "*ESDs/pass2/AOD147/*AliAOD.root" );
 
             TString list_lhc10d_AN_1 = "122374 125023 125085 125097 125100 125101 125134 125139 125140 125156 125186 125296 125630 125632 125633 125842";
             TString list_lhc10d_AN_2 = "125843 125844 125847 125848 125849 125850 125851 125855 126004 126007 126008 126073 126078 126081 126082 126088";
@@ -116,7 +116,7 @@ Bool_t InputData ( const TString& datarun )
             plugin->SetGridDataDir ( "/alice/data/2010/LHC10d" );
 
             // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
-            plugin->SetDataPattern ( "*/ESDs/pass2/AOD147/*AliAOD.root" );
+            plugin->SetDataPattern ( "*ESDs/pass2/AOD147/*AliAOD.root" );
 
             TString list_lhc10d_ALL_1 = "126424 126284 126158 126090 126088 126432 125139 126404 125296 126082 126078 125085 126407 126351";
             TString list_lhc10d_ALL_2 = "126406 124383 126007 122374 126422 125097 124380 125134 124388 125628 124374 125632 126073 124606";
@@ -149,9 +149,10 @@ Bool_t InputData ( const TString& datarun )
             plugin->SetGridDataDir ( "/alice/data/2010/LHC10e" );
 
             // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
-            plugin->SetDataPattern ( "*/ESDs/pass2/AOD147/*AliAOD.root" );
+            plugin->SetDataPattern ( "*ESDs/pass2/AOD147/*AliAOD.root" );
 
-            TString list_lhc10e_AN_1 = "127712 127714 127718 127719 128495 128498 128503 128504 128505 128507 128605 128615 128621 128677";
+            // 127719 128498 128505
+            TString list_lhc10e_AN_1 = "127712 127714 127718 128495 128503 128504 128507 128605 128615 128621 128677";
             TString list_lhc10e_AN_2 = "128678 128777 128778 128820 128823 128824 128833 128835 128836 128843 128850 128853 128855 128913";
             TString list_lhc10e_AN_3 = "129512 129513 129514 129599 129639 129641 129652 129653 129654 129659 129667 129960 129961 130157";
             TString list_lhc10e_AN_4 = "130158 130179 130519 130601 130608 130696 130704 130793 130798 130799 130834 130840";
@@ -167,10 +168,10 @@ Bool_t InputData ( const TString& datarun )
             {
             plugin->SetRunPrefix ( kGridRunPattern.Data() );
             // AliEn data production directory
-            plugin->SetGridDataDir ( "/alice/data/2010/LHC10e" );
+            plugin->SetGridDataDir ( "/alice/data/2010/LHC10e/" );
 
             // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
-            plugin->SetDataPattern ( "*/ESDs/pass2/AOD147/*AliAOD.root" );
+            plugin->SetDataPattern ( "*ESDs/pass2/AOD147/*AliAOD.root" );
 
             TString list_lhc10e_ALL_1 = "130795 128503 129654 130517 128189 129961 128609 129983 130358 128452 128504 130369 130519 127942";
             TString list_lhc10e_ALL_2 = "130623 130704 130803 130178 130480 130158 130157 128180 130149 127718 129540 128824 130793 128486";
@@ -214,7 +215,7 @@ Bool_t InputData ( const TString& datarun )
             plugin->SetGridDataDir ( "/alice/data/2013/LHC13g" );
 
             // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
-            plugin->SetDataPattern ( "*/pass1/AOD155/*AliAOD.root" );
+            plugin->SetDataPattern ( "*pass1/AOD155/*AliAOD.root" );
 
             TString list_lhc13g_1 = "197669 197643 197584 197501 197583 197613 197553 197471 197606 197500 197616 197611 197692";
             TString list_lhc13g_2 = "197497 197499 197555 197470 197608 197531 197618 197610 197609 197496 197529 197527";

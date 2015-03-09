@@ -123,11 +123,11 @@ Bool_t      kPluginOverwriteMode     = kTRUE;          // overwrite existing col
 Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
 Bool_t      kUsePAR                  = kFALSE;         // use par files for extra libs
 
-Int_t       kGridFilesPerJob         = 10;             // Maximum number of files per job (gives size of AOD)
+Int_t       kGridFilesPerJob         = 35;             // Maximum number of files per job (gives size of AOD)
 Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
 Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
 
-Int_t       kTTL                     = 14400 ;         // Time To Live
+Int_t       kTTL                     = 28800 ;         // Time To Live
 Int_t       kMergeTTL                = 1800 ;          // Time To Live merging
 
 TString     kGridOutdir              = "out";          // AliEn output directory. If blank will become output_<kTrainName>
@@ -503,7 +503,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
             for ( int i = 0; i < mgr->GetTopTasks()->GetEntries(); i++ ) { mgr->ProfileTask (i); }
             }
-        mgr->SetDebugLevel(0);
+        mgr->SetDebugLevel(100);
         mgr->StartAnalysis ( kAnalysisMode.Data(), nentries );
         }
         // END of mgr->InitAnalysis()
@@ -530,6 +530,11 @@ void AddIncludePaths ()
 //______________________________________________________________________________
 void LoadLibs ()
     {
+    gSystem->Load ("libSTEERBase.so");
+    gSystem->Load ("libANALYSIS.so");
+    gSystem->Load ("libANALYSISaliceBase.so");
+    gSystem->Load ("libANALYSISalice.so");
+
     TString list_fj         = "CGAL fastjet siscone siscone_spherical fastjetplugins fastjettools fastjetcontribfragile";
     TString list_alicejets  = "PWGEMCAL EventMixing PWGJE FASTJETAN PWGJEEMCALJetTasks";
 
