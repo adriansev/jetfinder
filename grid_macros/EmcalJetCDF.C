@@ -384,7 +384,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
     AliEmcalJetTask* jf = NULL;
 
-    Double_t radius_list[] = {0.2, 0.4, 0.6}; // for each radius make a jetfinder
+    Double_t radius_list[] = { 0.4 }; // for each radius make a jetfinder
 
     for (UInt_t j = 0; j < sizeof(radius_list)/sizeof(Double_t); ++j )
         {
@@ -437,7 +437,9 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
     AliAnalysisTaskEmcalJetCDF* anaTask = NULL;
 
-    Double_t jetpt_cuts[] = {1., 5., 10. ,15., 20., 25., 30., 35., 40.};
+    Double_t jetpt_cuts[] =
+                            // {1., 5., 10. ,15., 20., 25., 30., 35., 40.};
+                            {1., 5., 10. ,15., 20., 25., 30.};
 
     for ( std::vector<TString>::iterator jf_it = jf_names.begin(); jf_it != jf_names.end(); ++jf_it)  // loop over jet finders
         {
