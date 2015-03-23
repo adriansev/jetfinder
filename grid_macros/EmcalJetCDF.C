@@ -204,7 +204,7 @@ UInt_t         pSel                = AliVEvent::kMB;  // used event selection fo
 Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
 
 // acceptance cuts on jets
-TString        acceptance_type     = "TPC";         // TPC, EMCAL, kUSER
+TString        acceptance_type     = "TPC";         // TPC, EMCAL, USER
 UInt_t         acceptance_type_i   = -1;            // AliJetContainer enum ... will be set in sync to string value below
 
 Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
@@ -219,45 +219,49 @@ TString clustersCorrName   = "CaloClustersCorr";    // runEmcalJetAnalysis defau
 TString rhoName            = "";
 
 int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
+  {
+  gSystem->SetFPEMask(); // because is used in reference script
+
+  acceptance_type.ToLower();
+
+  // set function arguments
+  kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
+  kAnalysisMode = analysis_mode ; kAnalysisMode.ToLower();  // local, grid, proof
+  kInputStr     = input;
+
+  // if analysis is done on localhost do not use PARs
+  if ( kAnalysisMode.EqualTo ("local") || kPluginMode.EqualTo ("test")  ) { kUsePAR = kFALSE; }
+
+  // sanity checks
+  if ( jettype != kCHARGEDJETS )  { acceptance_type = "emcal"; }
+  if ( jettype == kNEUTRALJETS )  { leadhadtype == 1; }
+  if ( jettype == kFULLJETS )     { leadhadtype == 2; }
+
+  if ( acceptance_type.EqualTo("tpc"))   { acceptance_type_i = 0; }
+  else
+  if ( acceptance_type.EqualTo("emcal")) { acceptance_type_i = 1; }
+  else
+      { acceptance_type_i = 2; }
+
+  // if acceptance cut on input contituents then do not cut in acceptance of jets
+  if ( tracks_etaphi_cuts ) { acceptance_type = "tpc" ; acceptance_type_i = 0; }
+
+//__________________________________________________________________________________
+  AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );             // ###   SET UP AliEn handler ###
+  AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );     // ###   ANALYSIS MANAGER     ###
+
+  AddIncludePaths(); // Add include paths for local task and plugin
+  LoadLibs(); // Load necessary libraries for the script and for the plugin
+
+//__________________________________________________________________________________
+  //*******************************************
+  //   Loading of libraries (script + plugin)
+  //*******************************************
+  //compile and load the custom local task in local macro
+  bool useLocal = false;
+
+  if (useLocal)
     {
-    gSystem->SetFPEMask(); // because is used in reference script
-
-    acceptance_type.ToLower();
-
-    // set function arguments
-    kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
-    kAnalysisMode = analysis_mode ; kAnalysisMode.ToLower();  // local, grid, proof
-    kInputStr     = input;
-
-    // if analysis is done on localhost do not use PARs
-    if ( kAnalysisMode.EqualTo ("local") || kPluginMode.EqualTo ("test")  ) { kUsePAR = kFALSE; }
-
-    // sanity checks
-    if ( jettype != kCHARGEDJETS )  { acceptance_type = "emcal"; }
-    if ( jettype == kNEUTRALJETS )  { leadhadtype == 1; }
-    if ( jettype == kFULLJETS )     { leadhadtype == 2; }
-
-    if ( acceptance_type.EqualTo("tpc"))   { acceptance_type_i = 0; }
-    else
-    if ( acceptance_type.EqualTo("emcal")) { acceptance_type_i = 1; }
-    else
-        { acceptance_type_i = 2; }
-
-    // if acceptance cut on input contituents then do not cut in acceptance of jets
-    if ( tracks_etaphi_cuts ) { acceptance_type = "tpc" ; acceptance_type_i = 0; }
-
-//__________________________________________________________________________________
-    AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );             // ###   SET UP AliEn handler ###
-    AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );     // ###   ANALYSIS MANAGER     ###
-
-    AddIncludePaths(); // Add include paths for local task and plugin
-    LoadLibs(); // Load necessary libraries for the script and for the plugin
-
-//__________________________________________________________________________________
-    //*******************************************
-    //   Loading of libraries (script + plugin)
-    //*******************************************
-    //compile and load the custom local task in local macro
     TString myTask = "AliAnalysisTaskEmcalJetCDF.cxx";
 
     // Load aditional code (my task) to alien plugin ;
@@ -266,6 +270,14 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     if ( kAnalysisMode.EqualTo("local") ) { myTask += "+g"  ;}
     if ( kAnalysisMode.EqualTo("grid") || kAnalysisMode.EqualTo("proof") ) { myTask += "++";}
     if ( gROOT->LoadMacro ( myTask.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
+
+    gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
+    }
+  else
+    {
+    // TaskEmcalJetCDF already loaded in PWGJEEMCALJetTasks
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C" );
+    }
 
 //__________________________________________________________________________________
     // NOTE!!! after the custom task part to be picked up and loaded by alien plugin
@@ -401,7 +413,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         AliEmcalJetTask* jetFinderTaskKT = AddTaskEmcalJet (tracksName.Data(), clustersCorrName.Data(), kKT, radius, jettype, minTrPt, minClPt);
         TString kTpcKtJetsName = jetFinderTaskKT->GetName();
 
-        gROOT->LoadMacro("$ALICE_ROOT/PWGJE/EMCALJetTasks/macros/AddTaskRho.C");
+        gROOT->LoadMacro("$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskRho.C");
     //     const char*    nJets       = "Jets";          // DEFAULT
     //     const char*    nTracks     = "PicoTracks";    // DEFAULT
     //     const char*    nClusters   = "CaloClusters";  // DEFAULT
@@ -429,7 +441,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     std::vector<TString> jf_names = GetJetFinderList();
 
 //#####################################################################################
-    gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
     //     AliEmcalJetTask* jetFinderTask;
     Double_t     jetareacut           = 0.001 ;
     const char*  taskname             = "CDF";
@@ -1197,4 +1208,4 @@ Bool_t PeriodIsMC ( const TString& period )
     }
 
 
-// kate: indent-mode none; indent-width 4; replace-tabs on;
+// kate: indent-mode none; indent-width 2; replace-tabs on;
