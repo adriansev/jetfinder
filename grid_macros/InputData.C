@@ -231,4 +231,4 @@ Bool_t InputData ( const TString& datarun )
         { Printf ( "InputData :: NO DEFINED INPUT DATA RECOGNIZED !!! = %s", datarun.Data() ); return kFALSE; }
 
     }
-// kate: indent-mode none; indent-width 4; replace-tabs on;
+// kate: indent-mode none; indent-width 2; replace-tabs on;
