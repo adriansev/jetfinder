@@ -99,7 +99,7 @@ enum fitModulationType { kNoFit, kV2, kV3, kCombined, kFourierSeries, kIntegrate
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
 
-Int_t       kTestFiles               = 4;    // Number of test files
+Int_t       kTestFiles               = 32;    // Number of test files
 Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
@@ -205,10 +205,8 @@ Bool_t         doBkg               = kFALSE;          // background estimation w
 
 UInt_t         pSel                = AliVEvent::kMB;  // used event selection for every task except for the analysis tasks
 
-Int_t          jettype             = kCHARGEDJETS;    // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
-
-// acceptance cuts on jets
-TString        acceptance_type     = "TPC";         // TPC, EMCAL, USER
+Int_t          jettype             = 1;             // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
+TString        acceptance_type     = "TPC";       // TPC, EMCAL, USER
 UInt_t         acceptance_type_i   = -1;            // AliJetContainer enum ... will be set in sync to string value below
 
 Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
