@@ -7,6 +7,7 @@ TIME=`date +%Y%m%d_%H%M`
 DIR="emcal_jet_cdf"
 TAG=$1
 JOBS_PACK=$2
+ARG3=${3:-0}
 
 DATA_PREFIX="subdata_"
 
@@ -22,13 +23,23 @@ echo "NR_FILES : " $NR_FILES
 echo "NR_JOBS : " $NR_JOBS
 echo "RUN DIR : " $DIR_JOBS
 
-split -a 6 -d -l $JOBS_PACK data.txt $DATA_PREFIX
 
 PROGRAM='aliroot -l -b -q EmcalJetCDF.C\(\"local\",\"test\",\"data.txt\"\)'
 
-JOB_FILES="EmcalJetCDF.C AddTaskEmcalJetCDF.C AliAnalysisTaskEmcalJetCDF.cxx AliAnalysisTaskEmcalJetCDF.h InputData.C AliAnalysisTaskEmcalJetCDF_cxx.d AliAnalysisTaskEmcalJetCDF_cxx.so"
+JOB_FILES_LOCAL="EmcalJetCDF.C AddTaskEmcalJetSample.C AddTaskEmcalJetCDF.C AliAnalysisTaskEmcalJetCDF.cxx AliAnalysisTaskEmcalJetCDF.h InputData.C"
 
-##compileC_aliroot AliAnalysisTaskEmcalJetCDF.cxx
+JOB_FILES_ALIROOT="EmcalJetCDF.C AddTaskEmcalJetSample.C InputData.C"
+
+JOB_FILES=$JOB_FILES_ALIROOT
+
+if [[ "$ARG3" != "0" ]]
+then
+  JOB_FILES=$JOB_FILES_LOCAL
+fi
+
+echo $JOB_FILES
+
+split -a 6 -d -l $JOBS_PACK data.txt $DATA_PREFIX
 
 for data in `ls -1 $DATA_PREFIX*`
 {
