@@ -274,12 +274,14 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     if ( gROOT->LoadMacro ( myTask.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
 
     gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
+    gROOT->LoadMacro ( "AddTaskEmcalJetCDFUE.C" );
     gROOT->LoadMacro ( "AddTaskEmcalJetSample.C" );
     }
   else
     {
     // TaskEmcalJetCDF already loaded in PWGJEEMCALJetTasks
     gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C" );
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDFUE.C" );
     gROOT->LoadMacro ( "AddTaskEmcalJetSample.C" );
     }
 
@@ -327,10 +329,9 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         AliEmcalCompatTask* comptask = AddTaskEmcalCompat();
         }
 //______________________________________________________________________________
-// Setup task
+// Setup task - seems to be required ALWAYS!!
 //    if ( acceptance_type.EqualTo("EMCAL") )
 //     if ( kTRUE ) {     }
-// seems to be required
     gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalSetup.C" );
     const char* geop    = "$ALICE_PHYSICS/OADB/EMCAL"; // default = 0; path to geometry folder
     const char* oadp    = ""; // default = 0; path to OADB folder
@@ -347,8 +348,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalPreparation.C");
         // adjust pass when running locally. On grid give empty string, will be picked up automatically from path to ESD/AOD file
         // const char *perstr  = "LHC11h"
-        // const char *pass    = 0 //should not be needed
-        //if ( kAnalysisMode.EqualTo("grid") ) { kPass = "";}
         AliAnalysisTaskSE* clusm = AddTaskEmcalPreparation(runPeriod.Data());
         }
 
@@ -385,6 +384,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
 
 // ################# Now: Add jet finders+analyzers
+//______________________________________________________________________________
     gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C" );
     const char*    nTracks         = tracksName.Data();       // default: "Tracks";
     const char*    nClusters       = clustersCorrName.Data(); // default: "CaloClusters";
@@ -402,18 +402,23 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
     AliEmcalJetTask* jf = NULL;
 
+    // List off all jetfinders in order to use analysis tasks for each of them
+    std::vector<TString> jf_names;
+
     Double_t radius_list[] = { 0.4 }; // for each radius make a jetfinder
 
     for (UInt_t j = 0; j < sizeof(radius_list)/sizeof(Double_t); ++j )
         {
         jf = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius_list[j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
-        PrintInfoJF ( jf->GetName() );
+        TString jftaskname = jf->GetName();
+
+        PrintInfoJF ( jftaskname.Data() );
+        jf_names.push_back( jftaskname );
 
         if ( tracks_etaphi_cuts ) { SetJFAccFid (jf, acceptance_type); }
         }
 
-
-//#####################################################################################
+//______________________________________________________________________________
     if (doBkg)
         {
         AliEmcalJetTask* jetFinderTaskKT = AddTaskEmcalJet (tracksName.Data(), clustersCorrName.Data(), kKT, radius, jettype, minTrPt, minClPt);
@@ -447,22 +452,20 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         }
 
 //#####################################################################################
-    // Get list off all jetfinders in order to use analysis tasks for each of them
-    std::vector<TString> jf_names = GetJetFinderList();
-
-//#####################################################################################
     //     AliEmcalJetTask* jetFinderTask;
     Double_t     jetareacut           = 0.001 ;
     const char*  tasknamecdf          = "CDF";
+    const char*  tasknamecdfue        = "CDFUE";
     const char*  tasknamesample       = "Sample";
     const char*  nrho                 = "";
 
     AliAnalysisTaskEmcalJetCDF*    anaTaskCDF    = NULL;
+    AliAnalysisTaskEmcalJetCDFUE*  anaTaskCDFUE  = NULL;
     AliAnalysisTaskEmcalJetSample* anaTaskSample = NULL;
 
     Double_t jetpt_cuts[] =
-                            // {1., 5., 10. ,15., 20., 25., 30., 35., 40.};
-                            {1., 5., 10. ,15., 20., 25., 30.};
+                            {1., 5., 10. ,15., 20., 25., 30., 35., 40.};
+                            //{1., 5., 10. ,15., 20., 25., 30.};
 
     for ( std::vector<TString>::iterator jf_it = jf_names.begin(); jf_it != jf_names.end(); ++jf_it)  // loop over jet finders
         {
@@ -474,7 +477,10 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
             tasknamecdf = Form ("CDF%i", k);
             anaTaskCDF  = AddTaskEmcalJetCDF (jf_task, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdf);
 
-            tasknamesample = Form ("JetSample%i", k);
+            tasknamecdfue = Form ("CDFUE%i", k);
+            anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdfue);
+
+            tasknamesample = Form ("Sample%i", k);
             AddTaskEmcalJetSample ( jf_task, 1, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamesample) ;
 
             anaTaskCDF->SetDebugLevel(debug);
