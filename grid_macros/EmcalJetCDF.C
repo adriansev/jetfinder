@@ -79,7 +79,9 @@
 #include "AddTaskEmcalJetSample.C"
 
 #include "AliAnalysisTaskEmcalJetCDF.h"
+#include "AliAnalysisTaskEmcalJetCDFUE.h"
 #include "AddTaskEmcalJetCDF.C"
+#include "AddTaskEmcalJetCDFUE.C"
 #include "InputData.C"
 
 #endif
@@ -112,8 +114,8 @@ Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in prod
 
 TString     kAPIVersion              = "V1.1x";
 TString     kRootVersion             = "v5-34-08-7";
-TString     kAliRootVersion          = "v5-06-12";
-TString     kAliPhysicsVersion       = "vAN-20150413";
+TString     kAliRootVersion          = "v5-06-14";
+TString     kAliPhysicsVersion       = "vAN-20150427";
 
 TString     kPackage1                = "boost::v1_53_0";
 TString     kPackage2                = "cgal::v4.4";
@@ -224,7 +226,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   {
   gSystem->SetFPEMask(); // because is used in reference script
 
-  acceptance_type.ToLower();
+//  acceptance_type.ToUpper();
 
   // set function arguments
   kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
@@ -235,18 +237,18 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   if ( kAnalysisMode.EqualTo ("local") || kPluginMode.EqualTo ("test")  ) { kUsePAR = kFALSE; }
 
   // sanity checks
-  if ( jettype != kCHARGEDJETS )  { acceptance_type = "emcal"; }
-  if ( jettype == kNEUTRALJETS )  { leadhadtype == 1; }
-  if ( jettype == kFULLJETS )     { leadhadtype == 2; }
+  if ( jettype != 1 )  { acceptance_type = "EMCAL"; }
+  if ( jettype == 2 )  { leadhadtype == 1; }
+  if ( jettype == 0 )  { leadhadtype == 2; }
 
-  if ( acceptance_type.EqualTo("tpc"))   { acceptance_type_i = 0; }
+  if ( acceptance_type.EqualTo("TPC"))   { acceptance_type_i = 0; }
   else
-  if ( acceptance_type.EqualTo("emcal")) { acceptance_type_i = 1; }
+  if ( acceptance_type.EqualTo("EMCAL")) { acceptance_type_i = 1; }
   else
       { acceptance_type_i = 2; }
 
   // if acceptance cut on input contituents then do not cut in acceptance of jets
-  if ( tracks_etaphi_cuts ) { acceptance_type = "tpc" ; acceptance_type_i = 0; }
+  if ( tracks_etaphi_cuts ) { acceptance_type = "TPC" ; acceptance_type_i = 0; }
 
 //__________________________________________________________________________________
   AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );             // ###   SET UP AliEn handler ###
@@ -443,7 +445,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         const char*    taskname    = "Rho";
 
         rhoName = "Rho";
-        acceptance_type.ToUpper();
         AliAnalysisTaskRho* rhotask = AddTaskRho ( kTpcKtJetsName.Data(), kTpcKtTracks.Data(), kTpcKtClusters.Data(), rhoName.Data(), kTpcKtJetR, acceptance_type.Data(),
                                                   rhojetareacut, emcareacut, sfunc, exclJets, kTRUE );
         //rhotask->SetScaleFunction(sfunc);
