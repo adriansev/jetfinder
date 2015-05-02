@@ -115,7 +115,7 @@ Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in prod
 TString     kAPIVersion              = "V1.1x";
 TString     kRootVersion             = "v5-34-08-7";
 TString     kAliRootVersion          = "v5-06-14";
-TString     kAliPhysicsVersion       = "vAN-20150427";
+TString     kAliPhysicsVersion       = "vAN-20150502";
 
 TString     kPackage1                = "boost::v1_53_0";
 TString     kPackage2                = "cgal::v4.4";
@@ -208,7 +208,7 @@ Bool_t         doBkg               = kFALSE;          // background estimation w
 UInt_t         pSel                = AliVEvent::kMB;  // used event selection for every task except for the analysis tasks
 
 Int_t          jettype             = 1;             // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
-TString        acceptance_type     = "TPC";       // TPC, EMCAL, USER
+TString        acceptance_type     = "EMCAL";       // TPC, EMCAL, USER
 UInt_t         acceptance_type_i   = -1;            // AliJetContainer enum ... will be set in sync to string value below
 
 Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
