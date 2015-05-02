@@ -193,6 +193,7 @@ TString     ListSources   = "";
 //==============================================================================
 //      DEBUG
 Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
+UInt_t          mgr_debug          =  0 ; // AliAnalysisManager debug level
 unsigned int    kUseSysInfo        =  0 ; // activate debugging
 Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
 
@@ -477,26 +478,26 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
             tasknamecdf = Form ("CDF%i", k);
             anaTaskCDF  = AddTaskEmcalJetCDF (jf_task, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdf);
+            anaTaskCDF->SetDebugLevel(debug);
 
             tasknamecdfue = Form ("CDFUE%i", k);
             anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdfue);
+            anaTaskCDFUE->SetDebugLevel(debug);
 
             tasknamesample = Form ("Sample%i", k);
-            AddTaskEmcalJetSample ( jf_task, 1, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamesample) ;
+            anaTaskSample = AddTaskEmcalJetSample ( jf_task, 1, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamesample) ;
+            anaTaskSample->SetDebugLevel(debug);
 
-            anaTaskCDF->SetDebugLevel(debug);
             PrintInfoCDFtask(anaTaskCDF->GetName());
             }
         }
 
     // enable class level debugging for these classes
-    if ( debug > 3 )
-        {
-        mgr->AddClassDebug("AliJetContainer", 100);
-        mgr->AddClassDebug("AliEmcalJetTask", 100);
-        mgr->AddClassDebug("AliAnalysisTaskEmcalJetCDF", 100);
-        }
-
+    if ( debug > 3 ) { mgr->AddClassDebug("AliJetContainer", 100); }
+    if ( debug > 3 ) { mgr->AddClassDebug("AliEmcalJetTask", 100); }
+    if ( debug > 3 ) { mgr->AddClassDebug("AliAnalysisTaskEmcalJetCDF", 100); }
+    if ( debug > 3 ) { mgr->AddClassDebug("AliAnalysisTaskEmcalJetCDFUE", 100); }
+    if ( debug > 3 ) { mgr->AddClassDebug("AliAnalysisTaskEmcalJetSample", 100); }
 
 //#################################################################
     // Set the physics selection for all given tasks
@@ -538,7 +539,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
             for ( int i = 0; i < mgr->GetTopTasks()->GetEntries(); i++ ) { mgr->ProfileTask (i); }
             }
-        mgr->SetDebugLevel(100);
+        mgr->SetDebugLevel(mgr_debug);
         mgr->StartAnalysis ( kAnalysisMode.Data(), nentries );
         }
         // END of mgr->InitAnalysis()
