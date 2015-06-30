@@ -209,7 +209,7 @@ Bool_t         doBkg               = kFALSE;          // background estimation w
 UInt_t         pSel                = AliVEvent::kMB;  // used event selection for every task except for the analysis tasks
 
 Int_t          jettype             = 1;             // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
-TString        acceptance_type     = "EMCAL";       // TPC, EMCAL, USER
+TString        acceptance_type     = "TPC";       // TPC, EMCAL, USER
 UInt_t         acceptance_type_i   = -1;            // AliJetContainer enum ... will be set in sync to string value below
 
 Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
@@ -226,7 +226,6 @@ TString rhoName            = "";
 int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
   {
   gSystem->SetFPEMask(); // because is used in reference script
-
 //  acceptance_type.ToUpper();
 
   // set function arguments
@@ -252,43 +251,14 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   if ( tracks_etaphi_cuts ) { acceptance_type = "TPC" ; acceptance_type_i = 0; }
 
 //__________________________________________________________________________________
+  //*******************************************
+  //   Loading of libraries (script + plugin)
+  //*******************************************
   AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );             // ###   SET UP AliEn handler ###
   AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );     // ###   ANALYSIS MANAGER     ###
 
   AddIncludePaths(); // Add include paths for local task and plugin
   LoadLibs(); // Load necessary libraries for the script and for the plugin
-
-//__________________________________________________________________________________
-  //*******************************************
-  //   Loading of libraries (script + plugin)
-  //*******************************************
-  //compile and load the custom local task in local macro
-  bool useLocal = false;
-
-  if (useLocal)
-    {
-    TString myTask = "AliAnalysisTaskEmcalJetCDF.cxx";
-
-    // Load aditional code (my task) to alien plugin ;
-    ListSources += " " + myTask; // extra space at beginning in case is not first source; it will be stripped.
-
-    if ( kAnalysisMode.EqualTo("local") ) { myTask += "+g"  ;}
-    if ( kAnalysisMode.EqualTo("grid") || kAnalysisMode.EqualTo("proof") ) { myTask += "++";}
-    if ( gROOT->LoadMacro ( myTask.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
-
-    gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
-    gROOT->LoadMacro ( "AddTaskEmcalJetCDFUE.C" );
-    gROOT->LoadMacro ( "AddTaskEmcalJetSample.C" );
-    }
-  else
-    {
-    // TaskEmcalJetCDF already loaded in PWGJEEMCALJetTasks
-    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C" );
-    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDFUE.C" );
-    gROOT->LoadMacro ( "AddTaskEmcalJetSample.C" );
-    }
-
-
 
 //__________________________________________________________________________________
     // NOTE!!! after the custom task part to be picked up and loaded by alien plugin
@@ -402,6 +372,8 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     Double_t       minJetPt        = 1.;         // default: 0.
     Bool_t         selectPhysPrim  = kFALSE;     // default: kFALSE
     Bool_t         lockTask        = kFALSE;      // default: kTRUE
+    Int_t          useExchangeCont = 0;
+    Bool_t         bFillGhosts     = kFALSE;
 
     AliEmcalJetTask* jf = NULL;
 
@@ -410,7 +382,8 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
     Double_t radius_list[] = { 0.4 }; // for each radius make a jetfinder
 
-    for (UInt_t j = 0; j < sizeof(radius_list)/sizeof(Double_t); ++j )
+    Size_t rnr = sizeof(radius_list)/sizeof(Double_t);
+    for (Size_t j = 0; j < rnr; j++ )
         {
         jf = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius_list[j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
         TString jftaskname = jf->GetName();
@@ -418,7 +391,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         PrintInfoJF ( jftaskname.Data() );
         jf_names.push_back( jftaskname );
 
-        if ( tracks_etaphi_cuts ) { SetJFAccFid (jf, acceptance_type); }
+        if ( tracks_etaphi_cuts ) { SetJFAccFid (jftaskname.Data(), acceptance_type); }
         }
 
 //______________________________________________________________________________
@@ -454,6 +427,40 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         }
 
 //#####################################################################################
+  //compile and load the custom local task in local macro
+  bool useLocal = false;
+  bool localMacros = false;
+
+  // compile local task
+  if (useLocal)
+    {
+    TString myTask = "AliAnalysisTaskEmcalJetCDF.cxx";
+
+    // Load aditional code (my task) to alien plugin ;
+    ListSources += " " + myTask; // extra space at beginning in case is not first source; it will be stripped.
+
+    if ( kAnalysisMode.EqualTo("local") ) { myTask += "+g"  ;}
+    if ( kAnalysisMode.EqualTo("grid") || kAnalysisMode.EqualTo("proof") ) { myTask += "++";}
+    if ( gROOT->LoadMacro ( myTask.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
+
+    }
+
+//__________________________________________________________________________________
+  // load AddTask macros
+  if (localMacros)
+    {
+    gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
+    gROOT->LoadMacro ( "AddTaskEmcalJetCDFUE.C" );
+    gROOT->LoadMacro ( "AddTaskEmcalJetSample.C" );
+    }
+  else
+    {
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C" );
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDFUE.C" );
+    gROOT->LoadMacro ( "AddTaskEmcalJetSample.C" );
+    }
+
+//__________________________________________________________________________________
     //     AliEmcalJetTask* jetFinderTask;
     Double_t     jetareacut           = 0.001 ;
     const char*  tasknamecdf          = "CDF";
@@ -469,27 +476,38 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
                             {1., 5., 10. ,15., 20., 25., 30., 35., 40.};
                             //{1., 5., 10. ,15., 20., 25., 30.};
 
+    Size_t nrcuts = sizeof(jetpt_cuts)/sizeof(Double_t); // number of cuts;
+
     for ( std::vector<TString>::iterator jf_it = jf_names.begin(); jf_it != jf_names.end(); ++jf_it)  // loop over jet finders
         {
-        for (UInt_t k = 0; k < sizeof(jetpt_cuts)/sizeof(Double_t); ++k )  // loop over all jet pt cuts
-            {
-            AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask((*jf_it)));
-            if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
+        AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask((*jf_it)));
+        if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
 
-            tasknamecdf = Form ("CDF%i", k);
-            anaTaskCDF  = AddTaskEmcalJetCDF (jf_task, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdf);
+        for (Size_t k = 0; k < nrcuts; k++ )  // loop over all jet pt cuts
+            {
+            Double_t jetptmin = jetpt_cuts[k];
+            Double_t jetptmax = (k == ( nrcuts - 1)) ? 250. : jetpt_cuts[k+1]; // if last cut, max is unlimited
+
+            tasknamecdf = Form ("CDF%i",(unsigned int)k);
+            anaTaskCDF  = AddTaskEmcalJetCDF (jf_task, jetptmin, jetptmax, jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdf);
             anaTaskCDF->SetDebugLevel(debug);
 
-            tasknamecdfue = Form ("CDFUE%i", k);
-            anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdfue);
+            tasknamecdfue = Form ("CDFUE%i", (unsigned int)k);
+            anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, jetptmin, jetptmax, jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdfue);
             anaTaskCDFUE->SetDebugLevel(debug);
 
-            tasknamesample = Form ("Sample%i", k);
-            anaTaskSample = AddTaskEmcalJetSample ( jf_task, 1, jetpt_cuts[k], jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamesample) ;
+            tasknamesample = Form ("Sample%i", (unsigned int)k);
+            anaTaskSample = AddTaskEmcalJetSample ( jf_task, 1, jetptmin, jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamesample) ;
             anaTaskSample->SetDebugLevel(debug);
 
             PrintInfoCDFtask(anaTaskCDF->GetName());
             }
+
+        anaTaskCDF  = AddTaskEmcalJetCDF (jf_task, 0., 250., jetareacut, acceptance_type.Data(), leadhadtype, nrho, "CDFT");
+        anaTaskCDF->SetDebugLevel(debug);
+
+        anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, 0., 250., jetareacut, acceptance_type.Data(), leadhadtype, nrho, "CDFUET");
+        anaTaskCDFUE->SetDebugLevel(debug);
         }
 
     // enable class level debugging for these classes
