@@ -483,10 +483,10 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask((*jf_it)));
         if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
 
-        for (Size_t k = 0; k < nrcuts; k++ )  // loop over all jet pt cuts
+        for (Size_t k = 0; k < (Size_t)nrcuts; k++ )  // loop over all jet pt cuts
             {
-            Double_t jetptmin = jetpt_cuts[k];
-            Double_t jetptmax = (k == ( nrcuts - 1)) ? 250. : jetpt_cuts[k+1]; // if last cut, max is unlimited
+            Double_t jetptmin = jetpt_cuts[(unsigned int)k];
+            Double_t jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 250. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
 
             tasknamecdf = Form ("CDF%i",(unsigned int)k);
             anaTaskCDF  = AddTaskEmcalJetCDF (jf_task, jetptmin, jetptmax, jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdf);
