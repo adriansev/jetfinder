@@ -39,7 +39,11 @@ fi
 
 echo $JOB_FILES
 
+
+##split_data_files $DATA_FILE $NR_JOBS
+
 split -a 6 -d -l $JOBS_PACK data.txt $DATA_PREFIX
+
 
 for data in `ls -1 $DATA_PREFIX*`
 {
