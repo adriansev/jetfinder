@@ -382,7 +382,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
     Double_t radius_list[] = { 0.4 }; // for each radius make a jetfinder
 
-    Size_t rnr = sizeof(radius_list)/sizeof(Double_t);
+    Size_t rnr = sizeof(radius_list)/sizeof(radius_list[0]);
     for (Size_t j = 0; j < rnr; j++ )
         {
         jf = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius_list[j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
@@ -476,7 +476,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
                             {1., 5., 10. ,15., 20., 25., 30., 35., 40.};
                             //{1., 5., 10. ,15., 20., 25., 30.};
 
-    Size_t nrcuts = sizeof(jetpt_cuts)/sizeof(Double_t); // number of cuts;
+    Size_t nrcuts = sizeof(jetpt_cuts)/sizeof(jetpt_cuts[0]); // number of cuts;
 
     for ( std::vector<TString>::iterator jf_it = jf_names.begin(); jf_it != jf_names.end(); ++jf_it)  // loop over jet finders
         {
