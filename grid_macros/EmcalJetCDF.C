@@ -209,7 +209,7 @@ Bool_t         doBkg               = kFALSE;          // background estimation w
 UInt_t         pSel                = AliVEvent::kMB;  // used event selection for every task except for the analysis tasks
 
 Int_t          jettype             = 1;             // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
-TString        acceptance_type     = "TPC";       // TPC, EMCAL, USER
+TString        acceptance_type     = "EMCAL";       // TPC, EMCAL, USER
 UInt_t         acceptance_type_i   = -1;            // AliJetContainer enum ... will be set in sync to string value below
 
 Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
@@ -562,6 +562,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         }
         // END of mgr->InitAnalysis()
 
+    cout << "EmcalJetCDF END" << endl;
     return 0;
     }
 //>>>>>>  END of void EmcalJetCDF (.....)   <<<<<<<<<
