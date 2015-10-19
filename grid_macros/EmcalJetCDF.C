@@ -380,12 +380,12 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     // List off all jetfinders in order to use analysis tasks for each of them
     std::vector<TString> jf_names;
 
-    Double_t radius_list[] = { 0.4 }; // for each radius make a jetfinder
+    Double_t radius_list[] = { 0.2, 0.4 }; // for each radius make a jetfinder
 
     Size_t rnr = sizeof(radius_list)/sizeof(radius_list[0]);
     for (Size_t j = 0; j < rnr; j++ )
         {
-        jf = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius_list[j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+        jf = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
         TString jftaskname = jf->GetName();
 
         PrintInfoJF ( jftaskname.Data() );
