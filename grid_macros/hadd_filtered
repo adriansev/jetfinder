@@ -1,0 +1,31 @@
+#!/bin/bash
+
+TMPFILE="goodruns_list"
+
+if [ ! -e "$TMPFILE" ]
+then
+  echo "Executing find:"
+  find $PWD -type f -name EventStat_temp.root -exec dirname '{}' \; > $TMPFILE
+fi
+
+eventstat_list=" "
+analysisresults_list=" "
+cdfanalysis_list=" "
+
+for dir in `cat $TMPFILE`
+do
+  eventstat_list=$eventstat_list" "$dir"/EventStat_temp.root"
+  analysisresults_list=$analysisresults_list" "$dir"/AnalysisResults.root"
+  cdfanalysis_list=$cdfanalysis_list" "$dir"/CDFanalysis.root"
+done
+
+hadd EventStat_temp_lhc.root $eventstat_list
+hadd AnalysisResults_lhc.root $analysisresults_list
+hadd CDFanalysis_lhc.root $cdfanalysis_list
+
+
+
+
+
+#rm -rf $TMPFILE
+
