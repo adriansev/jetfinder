@@ -1,0 +1,97 @@
+#!/bin/bash
+
+debug="1"
+
+job_is_valid=""
+log_analysis_succesful=""
+
+cdf="CDFanalysis.root"
+cdf_status=""
+cdf_root_status=""
+
+evstat="EventStat_temp.root"
+evstat_status=""
+evstat_root_status=""
+
+check_root_file()
+{
+echo "TFile f (\"${1}\"); if ( f.IsZombie() ) { Printf (\"INVALID\"); } else {Printf (\"VALID\");} gApplication->Terminate();" | root -b -l 2>/dev/null
+}
+
+
+##  check if the last .o* log has the END of the normal ending analysis
+log_is_present=`find . -type f -name '*.o*'`
+
+if [ -z ${log_is_present} ]; then
+  job_is_valid="0"
+else
+  last_out_log=`ls -1t *.o* | head -n1`
+  end=`grep END ${last_out_log}`
+fi
+
+[[ -z ${end} ]] && log_analysis_succesful="0" || log_analysis_succesful="1"
+((debug)) && echo "log_analysis_succesful: "${log_analysis_succesful}
+###############################################################################
+
+## check if the cdf root file is present and if it is not a zombie
+[[ -e ${cdf} && -f ${cdf} ]] && cdf_status="1" || cdf_status="0"
+cdf_root_status=`check_root_file ${cdf}`
+[[ !(( cdf_status == 1 )) && "${cdf_root_status}" == "VALID" ]] && cdf_status="1" || cdf_status="0"
+((debug)) && echo "cdf_status: "${cdf_status}
+##############################################################################
+
+## check if event statistics file is present and if it is not a zombie
+[[ -e ${evstat} && -f ${evstat} ]] && evstat_status="1" || evstat_status="0"
+evstat_root_status=`check_root_file ${cdf}`
+[[ !(( evstat_status == 1 )) && "${evstat_root_status}" == "VALID" ]] && evstat_status="1" || evstat_status="0"
+((debug)) && echo "evstat_status: "${evstat_status}
+##############################################################################
+
+## condtion for both files
+output_files=""
+(( cdf_status == 1 && evstat_status == 1 )) && output_files="1" || output_files="0"
+((debug)) && echo "output_files: "${output_files}
+##############################################################################
+
+
+
+
+
+
+if   (( log_analysis_succesful == 1 && output_files == 0 )) ; then    ## if true then return 0; -->if log reports a invalid finish
+        ((debug)) && echo "Check situation as there is valid log but not root files"
+        job_is_valid="0"
+elif (( log_analysis_succesful == 1 && output_files == 1 )) ; then
+        ((debug)) && echo "Both log analyis and root files are valid"
+        job_is_valid="1"
+elif (( log_analysis_succesful == 0 && output_files == 1 )) ; then
+        ((debug)) && echo "Check situation as there are root files but not valid log file"
+        job_is_valid="0"
+else
+        ((debug)) && echo "All conditions are invalid - default value is 0"
+        job_is_valid="0"
+fi
+
+
+
+
+
+
+
+
+##[[ -z ${job_is_valid} || -z ${log_analysis_succesful} || -z ${cdf_status} || -z ${evstat_status} ]] && echo "something is wrong with detection" && exit 1
+
+((debug)) && echo "job_is_valid: " ${job_is_valid}
+
+
+
+((jobs_is_valid)) && ( echo "VALID" && exit 0 ) || ( echo "NOTVALID" && exit 1 )
+
+
+
+#if ((jobs_is_valid)); then
+#  echo "VALID" && exit 0
+#else
+#  echo "NOTVALID" && exit 1
+#fi
+
