@@ -53,7 +53,7 @@ AliAnalysisTaskEmcalJetSample* AddTaskEmcalJetSample(
   // Init the task and do settings
   //-------------------------------------------------------
 
-  TString name     (taskname);
+  TString name     ( taskname );
   TString tracks   ( ntracks );
   TString clusters ( nclusters );
   TString jets     ( njets );
@@ -76,7 +76,7 @@ AliAnalysisTaskEmcalJetSample* AddTaskEmcalJetSample(
   jetTask->SetNCentBins(nCentBins);
 
   AliParticleContainer *trackCont  = jetTask->AddParticleContainer(ntracks);
-  if(trackCont) trackCont->SetClassName("AliVTrack");
+  if(trackCont) { trackCont->SetClassName("AliVTrack"); }
   AliClusterContainer *clusterCont = jetTask->AddClusterContainer(nclusters);
 
   TString strType(type);
@@ -111,11 +111,11 @@ AliAnalysisTaskEmcalJetSample* AddTaskEmcalJetSample(
   return jetTask;
 }
 
-/// Add a AliAnalysisTaskEmcalJetSample task - info from char* taskname
+/// Add a AliAnalysisTaskEmcalJetSample task - info from AliEmcalJetTask* jetFinderTask
 /// \param AliEmcalJetTask* jetFinderTask
 /// \param Int_t nCentBins
 /// \param Double_t jetptcut
-/// \param Double_t    jetareacut
+/// \param Double_t jetareacut
 /// \param const char *type ; either TPC, EMCAL or USER
 /// \param Int_t leadhadtype ; 0 = charged, 1 = neutral, 2 = both
 /// \param const char *nrho
@@ -148,7 +148,7 @@ AliAnalysisTaskEmcalJetSample *AddTaskEmcalJetSample( AliEmcalJetTask* jetFinder
 /// \param const char* taskname
 /// \param Int_t nCentBins
 /// \param Double_t jetptcut
-/// \param Double_t    jetareacut
+/// \param Double_t jetareacut
 /// \param const char *type ; either TPC, EMCAL or USER
 /// \param Int_t leadhadtype ; 0 = charged, 1 = neutral, 2 = both
 /// \param const char *nrho
