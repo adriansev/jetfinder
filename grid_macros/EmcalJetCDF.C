@@ -351,7 +351,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     const Bool_t   doAODTrackProp     = kTRUE;                     // default: kTRUE
     const Bool_t   modifyMatchObjs    = kTRUE;                     // default: kTRUE
 
-    AddTaskJetPreparation( periodstr, pTracksName, usedMCParticles, usedClusters, outClusName, hadcorr,
+    AliAnalysisTaskSE* jetprep = AddTaskJetPreparation( periodstr, pTracksName, usedMCParticles, usedClusters, outClusName, hadcorr,
                            Eexcl, phiMatch, etaMatch, minPtEt, pSel_jetprep, trackclus, doHistos,
                            makePicoTracks, makeTrigger, isEmcalTrain, trackeff, doAODTrackProp, modifyMatchObjs );
 
