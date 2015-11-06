@@ -473,7 +473,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     AliAnalysisTaskEmcalJetSample* anaTaskSample = NULL;
 
     Double_t jetpt_cuts[] =
-                            {1., 5., 10. ,15., 20., 25., 30., 35., 40.};
+                            {1., 5., 10. ,15., 20., 25., 30., 35., 40., 55., 60., 65., 70.};
                             //{1., 5., 10. ,15., 20., 25., 30.};
 
     Size_t nrcuts = sizeof(jetpt_cuts)/sizeof(jetpt_cuts[0]); // number of cuts;
