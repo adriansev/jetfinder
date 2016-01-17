@@ -1,5 +1,6 @@
 
 #ifndef __CINT__
+
 // Standard includes
 #include <cstdio>
 #include <cstring>
@@ -62,6 +63,7 @@
 #include "AliAnalysisTaskEmcal.h"
 #include "AliAnalysisTaskEmcalJet.h"
 #include "AliAnalysisTaskEmcalJetSample.h"
+#include "AliEMCALRecoUtils.h""
 
 #include "AddAODHandler.C"
 #include "AddESDHandler.C"
@@ -74,6 +76,12 @@
 #include "AddTaskJetPreparation.C"
 #include "AddTaskEmcalJet.C"
 #include "AddTaskEmcalPreparation.C"
+
+#include "AddTaskClusterizerFast.C"
+#include "AddTaskEmcalClusterMaker.C"
+#include "AddTaskEmcalClusTrackMatcher.C"
+#include "AddTaskHadCorr.C"
+
 #include "AddTaskCentrality.C"
 #include "AddTaskRho.C"
 #include "AddTaskEmcalJetSample.C"
@@ -86,6 +94,13 @@
 
 #endif
 
+class AliESDInputHandler;
+class AliAODInputHandler;
+class AliVEvent;
+class AliAnalysisManager;
+class AliEmcalPhysicsSelectionTask;
+class AliCentralitySelectionTask;
+class AliEmcalSetupTask;
 
 //______________________________________________________________________________
 // enum Jets used
@@ -218,10 +233,12 @@ Int_t          leadhadtype         = 0;             // AliJetContainer :: Int_t 
 
 //__________________________________________________________________________________
 // Objects (branch names) used in Jet framework
-TString tracksName         = "PicoTracks";          // runEmcalJetAnalysis default = PicoTracks
-TString clustersName       = "EmcCaloClusters";     // runEmcalJetAnalysis default = EmcCaloClusters
-TString clustersCorrName   = "CaloClustersCorr";    // runEmcalJetAnalysis default = CaloClustersCorr
+TString tracksName         = "tracks";
+TString clustersName       = "caloClusters";
+TString cellName           = "emcalCells";
 TString rhoName            = "";
+//   TString sChJetsName;
+//   TString sFuJetsName;
 
 int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
   {
@@ -261,8 +278,15 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   LoadLibs(); // Load necessary libraries for the script and for the plugin
 
 //__________________________________________________________________________________
-    // NOTE!!! after the custom task part to be picked up and loaded by alien plugin
-    PrepareAnalysisEnvironment();
+  // NOTE!!! after the custom task part to be picked up and loaded by alien plugin
+  PrepareAnalysisEnvironment();
+
+  if ( dataType.EqualTo("esd") || dataType.EqualTo("sesd") )
+    {
+    tracksName         = "Tracks";
+    clustersName       = "CaloClusters";
+    cellName           = "EMCALCells";
+    }
 
 //####################################################
 //#######        ANALYSIS TASKS LIST
@@ -270,41 +294,45 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
 //______________________________________________________________________________
 // Signature PhysicsSelectionTask
-    Bool_t     isLHC11a          = runPeriod.EqualTo("lhc11a");  // true then skip FastOnly events (only for LHC11a)
-    Bool_t     withHistos        = kFALSE;  // true then write output
-    UInt_t     triggers          = pSel;    // if not zero only process given trigges
-    Double_t   minE              = 1;       // minimum clus energy (<0 -> do not compute)
-    Double_t   minPt             = 1;       // minimum track pt (<0 -> do not compute)
-    Double_t   vz                = 10;      // primary vertex z cut (-1 none)
-    Bool_t     vzdiff            = kTRUE;   // true then select on PRI minus SPD z-vertex
-    Double_t   cmin              = -1;      // minimum centrality required (V0M)
-    Double_t   cmax              = -1;      // maximum centrality required (V0M)
-    Double_t   minCellTrackScale = -1;      // minimum cells over tracks scale
-    Double_t   maxCellTrackScale = -1;      // maximum cells over tracks scale
 
-    // Physics selection task
-    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalPhysicsSelection.C" );
-    AliPhysicsSelectionTask* physSelTask = AddTaskEmcalPhysicsSelection ( isLHC11a, withHistos, triggers, minE, minPt, vz, vzdiff, cmin, cmax, minCellTrackScale, maxCellTrackScale );
-    if ( !physSelTask ) { cout << "----------  no physSelTask"; return; }
+  Bool_t     isLHC11a          = runPeriod.EqualTo("lhc11a");  // true then skip FastOnly events (only for LHC11a)
+  Bool_t     withHistos        = kFALSE;  // true then write output
+  UInt_t     triggers          = pSel;    // if not zero only process given trigges
+  Double_t   minE              = 5;       // minimum clus energy (<0 -> do not compute)
+  Double_t   minPt             = 1;       // minimum track pt (<0 -> do not compute)
+  Double_t   vz                = 10;      // primary vertex z cut (-1 none)
+  Bool_t     vzdiff            = kTRUE;   // true then select on PRI minus SPD z-vertex
+  Double_t   cmin              = -1;      // minimum centrality required (V0M)
+  Double_t   cmax              = -1;      // maximum centrality required (V0M)
+  Double_t   minCellTrackScale = -1;      // minimum cells over tracks scale
+  Double_t   maxCellTrackScale = -1;      // maximum cells over tracks scale
+  Bool_t     byPassPhysSelTask = kFALSE;
+
+  // Physics selection task
+  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalPhysicsSelection.C" );
+  AliPhysicsSelectionTask* physSelTask = AddTaskEmcalPhysicsSelection ( isLHC11a, withHistos, triggers, minE, minPt, vz, vzdiff, cmin, cmax, minCellTrackScale, maxCellTrackScale );
+  if ( !physSelTask ) { cout << "----------  no physSelTask"; return; }
 
 //______________________________________________________________________________
 // Centrality task
-    if ( dataType.EqualTo("esd") )
-        {
-        gROOT->LoadMacro ( "$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C" );
-        AliCentralitySelectionTask* centralityTask = AddTaskCentrality ( kTRUE );
-        }
+  if ( dataType.EqualTo("esd") )
+    {
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C" );
+    AliCentralitySelectionTask* centralityTask = AddTaskCentrality ( kTRUE );
+    }
+
 //______________________________________________________________________________
 // Compatibility task, only needed for skimmed ESD
-    if ( dataType.EqualTo("sesd") )
-        {
-        gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalCompat.C" );
-        AliEmcalCompatTask* comptask = AddTaskEmcalCompat();
-        }
+//     if ( dataType.EqualTo("sesd") )
+//         {
+//         gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalCompat.C" );
+//         AliEmcalCompatTask* comptask = AddTaskEmcalCompat();
+//         }
+
 //______________________________________________________________________________
-// Setup task - seems to be required ALWAYS!!
-//    if ( acceptance_type.EqualTo("EMCAL") )
-//     if ( kTRUE ) {     }
+// Setup task
+  if ( jettype != 1 )
+    {
     gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalSetup.C" );
     const char* geop    = "$ALICE_PHYSICS/OADB/EMCAL"; // default = 0; path to geometry folder
     const char* oadp    = ""; // default = 0; path to OADB folder
@@ -312,55 +340,94 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     const char* objs    = ""; // default = 0; objects for which alignment should be applied
     const Bool_t noOCDB = kFALSE; // default = false; if true then do not mess with OCDB
 
-    AliEmcalSetupTask* emcalsetupTask = AddTaskEmcalSetup(geop, oadp, ocdp, objs, noOCDB);
+    AliEmcalSetupTask* emcalsetupTask = AddTaskEmcalSetup();
+    emcalsetupTask->SetOcdbPath("raw://");
 
 //______________________________________________________________________________
-// Tender Supplies
-    if (useTender)
-        {
-        gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalPreparation.C");
-        // adjust pass when running locally. On grid give empty string, will be picked up automatically from path to ESD/AOD file
-        // const char *perstr  = "LHC11h"
-        AliAnalysisTaskSE* clusm = AddTaskEmcalPreparation(runPeriod.Data());
-        }
+// Tender
+    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEMCALTender.C" );
+    Bool_t distBC         = kFALSE; // default kTRUE; // switch for recalculation cluster position from bad channel
+    Bool_t recalibClus    = kFALSE; // kTRUE;   //recalibrate cluster energy
+    Bool_t recalcClusPos  = kFALSE; // kTRUE;   //recalculate cluster position
+    Bool_t nonLinearCorr  = kFALSE; //kTRUE;   //apply non-linearity
+    Bool_t remExoticCell  = kFALSE; //kTRUE;   //remove exotic cells
+    Bool_t remExoticClus  = kFALSE; //kTRUE;   //remove exotic clusters
+    Bool_t fidRegion      = kFALSE;  //apply fiducial cuts
+    Bool_t calibEnergy    = kTRUE;   //calibrate energy
+    Bool_t calibTime      = kTRUE;   //calibrate timing
+    Bool_t remBC          = kTRUE;   //remove bad channels
+    UInt_t nonLinFunct    = AliEMCALRecoUtils::kNoCorrection; // default : AliEMCALRecoUtils::kBeamTestCorrected;
+    Bool_t reclusterize   = kFALSE; // kTRUE;   //reclusterize
+    Float_t seedthresh    = 0.100;   //seed threshold - 100 MeV
+    Float_t cellthresh    = 0.050;   //cell threshold - 50 MeV
+    UInt_t clusterizer    = AliEMCALRecParam::kClusterizerv2;
+    Bool_t trackMatch     = kFALSE;  //kTRUE;   //track matching
+    Bool_t updateCellOnly = kFALSE;  //only change if you run your own clusterizer task
+    Float_t timeMin       = -50e-6;  // default = 100e-9;  //minimum time of physical signal in a cell/digit (s)
+    Float_t timeMax       =  50e-6;  // default = 900e-9;  //maximum time of physical signal in a cell/digit (s)
+    Float_t timeCut       = 1e6;     // default = 900e-9;  //maximum time difference between the digits inside EMC cluster (s)
+    const char *pass      = kPass.Data(); // 0;       //string defining pass (use none if figured out from path)
+    Bool_t  remapMcAod    = kFALSE;  //switch on the remaping for the MC labels in AOD productions,
+    TString cdbStorage    = "raw://"; // "local://"
 
-//__________________________________________________________________________________
-// ################# Now: Call jet preparation macro (picotracks, hadronic corrected caloclusters, ...)
+    if ( runPeriod.EqualTo ( "lhc11h" ) )
+      {
+      timeMin = -50e-9;
+      timeMax = 100e-9;
+      }
 
-//______________________________________________________________________________
-// Jet preparation
-    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskJetPreparation.C" );
-    const char*    periodstr          = runPeriod.Data();          // default: "LHC11h";
-    const char*    pTracksName        = tracksName.Data();         // default: "PicoTracks"
-    const char*    usedMCParticles    = "" ;                       // default: "MCParticlesSelected"
-    if (isMC)    { usedMCParticles    = "MCParticlesSelected"; }
-    const char*    usedClusters       = clustersName.Data();       // default: "CaloClusters"
-    const char*    outClusName        = clustersCorrName.Data();   // default: "CaloClustersCorr"
-    const Double_t hadcorr            = 2.0;                       // default: 2.0
-    const Double_t Eexcl              = 0.00;                      // default: 0.00
-    const Double_t phiMatch           = 0.03;                      // default: 0.03
-    const Double_t etaMatch           = 0.015;                     // default: 0.015
-    const Double_t minPtEt            = 0.15;                      // default: 0.15
-    const UInt_t   pSel_jetprep       = pSel;                      // default: AliVEvent::kAny
-    const Bool_t   trackclus          = kTRUE;                     // default: kTRUE
-    const Bool_t   doHistos           = kFALSE;                    // default: kFALSE
-    const Bool_t   makePicoTracks     = kTRUE;                     // default: kTRUE
-    const Bool_t   makeTrigger        = kTRUE;                     // default: kTRUE
-    const Bool_t   isEmcalTrain       = kFALSE;                    // default: kFALSE
-    const Double_t trackeff           = 1.0;                       // default: 1.0
-    const Bool_t   doAODTrackProp     = kTRUE;                     // default: kTRUE
-    const Bool_t   modifyMatchObjs    = kTRUE;                     // default: kTRUE
+    AliAnalysisTaskSE *pTenderTask = AddTaskEMCALTender(distBC, recalibClus, recalcClusPos, nonLinearCorr, remExoticCell, remExoticClus,
+                                                        fidRegion, calibEnergy, calibTime, remBC, nonLinFunct, reclusterize, seedthresh,
+                                                        cellthresh, clusterizer, trackMatch, updateCellOnly, timeMin, timeMax, timeCut, pass);
+    pTenderTask->SelectCollisionCandidates(pSel);
 
-    AliAnalysisTaskSE* jetprep = AddTaskJetPreparation( periodstr, pTracksName, usedMCParticles, usedClusters, outClusName, hadcorr,
-                           Eexcl, phiMatch, etaMatch, minPtEt, pSel_jetprep, trackclus, doHistos,
-                           makePicoTracks, makeTrigger, isEmcalTrain, trackeff, doAODTrackProp, modifyMatchObjs );
+    AliAnalysisTaskEMCALClusterizeFast *pClusterizerTask = AddTaskClusterizerFast("ClusterizerFast", "", "", iClusterizer,
+                                                                                  0.05, 0.1, fEMCtimeMin, fEMCtimeMax, fEMCtimeCut,
+                                                                                  kFALSE, kFALSE, AliAnalysisTaskEMCALClusterizeFast::kFEEData);
 
+    pClusterizerTask->SelectCollisionCandidates(pSel);
+
+    bRemExoticClus  = kTRUE;
+    iNonLinFunct    = AliEMCALRecoUtils::kBeamTestCorrected;
+
+    AliEmcalClusterMaker *pClusterMakerTask = AddTaskEmcalClusterMaker(nonLinFunct, remExoticClus, 0, "", 0., kTRUE);
+    pClusterMakerTask->GetClusterContainer(0)->SetClusPtCut(0.);
+    pClusterMakerTask->GetClusterContainer(0)->SetClusECut(0.);
+    pClusterMakerTask->SelectCollisionCandidates(pSel);
+
+    // Cluster-track matcher task
+    gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalClusTrackMatcher.C");
+    AliEmcalClusTrackMatcherTask *pMatcherTask = AddTaskEmcalClusTrackMatcher(tracksName.Data(), clustersName.Data(), 0.1, kFALSE, kTRUE, kTRUE, kTRUE);
+    pMatcherTask->SelectCollisionCandidates(pSel);
+    pMatcherTask->GetParticleContainer(0)->SetClassName("AliAODTrack");
+    pMatcherTask->GetParticleContainer(0)->SetFilterHybridTracks(kTRUE);
+    pMatcherTask->GetParticleContainer(0)->SetParticlePtCut(0.15);
+    pMatcherTask->GetClusterContainer(0)->SetClusNonLinCorrEnergyCut(0.15);
+    pMatcherTask->GetClusterContainer(0)->SetClusECut(0.);
+    pMatcherTask->GetClusterContainer(0)->SetClusPtCut(0.);
+
+//     if (iDataType == kEsd) { pMatcherTask->SetDoPropagation(kTRUE); }
+
+    const Double_t kHadCorrF            = 2.;
+
+    // Hadronic correction task
+    AliHadCorrTask *pHadCorrTask = AddTaskHadCorr(tracksName.Data(), clustersName.Data(), "",
+                                                  kHadCorrF, 0.15, 0.030, 0.015, 0, kTRUE, kTRUE);
+    pHadCorrTask->SelectCollisionCandidates(pSel);
+    pHadCorrTask->GetParticleContainer(0)->SetClassName("AliAODTrack");
+    pHadCorrTask->GetParticleContainer(0)->SetFilterHybridTracks(kTRUE);
+    pHadCorrTask->GetClusterContainer(0)->SetClusNonLinCorrEnergyCut(0.15);
+    pHadCorrTask->GetClusterContainer(0)->SetClusECut(0);
+    pHadCorrTask->GetClusterContainer(0)->SetClusPtCut(0.);
+    pHadCorrTask->SetHistoBins(200, 0, 30);
+
+    }
 
 // ################# Now: Add jet finders+analyzers
 //______________________________________________________________________________
     gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C" );
     const char*    nTracks         = tracksName.Data();       // default: "Tracks";
-    const char*    nClusters       = clustersCorrName.Data(); // default: "CaloClusters";
+    const char*    nClusters       = clustersName.Data(); // default: "CaloClusters";
     Int_t          algo            = kANTIKT;    // default: 1 ; 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
     Double_t       radius          = 0.4;        // default: 0.4
     Int_t          type            = jettype;    // default: 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
@@ -385,7 +452,11 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     Size_t rnr = sizeof(radius_list)/sizeof(radius_list[0]);
     for (Size_t j = 0; j < rnr; j++ )
         {
-        jf = AddTaskEmcalJet( tracksName.Data(), clustersCorrName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+        jf = AddTaskEmcalJet( tracksName.Data(), clustersName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+        jf->SelectCollisionCandidates(pSel);
+        jf->SetFilterHybridTracks(kTRUE);
+        if ( jettype == 0 ) { jf->SetClusterEnergyType(AliVCluster::kHadCorr); }
+
         TString jftaskname = jf->GetName();
 
         PrintInfoJF ( jftaskname.Data() );
@@ -916,11 +987,13 @@ void PrepareAnalysisEnvironment()
     else
     if ( dataType.EqualTo("esd") || dataType.EqualTo("sesd") )
         {
-        gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
-        AliESDInputHandler* esdH = AddESDHandler();
-        }
+//         gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
+//         AliESDInputHandler* esdH = AddESDHandler();
+        Printf("For the moment, this macro is only available for AOD analysis!");
+        gApplication->Terminate();
+       }
     else
-        { cout << "Data type not recognized! You have to specify ESD, AOD, or sESD!\n"; return; }
+        { cout << "Data type not recognized! You have to specify ESD, AOD, or sESD!\n"; gApplication->Terminate(); }
 
     // Create MC handler, if MC is demanded
     if ( isMC && !dataType.EqualTo("aod") )
