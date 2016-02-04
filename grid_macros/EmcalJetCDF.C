@@ -1,6 +1,3 @@
-
-
-
 #ifndef __CINT__
 
 // Standard includes
@@ -116,8 +113,8 @@ void                     PrepareAnalysisEnvironment();
 void                     LoadMacros ();
 
 void                     LoadLibList      ( const TString& list );
-void                     SetJFAccFid      ( const char* taskname, TString& cut ("TPC") );
-void                     SetCDFAccFid     ( const char* taskname, Int_t i = 0 , TString& cut ("TPC"));
+// void                     SetJFAccFid      ( const char* taskname, TString& cut ("TPC") );
+// void                     SetCDFAccFid     ( const char* taskname, Int_t i = 0 , TString& cut ("TPC"));
 void                     PrintInfoJF      ( const char* taskname );
 void                     PrintInfoCDFtask ( const char* taskname, Int_t i = 0 );
 
@@ -146,6 +143,7 @@ class AliEmcalSetupTask;
 enum AlgoType {kKT, kANTIKT}; // AddTaskEmcalJet.C
 enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS}; // AddTaskEmcalJet.C
 enum JetAcceptanceType { kTPC, kEMCAL, kUser }; // AliJetContainer
+enum eDataType { kAod, kEsd };
 enum runModeType {  kLocal, kGrid };  // AliAnalysisTaskLocalRho
 enum fitModulationType { kNoFit, kV2, kV3, kCombined, kFourierSeries, kIntegratedFlow, kQC2, kQC4 }; // AliAnalysisTaskLocalRho
 enum VCluUserDefEnergy_t { kNonLinCorr = 0, kHadCorr = 1, kUserDefEnergy1 = 2, kUserDefEnergy2 = 3, kLastUserDefEnergy = 4 }; // AliVCluster.h
@@ -157,7 +155,7 @@ enum VCluUserDefEnergy_t { kNonLinCorr = 0, kHadCorr = 1, kUserDefEnergy1 = 2, k
 //______________________________________________________________________________
 
 Int_t       kTestFiles               = 1;    // Number of test files
-Long64_t    nentries                 = 999999999; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+Long64_t    nentries                 = 10000; //999999999; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
 TString     kWorkDir                 = "emcalcdf";    // AliEn work dir; relative to AliEn $HOME
@@ -261,10 +259,14 @@ Bool_t         isMC                = kFALSE;          // trigger, if MC handler 
 Bool_t         useTender           = kTRUE;           // trigger, if tender task should be used
 Bool_t         doBkg               = kFALSE;          // background estimation with AliAnalysisTaskRho
 
-UInt_t         pSel                = AliVEvent::kMB | AliVEvent::kCentral | AliVEvent::kSemiCentral;;  // used event selection for every task except for the analysis tasks
+UInt_t         pSel                = AliVEvent::kMB | AliVEvent::kCentral | AliVEvent::kSemiCentral;  // used event selection for every task except for the analysis tasks
+UInt_t         EMCALpSel           = AliEmcalPhysicsSelection::kEmcalOk;
+// AliEmcalPhysicsSelection::kEmcalOk, AliEmcalPhysicsSelection::kEmcalH,
+// AliVEvent::kINT7, AliVEvent::kMB, AliVEvent::kCentral, AliVEvent::kSemiCentral,
+// AliVEvent::kEMCEGA, AliVEvent::kEMCEJE
 
-Int_t          jettype             = 1;             // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
-TString        acceptance_type     = "TPC";       // TPC, EMCAL, USER
+Int_t          jettype             = 0;             // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
+TString        acceptance_type     = "EMCAL";       // TPC, EMCAL, USER
 UInt_t         acceptance_type_i   = -1;            // AliJetContainer enum ... will be set in sync to string value below
 
 Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
@@ -273,24 +275,14 @@ Int_t          leadhadtype         = 0;             // AliJetContainer :: Int_t 
 
 const char*    cOCDBpath = "uselocal";   // change to "raw://" if running on the grid
 
-// AliEmcalPhysicsSelection::kEmcalOk, AliEmcalPhysicsSelection::kEmcalH,
-// AliVEvent::kINT7, AliVEvent::kMB, AliVEvent::kCentral, AliVEvent::kSemiCentral,
-// AliVEvent::kEMCEGA, AliVEvent::kEMCEJE
-UInt_t EMCALpSel = AliEmcalPhysicsSelection::kEmcalOk;
-
 //compile and load the custom local task in local macro
 bool useLocal = false;
 bool localMacros = false;
 
-
 //__________________________________________________________________________________
 // Objects (branch names) used in Jet framework
-// TString tracksName         = "tracks";
-// TString clustersName       = "caloClusters";
-TString cellName           = "emcalCells";
+// TString cellName           = "emcalCells";
 TString rhoName            = "";
-//   TString sChJetsName;
-//   TString sFuJetsName;
 
 int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
   {
@@ -335,30 +327,17 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   // NOTE!!! after the custom task part to be picked up and loaded by alien plugin
   PrepareAnalysisEnvironment();
 
-  if ( dataType.EqualTo("esd") || dataType.EqualTo("sesd") )
-    {
-    tracksName         = "Tracks";
-    clustersName       = "CaloClusters";
-    cellName           = "EMCALCells";
-    }
-
-
-//   Bool_t bIsPP = kTRUE;
-//
-//   if (sRunPeriod == "lhc10h" || sRunPeriod == "lhc11h" ||
-//       sRunPeriod == "lhc12g" || sRunPeriod == "lhc13b" || sRunPeriod == "lhc13c" ||
-//       sRunPeriod == "lhc13d" || sRunPeriod == "lhc13e" || sRunPeriod == "lhc13f" ||
-//       sRunPeriod == "lhc15o") {
-//     bIsPP = kFALSE;
-//   }
-
-//   Double_t kGhostArea = 0.01;
-//   if (!bIsPP) kGhostArea = 0.005;
-
   AliParticleContainer::SetDefTrackCutsPeriod(runPeriod.Data());
   Printf("Default track cut period set to: %s", AliParticleContainer::GetDefTrackCutsPeriod().Data());
 
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpp;
+
+  if ( runPeriod.EqualTo("lhc10h") || runPeriod.EqualTo("lhc11h") || runPeriod.EqualTo("lhc15o") )
+    { iBeamType = AliAnalysisTaskEmcal::kAA; }
+  else
+  if ( runPeriod.EqualTo("lhc12g") || runPeriod.EqualTo("lhc13b") || runPeriod.EqualTo("lhc13c") ||
+       runPeriod.EqualTo("lhc13d") || runPeriod.EqualTo("lhc13e") || runPeriod.EqualTo("lhc13f") )
+    { iBeamType = AliAnalysisTaskEmcal::kpA; }
 
 //####################################################
 //#######        ANALYSIS TASKS LIST
@@ -388,8 +367,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
 //______________________________________________________________________________
 // Centrality task
-//   if (iDataType == kEsd && iBeamType != AliAnalysisTaskEmcal::kpp)
-  if ( dataType.EqualTo("esd") )
+  if ( dataType.EqualTo("esd") && iBeamType != AliAnalysisTaskEmcal::kpp )
     {
     AliCentralitySelectionTask* centralityTask = AddTaskCentrality ( kTRUE );
     centralityTask->SelectCollisionCandidates (AliVEvent::kAny);
@@ -403,10 +381,12 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   const char* objs    = ""; // default = 0; objects for which alignment should be applied
   const Bool_t noOCDB = kFALSE; // default = false; if true then do not mess with OCDB
 
-//   if (bDoFullJets || iDataType == kEsd)
-  AliEmcalSetupTask* emcalsetupTask = AddTaskEmcalSetup();
-  emcalsetupTask->SelectCollisionCandidates(AliVEvent::kAny);
-  emcalsetupTask->SetOcdbPath(cOCDBpath);
+  if ( jettype != 1 || dataType.EqualTo("esd") )
+    {
+    AliEmcalSetupTask* emcalsetupTask = AddTaskEmcalSetup();
+    emcalsetupTask->SelectCollisionCandidates(AliVEvent::kAny);
+    emcalsetupTask->SetOcdbPath(cOCDBpath);
+    }
 
   if ( jettype != 1 )
     {
@@ -462,21 +442,21 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     pClusterMakerTask->SelectCollisionCandidates(EMCALpSel);
 
     // Cluster-track matcher task
-    AliEmcalClusTrackMatcherTask* pMatcherTask = AddTaskEmcalClusTrackMatcher(tracksName.Data(), clustersName.Data(), 0.1, kFALSE, kTRUE, kTRUE, kTRUE);
-    pMatcherTask->SelectCollisionCandidates(EMCALpSel);
+    AliEmcalClusTrackMatcherTask* pMatcherTask = AddTaskEmcalClusTrackMatcher("usedefault", "usedefault", 0.1, kFALSE, kTRUE, kTRUE, kTRUE);
+    pMatcherTask->SelectCollisionCandidates(pSel);
     pMatcherTask->GetParticleContainer(0)->SetFilterHybridTracks(kTRUE);
     pMatcherTask->GetParticleContainer(0)->SetParticlePtCut(0.15);
     pMatcherTask->GetClusterContainer(0)->SetClusNonLinCorrEnergyCut(0.15);
     pMatcherTask->GetClusterContainer(0)->SetClusECut(0.);
     pMatcherTask->GetClusterContainer(0)->SetClusPtCut(0.);
 
-//     if (iDataType == kEsd) { pMatcherTask->SetDoPropagation(kTRUE); }
+    if (dataType.EqualTo("esd")) { pMatcherTask->SetDoPropagation(kTRUE); }
 
     const Double_t kHadCorrF            = 2.;
 
     // Hadronic correction task
-    AliHadCorrTask* pHadCorrTask = AddTaskHadCorr(tracksName.Data(), clustersName.Data(), "", kHadCorrF, 0.15, 0.030, 0.015, 0, kTRUE, kTRUE);
-    pHadCorrTask->SelectCollisionCandidates(EMCALpSel);
+    AliHadCorrTask* pHadCorrTask = AddTaskHadCorr("usedefault", "usedefault", "", kHadCorrF, 0.15, 0.030, 0.015, 0, kTRUE, kTRUE);
+    pHadCorrTask->SelectCollisionCandidates(pSel);
     pHadCorrTask->GetParticleContainer(0)->SetFilterHybridTracks(kTRUE);
     pHadCorrTask->GetClusterContainer(0)->SetClusNonLinCorrEnergyCut(0.15);
     pHadCorrTask->GetClusterContainer(0)->SetClusECut(0);
@@ -505,20 +485,21 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
     if (iBeamType != AliAnalysisTaskEmcal::kpp) { ghostArea = 0.005; }
 
-    // charge jet conditions
-//     if ( jettype == 1 ) { clustersName = ""; }
+    TString clusName ("usedefault");
+    if ( jettype == 1 ) { clusName = "";}
 
+    //     AliEmcalJetTask* jetFinderTask;
     AliEmcalJetTask* jf = NULL;
 
     // List off all jetfinders in order to use analysis tasks for each of them
     std::vector<TString> jf_names;
 
-    Double_t radius_list[] = { 0.2, 0.4 }; // for each radius make a jetfinder
+    Double_t radius_list[] = { 0.4 }; // for each radius make a jetfinder
 
     Size_t rnr = sizeof(radius_list)/sizeof(radius_list[0]);
     for (Size_t j = 0; j < rnr; j++ )
         {
-        jf = AddTaskEmcalJet( "usedefault", "usedefault", algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+        jf = AddTaskEmcalJet( "usedefault", clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
         jf->SelectCollisionCandidates(pSel);
         jf->GetParticleContainer(0)->SetFilterHybridTracks(kTRUE);
         jf->GetParticleContainer(0)->SetParticlePtCut(0.15);
@@ -557,8 +538,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
 
 //__________________________________________________________________________________
-    //     AliEmcalJetTask* jetFinderTask;
-    Double_t     jetareacut           = 0.001 ;
+    Double_t     jetareacut           = 0.00 ;
     const char*  tasknamecdf          = "CDF";
     const char*  tasknamecdfue        = "CDFUE";
     const char*  tasknamesample       = "Sample";
@@ -567,6 +547,8 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     AliAnalysisTaskEmcalJetCDF*    anaTaskCDF    = NULL;
     AliAnalysisTaskEmcalJetCDFUE*  anaTaskCDFUE  = NULL;
     AliAnalysisTaskEmcalJetSample* anaTaskSample = NULL;
+
+    const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
 
     Double_t jetpt_cuts[] =
                             {1., 5., 10. ,15., 20., 25., 30., 35., 40., 55., 60., 65., 70.};
@@ -592,13 +574,11 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 //             anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, jetptmin, jetptmax, jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdfue);
 //             anaTaskCDFUE->SetDebugLevel(debug);
 
-//             TString sChJetsName = jf->GetName();
-//             const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
-//
-//             AliAnalysisTaskEmcalJetSpectraQA *pSpectraChTask = AddTaskEmcalJetSpectraQA("usedefault", "", sChJetsName, "",  radius, jetptmin, 0., "TPC");
-//             pSpectraChTask->SetNLeadingJets(1);
-//             pSpectraChTask->SelectCollisionCandidates(kPhysSel);
-//             pSpectraChTask->SetHistoType(kHistoType);
+            TString sChJetsName = jf->GetName();
+            AliAnalysisTaskEmcalJetSpectraQA *qa = AddTaskEmcalJetSpectraQA("usedefault", clusName.Data(), sChJetsName, nrho,  radius, jetptmin, jetareacut, acceptance_type.Data());
+            qa->SetNLeadingJets(1);
+            qa->SelectCollisionCandidates(pSel);
+            qa->SetHistoType(kHistoType);
 
             PrintInfoCDFtask(anaTaskCDF->GetName());
             }
@@ -707,7 +687,7 @@ void LoadLibs ()
 //______________________________________________________________________________
 void LoadLibList ( const TString& list )
     {
-    TObjArray* arr = list.Tokenize(" ");;
+    TObjArray* arr = list.Tokenize(" ");
     TObjString *objstr = NULL;
 
     TIter next(arr);
@@ -745,7 +725,7 @@ Bool_t LoadLibrary ( const TString& lib  )
     }
 
 //________________________________________________________________________
-void SetJFAccFid ( const char* taskname, TString cut )
+void SetJFAccFid ( const char* taskname, TString cut = "TPC" )
     {
     AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
     if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
@@ -774,7 +754,7 @@ void SetJFAccFid ( const char* taskname, TString cut )
 
 
 //________________________________________________________________________
-void SetCDFAccFid( const char* taskname, Int_t i , TString cut )
+void SetCDFAccFid( const char* taskname, Int_t i = 0 , TString cut = "TPC" )
     {
     AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
     if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
@@ -1372,8 +1352,8 @@ void LoadMacros ()
     gROOT->LoadMacro ( "AddTaskEmcalJetSample.C" );
     }
 
-  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/CreateAODChain.C");
-  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/CreateESDChain.C");
+//  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/CreateAODChain.C");
+//  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/CreateESDChain.C");
 
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalAodTrackFilter.C");
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalEsdTrackFilter.C");
