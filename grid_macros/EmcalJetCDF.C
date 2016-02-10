@@ -71,7 +71,7 @@
 #include "AliClusterContainer.h"
 #include "AliEmcalContainer.h"
 #include "AliHadCorrTask.h"
-#include "AliAnalysisTaskEmcalJetSpectraQA.h"
+// #include "AliAnalysisTaskEmcalJetSpectraQA.h"
 
 #include "AliAnalysisTaskEmcalJetCDF.h"
 #include "AliAnalysisTaskEmcalJetCDFUE.h"
@@ -95,13 +95,12 @@
 
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskJetPreparation.C"
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C"
-#include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C"
+// #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C"
 
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskRho.C"
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C"
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDFUE.C"
 
-#include "/home.hdd/adrian/work/jets/jetfinder/grid_macros/AddTaskEmcalJetSample.C"
 #include "/home.hdd/adrian/work/jets/jetfinder/grid_macros/InputData.C"
 
 #endif
@@ -142,7 +141,15 @@ class AliEmcalSetupTask;
 // enum Jets used
 enum AlgoType {kKT, kANTIKT}; // AddTaskEmcalJet.C
 enum JetType  {kFULLJETS, kCHARGEDJETS, kNEUTRALJETS}; // AddTaskEmcalJet.C
-enum JetAcceptanceType { kTPC, kEMCAL, kUser }; // AliJetContainer
+enum JetAcceptanceType {
+    kTPC       ,     // TPC acceptance
+    kTPCfid    ,     // TPC fiducial acceptance
+    kEMCAL     ,     // EMCal acceptance
+    kEMCALfid  ,     // EMCal fiducial acceptance
+    kDCAL      ,     // DCal acceptance
+    kDCALfid   ,     // DCal fiducial acceptance
+    kUser            // User defined acceptance
+  }; // AliJetContainer
 enum eDataType { kAod, kEsd };
 enum runModeType {  kLocal, kGrid };  // AliAnalysisTaskLocalRho
 enum fitModulationType { kNoFit, kV2, kV3, kCombined, kFourierSeries, kIntegratedFlow, kQC2, kQC4 }; // AliAnalysisTaskLocalRho
@@ -266,7 +273,8 @@ UInt_t         EMCALpSel           = AliEmcalPhysicsSelection::kEmcalOk;
 // AliVEvent::kEMCEGA, AliVEvent::kEMCEJE
 
 Int_t          jettype             = 0;             // 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
-TString        acceptance_type     = "EMCAL";       // TPC, EMCAL, USER
+TString        acceptance_type     = "EMCAL";       // TPC, TPCFID, EMCAL, EMCALFID, DCAL, DCALFID
+
 UInt_t         acceptance_type_i   = -1;            // AliJetContainer enum ... will be set in sync to string value below
 
 Bool_t         tracks_etaphi_cuts  = kFALSE;        // fiducial acceptance cuts on jet constituents (tracks)
@@ -287,7 +295,6 @@ TString rhoName            = "";
 int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
   {
   gSystem->SetFPEMask(); // because is used in reference script
-//  acceptance_type.ToUpper();
 
   // set function arguments
   kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
@@ -302,11 +309,21 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   if ( jettype == 2 )  { leadhadtype == 1; }
   if ( jettype == 0 )  { leadhadtype == 2; }
 
-  if ( acceptance_type.EqualTo("TPC"))   { acceptance_type_i = 0; }
-  else
-  if ( acceptance_type.EqualTo("EMCAL")) { acceptance_type_i = 1; }
-  else
-      { acceptance_type_i = 2; }
+  acceptance_type.ToUpper();
+  if (acceptance_type.IsNull() || acceptance_type.EqualTo("USER"))
+    { acceptance_type_i = AliJetContainer::kUser; }
+  else if(acceptance_type.EqualTo("TPC"))
+    { acceptance_type_i = AliJetContainer::kTPC; }
+  else if(acceptance_type.EqualTo("TPCFID"))
+    { acceptance_type_i = AliJetContainer::kTPCfid; }
+  else if(acceptance_type.EqualTo("EMCAL"))
+    { acceptance_type_i = AliJetContainer::kEMCAL; }
+  else if(acceptance_type.EqualTo("EMCALFID"))
+    { acceptance_type_i = AliJetContainer::kEMCALfid; }
+  else if(acceptance_type.EqualTo("DCAL"))
+    { acceptance_type_i = AliJetContainer::kDCAL; }
+  else if(acceptance_type.EqualTo("DCALFID"))
+    { acceptance_type_i = AliJetContainer::kDCALfid; }
 
   // if acceptance cut on input contituents then do not cut in acceptance of jets
   if ( tracks_etaphi_cuts ) { acceptance_type = "TPC" ; acceptance_type_i = 0; }
@@ -486,6 +503,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     if (iBeamType != AliAnalysisTaskEmcal::kpp) { ghostArea = 0.005; }
 
     TString clusName ("usedefault");
+    TString tracksName ("usedefault");
     if ( jettype == 1 ) { clusName = "";}
 
     //     AliEmcalJetTask* jetFinderTask;
@@ -499,7 +517,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     Size_t rnr = sizeof(radius_list)/sizeof(radius_list[0]);
     for (Size_t j = 0; j < rnr; j++ )
         {
-        jf = AddTaskEmcalJet( "usedefault", clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+        jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
         jf->SelectCollisionCandidates(pSel);
         jf->GetParticleContainer(0)->SetFilterHybridTracks(kTRUE);
         jf->GetParticleContainer(0)->SetParticlePtCut(0.15);
@@ -541,14 +559,12 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     Double_t     jetareacut           = 0.00 ;
     const char*  tasknamecdf          = "CDF";
     const char*  tasknamecdfue        = "CDFUE";
-    const char*  tasknamesample       = "Sample";
     const char*  nrho                 = "";
 
     AliAnalysisTaskEmcalJetCDF*    anaTaskCDF    = NULL;
-    AliAnalysisTaskEmcalJetCDFUE*  anaTaskCDFUE  = NULL;
-    AliAnalysisTaskEmcalJetSample* anaTaskSample = NULL;
+//     AliAnalysisTaskEmcalJetCDFUE*  anaTaskCDFUE  = NULL;
 
-    const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
+//     const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
 
     Double_t jetpt_cuts[] =
                             {1., 5., 10. ,15., 20., 25., 30., 35., 40., 55., 60., 65., 70.};
@@ -561,41 +577,45 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask((*jf_it)));
         if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
 
+        const char *jets_name = jf_task->GetJetsName();
+
         for (Size_t k = 0; k < (Size_t)nrcuts; k++ )  // loop over all jet pt cuts
             {
             Double_t jetptmin = jetpt_cuts[(unsigned int)k];
             Double_t jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 250. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
 
             tasknamecdf = Form ("CDF%i",(unsigned int)k);
-            anaTaskCDF  = AddTaskEmcalJetCDF (jf_task, jetptmin, jetptmax, jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdf);
+            anaTaskCDF  = AddTaskEmcalJetCDF ( tracksName.Data(), clusName.Data(), jets_name, nrho, radius, jetptmin, jetptmax, jetareacut, acceptance_type.Data(), leadhadtype, tasknamecdf );
+
             anaTaskCDF->SetDebugLevel(debug);
+
+//             AliAnalysisTaskEmcalJetSpectraQA *qa = AddTaskEmcalJetSpectraQA(tracks, clusters, jets_name, nrho,  radius, jetptmin, jetareacut, acceptance_type.Data());
+//             qa->SetNLeadingJets(1);
+//             qa->SelectCollisionCandidates(pSel);
+//             qa->SetHistoType(kHistoType);
+//             qa->SetHistoBins(200, 0, 200);
+
 
 //             tasknamecdfue = Form ("CDFUE%i", (unsigned int)k);
 //             anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, jetptmin, jetptmax, jetareacut, acceptance_type.Data(), leadhadtype, nrho, tasknamecdfue);
 //             anaTaskCDFUE->SetDebugLevel(debug);
 
-            TString sChJetsName = jf->GetName();
-            AliAnalysisTaskEmcalJetSpectraQA *qa = AddTaskEmcalJetSpectraQA("usedefault", clusName.Data(), sChJetsName, nrho,  radius, jetptmin, jetareacut, acceptance_type.Data());
-            qa->SetNLeadingJets(1);
-            qa->SelectCollisionCandidates(pSel);
-            qa->SetHistoType(kHistoType);
-
             PrintInfoCDFtask(anaTaskCDF->GetName());
             }
 
-        anaTaskCDF  = AddTaskEmcalJetCDF (jf_task, 0., 250., jetareacut, acceptance_type.Data(), leadhadtype, nrho, "CDFT");
+        anaTaskCDF  = AddTaskEmcalJetCDF ( tracksName.Data(), clusName.Data(), jets_name, nrho, radius, 0., 250., jetareacut, acceptance_type.Data(), leadhadtype, "CDFT" );
         anaTaskCDF->SetDebugLevel(debug);
 
 //         anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, 0., 250., jetareacut, acceptance_type.Data(), leadhadtype, nrho, "CDFUET");
 //         anaTaskCDFUE->SetDebugLevel(debug);
         }
 
+
     // enable class level debugging for these classes
     if ( debug > 3 ) { mgr->AddClassDebug("AliJetContainer", 100); }
     if ( debug > 3 ) { mgr->AddClassDebug("AliEmcalJetTask", 100); }
     if ( debug > 3 ) { mgr->AddClassDebug("AliAnalysisTaskEmcalJetCDF", 100); }
     if ( debug > 3 ) { mgr->AddClassDebug("AliAnalysisTaskEmcalJetCDFUE", 100); }
-    if ( debug > 3 ) { mgr->AddClassDebug("AliAnalysisTaskEmcalJetSample", 100); }
 
 //#################################################################
     // Set the physics selection for all given tasks
@@ -1343,13 +1363,11 @@ void LoadMacros ()
     {
     gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
     gROOT->LoadMacro ( "AddTaskEmcalJetCDFUE.C" );
-    gROOT->LoadMacro ( "AddTaskEmcalJetSample.C" );
     }
   else
     {
     gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C" );
     gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDFUE.C" );
-    gROOT->LoadMacro ( "AddTaskEmcalJetSample.C" );
     }
 
 //  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/CreateAODChain.C");
@@ -1373,8 +1391,8 @@ void LoadMacros ()
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskHadCorr.C");
 
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C" );
-  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetQA.C");
-  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C");
+//   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetQA.C");
+//   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C");
   }
 
 
