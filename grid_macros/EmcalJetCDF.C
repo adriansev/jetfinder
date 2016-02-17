@@ -473,17 +473,13 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
 // ################# Now: Add jet finders+analyzers
     Int_t          algo            = kANTIKT;                 // default: 1 ; 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
-    Double_t       radius          = 0.4;                     // default: 0.4
-    Int_t          type            = jettype;                 // default: 0 --> AliEmcalJetTask::kFullJet; 1 --> AliEmcalJetTask::kChargedJet; 2 --> AliEmcalJetTask::kNeutralJet
     Double_t       minTrPt         = 0.15;                    // default: 0.15  // min jet track momentum   (applied before clustering)
     Double_t       minClPt         = 0.30;                    // default: 0.30  // min jet cluster momentum (applied before clustering)
     Double_t       ghostArea       = 0.01;                    // default: 0.005 // ghost area
     AliJetContainer::ERecoScheme_t recombScheme = AliJetContainer::pt_scheme;
     const char*    tag             = "Jet";                   // default: "Jet"
     Double_t       minJetPt        = 1.;                      // default: 0.
-    Bool_t         selectPhysPrim  = kFALSE;                  // default: kFALSE
     Bool_t         lockTask        = kFALSE;                  // default: kTRUE
-    Int_t          useExchangeCont = 0;
     Bool_t         bFillGhosts     = kFALSE;
 
     if ( iBeamType != AliAnalysisTaskEmcal::kpp ) { ghostArea = 0.005; }
@@ -501,7 +497,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     Size_t rnr = sizeof(radius_list)/sizeof(radius_list[0]);
     for (Size_t j = 0; j < rnr; j++ )
         {
-        jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, selectPhysPrim, lockTask);
+        jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, lockTask);
         jf->SelectCollisionCandidates(pSelAnyINT);
         jf->GetParticleContainer(0)->SetFilterHybridTracks(kTRUE);
 
@@ -560,8 +556,8 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
             Double_t jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 250. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
 
             tasknamecdf = Form ("CDF%i",(unsigned int)k);
-            anaTaskCDF  = AddTaskEmcalJetCDF ( tracksName.Data(), clusName.Data(), jets_name, nrho, radius, jetptmin, jetptmax, jetareacut, acceptance_type, leadhadtype, tasknamecdf );
-            anaTaskCDF->SetNLeadingJets(1);
+            anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), jets_name, nrho, jetptmin, jetptmax, jetareacut, acceptance_type, leadhadtype, tasknamecdf );
+
             anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
             anaTaskCDF->SetDebugLevel(debug);
 
@@ -579,8 +575,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
             PrintInfoCDFtask(anaTaskCDF->GetName(),0);
             }
 
-        anaTaskCDF  = AddTaskEmcalJetCDF ( tracksName.Data(), clusName.Data(), jets_name, nrho, radius, 0., 500., jetareacut, acceptance_type, leadhadtype, "CDFT" );
-        anaTaskCDF->SetNLeadingJets(1);
+        anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), jets_name, nrho, 0., 500., jetareacut, acceptance_type, leadhadtype, "CDFT" );
         anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
         anaTaskCDF->SetDebugLevel(debug);
 
@@ -666,21 +661,30 @@ void AddIncludePaths ()
 
 //______________________________________________________________________________
 void LoadLibs ()
-    {
-    gSystem->Load ("libSTEERBase.so");
-    gSystem->Load ("libANALYSIS.so");
-    gSystem->Load ("libANALYSISaliceBase.so");
-    gSystem->Load ("libANALYSISalice.so");
+  {
+  TString list_fj         = "CGAL fastjet siscone siscone_spherical fastjetplugins fastjettools fastjetcontribfragile";
+  TString list_alicejets  = "PWGJE PWGJEEMCALJetTasks";
 
-    TString list_fj         = "CGAL fastjet siscone siscone_spherical fastjetplugins fastjettools fastjetcontribfragile";
-    TString list_alicejets  = "PWGEMCAL EventMixing PWGJE FASTJETAN PWGJEEMCALJetTasks";
+  LoadLibList (list_fj);
 
-    LoadLibList (list_fj);
-    LoadLibList (list_alicejets);
+  gSystem->Load("libCore");
+  gSystem->Load("libPhysics");
+  gSystem->Load("libMinuit");
+  gSystem->Load("libVMC");
+  gSystem->Load("libNet");
+  gSystem->Load("libTree");
 
-    ::Info ( "EmcalJetCDF::LoadROOTLibs", "Load ROOT libraries:    SUCCESS" );
+  gSystem->Load ("libSTEERBase.so");
+  gSystem->Load ("libAOD");
+  gSystem->Load ("libANALYSIS.so");
+  gSystem->Load ("libANALYSISalice.so");
 
-    }
+  LoadLibList (list_alicejets);
+
+  ::Info ( "EmcalJetCDF::LoadROOTLibs", "Load ROOT libraries:    SUCCESS" );
+  gSystem->ListLibraries();
+
+  }
 
 //______________________________________________________________________________
 void LoadLibList ( const TString& list )
