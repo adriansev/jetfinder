@@ -154,8 +154,8 @@ enum VCluUserDefEnergy_t { kNonLinCorr = 0, kHadCorr = 1, kUserDefEnergy1 = 2, k
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
 
-Int_t       kTestFiles               = 1;    // Number of test files
-Long64_t    nentries                 = 10000; //999999999; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+Int_t       kTestFiles               = 2;    // Number of test files
+Long64_t    nentries                 = 999999999; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
 TString     kWorkDir                 = "emcalcdf";    // AliEn work dir; relative to AliEn $HOME
@@ -245,9 +245,9 @@ TString     ListSources   = "";
 
 //==============================================================================
 //      DEBUG
-Int_t           debug              =  100 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
-UInt_t          mgr_debug          =  100 ; // AliAnalysisManager debug level
-unsigned int    kUseSysInfo        =  2 ; // activate debugging
+Int_t           debug              =  5 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
+UInt_t          mgr_debug          =  1000 ; // AliAnalysisManager debug level
+UInt_t          kUseSysInfo        =  10 ; // activate debugging
 Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
 
 //______________________________________________________________________________
@@ -330,8 +330,8 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   // NOTE!!! after the custom task part to be picked up and loaded by alien plugin
   PrepareAnalysisEnvironment();
 
-  AliParticleContainer::SetDefTrackCutsPeriod(runPeriod.Data());
-  Printf("Default track cut period set to: %s", AliParticleContainer::GetDefTrackCutsPeriod().Data());
+  AliTrackContainer::SetDefTrackCutsPeriod(runPeriod.Data());
+  Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
 
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpp;
 
@@ -499,7 +499,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         {
         jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, lockTask);
         jf->SelectCollisionCandidates(pSelAnyINT);
-        jf->GetParticleContainer(0)->SetFilterHybridTracks(kTRUE);
 
         TString jftaskname = jf->GetName();
 
