@@ -473,11 +473,12 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     }
 
 // ################# Now: Add jet finders+analyzers
-    Int_t          algo            = kANTIKT;                 // default: 1 ; 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
+    AliJetContainer::EJetAlgo_t            algo = AliJetContainer::antikt_algorithm;                 // default: 1 ; 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
+    AliJetContainer::ERecoScheme_t recombScheme = AliJetContainer::pt_scheme;
+
     Double_t       minTrPt         = 0.15;                    // default: 0.15  // min jet track momentum   (applied before clustering)
     Double_t       minClPt         = 0.30;                    // default: 0.30  // min jet cluster momentum (applied before clustering)
     Double_t       ghostArea       = 0.01;                    // default: 0.005 // ghost area
-    AliJetContainer::ERecoScheme_t recombScheme = AliJetContainer::pt_scheme;
     const char*    tag             = "Jet";                   // default: "Jet"
     Double_t       minJetPt        = 1.;                      // default: 0.
     Bool_t         lockTask        = kFALSE;                  // default: kTRUE
@@ -549,21 +550,26 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask((*jf_it)));
         if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
 
-        const char *jets_name = jf_task->GetJetsName();
+        TString jets_name = jf_task->GetJetsName();
 
         for (Size_t k = 0; k < (Size_t)nrcuts; k++ )  // loop over all jet pt cuts
             {
             Double_t jetptmin = jetpt_cuts[(unsigned int)k];
-            Double_t jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 250. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
+            Double_t jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 500. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
+
+            AliJetContainer::EJetType_t       jettype_t = jf_task->GetJetType();
+            AliJetContainer::ERecoScheme_t     recomb_t = jf_task->GetRecombScheme();
+            AliJetContainer::EJetAlgo_t       jetalgo_t = jf_task->GetJetAlgo();
+            Double_t                                  r = jf_task->GetRadius();
 
             tasknamecdf = Form ("CDF%i",(unsigned int)k);
-            anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), jets_name, nrho, jetptmin, jetptmax, jetareacut, acceptance_type, leadhadtype, tasknamecdf );
-
+            anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), nrho, jetptmin, jetptmax, jetareacut, acceptance_type, leadhadtype, tasknamecdf );
             anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
             anaTaskCDF->SetDebugLevel(debug);
 
 //            const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
-//            AliAnalysisTaskEmcalJetSpectraQA *qa = AddTaskEmcalJetSpectraQA(tracks, clusters, jets_name, nrho,  radius, jetptmin, jetareacut, acceptance_type);
+//            AliAnalysisTaskEmcalJetSpectraQA* qa = AddTaskEmcalJetSpectraQA(tracksName.Data(), clusName.Data());
+//            qa->AddJetContainer( jettype_t, jetalgo_t, recomb_t, acceptance_type);
 //            qa->SetNLeadingJets(1);
 //            qa->SelectCollisionCandidates(pSel);
 //            qa->SetHistoType(kHistoType);
@@ -571,7 +577,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
             PrintInfoCDFtask(anaTaskCDF->GetName(),0);
             }
 
-        anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), jets_name, nrho, 0., 500., jetareacut, acceptance_type, leadhadtype, "CDFT" );
+        anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), nrho, 0., 500., jetareacut, acceptance_type, leadhadtype, "CDFT" );
         anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
         anaTaskCDF->SetDebugLevel(debug);
         }
