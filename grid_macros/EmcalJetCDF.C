@@ -168,7 +168,7 @@ Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in prod
 TString     kAPIVersion              = "V1.1x";
 TString     kRootVersion             = "v5-34-30-alice-12";
 TString     kAliRootVersion          = "v5-08-00-1";
-TString     kAliPhysicsVersion       = "vAN-20160213-1";
+TString     kAliPhysicsVersion       = "vAN-20160219-1";
 
 TString     kPackage1                = "boost::v1.59.0-4";
 TString     kPackage2                = "cgal::v4.6.3-7";
@@ -318,7 +318,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 // ________________________________________________________________________
 // PREPARE Includes, libs and paths
   cout << "Beging of loading Libs and Macros" << endl;
-  AddIncludePaths(); // Add include paths for local task and plugin
   LoadLibs(); // Load necessary libraries for the script and for the plugin
   LoadMacros(); // load all macros that might be nedeed
 
@@ -526,6 +525,8 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     if ( gROOT->LoadMacro ( myTask.Data() ) != 0 )  { Printf ( "--->>> !!! compilation failed !!! <<<---" ) ; return; }
     }
 
+// Add to plugin custom include paths
+  AddIncludePaths(); // Add include paths for local task and plugin
 
 //__________________________________________________________________________________
     Double_t     jetareacut           = 0.00 ;
@@ -642,10 +643,10 @@ void AddIncludePaths ()
     TString includes_str = "-Wno-deprecated -I$. -I$CGAL_DIR/include -I$FASTJET/include -I$ROOTSYS/include -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include";
 
     AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
-    if ( !mgr ) { ::Error ( "EmcalJetCDF.C", "IncludePaths :: No analysis manager to connect to." ); return kFALSE; }
+    if ( !mgr ) { ::Error ( "EmcalJetCDF.C", "IncludePaths :: No analysis manager to connect to." ); }
 
     AliAnalysisAlien* plugin =  dynamic_cast <AliAnalysisAlien*> ( mgr->GetGridHandler() );
-    if ( !plugin ) { ::Error ( "EmcalJetCDF.C", "IncludePaths :: plugin invalid" ); return kFALSE; }
+    if ( !plugin ) { ::Error ( "EmcalJetCDF.C", "IncludePaths :: plugin invalid" ); }
 
     gSystem->AddIncludePath(includes_str.Data());
     plugin->AddIncludePath(includes_str.Data());
