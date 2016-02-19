@@ -245,8 +245,8 @@ TString     ListSources   = "";
 
 //==============================================================================
 //      DEBUG
-Int_t           debug              =  5 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
-UInt_t          mgr_debug          =  1000 ; // AliAnalysisManager debug level
+Int_t           debug              =  100 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
+UInt_t          mgr_debug          =  100 ; // AliAnalysisManager debug level
 UInt_t          kUseSysInfo        =  10 ; // activate debugging
 Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
 
@@ -291,6 +291,7 @@ TString rhoName    ("");
 
 int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
   {
+  cout << "Beging of EmcalJetCDF" << endl;
   gSystem->SetFPEMask(); // because is used in reference script
 
   // SETUP THE ANALYSIS TYPE
@@ -314,18 +315,19 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   // if acceptance cut on input contituents then do not cut in acceptance of jets
   if ( tracks_etaphi_cuts ) { acceptance_type = AliJetContainer::kTPCfid;}
 
+// ________________________________________________________________________
+// PREPARE Includes, libs and paths
+  cout << "Beging of loading Libs and Macros" << endl;
+  AddIncludePaths(); // Add include paths for local task and plugin
+  LoadLibs(); // Load necessary libraries for the script and for the plugin
+  LoadMacros(); // load all macros that might be nedeed
+
 //__________________________________________________________________________________
   //*******************************************
   //   Loading of libraries (script + plugin)
   //*******************************************
   AliAnalysisAlien* plugin = CreateAlienHandler ( kPluginMode.Data() );             // ###   SET UP AliEn handler ###
   AliAnalysisManager* mgr  = plugin->CreateAnalysisManager ( "CDFhistos_mgr" );     // ###   ANALYSIS MANAGER     ###
-
-  AddIncludePaths(); // Add include paths for local task and plugin
-  LoadLibs(); // Load necessary libraries for the script and for the plugin
-
-//__________________________________________________________________________________
-  LoadMacros(); // load all macros that might be nedeed
 
   // NOTE!!! after the custom task part to be picked up and loaded by alien plugin
   PrepareAnalysisEnvironment();
@@ -534,7 +536,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     AliAnalysisTaskEmcalJetCDF*    anaTaskCDF    = NULL;
 //     AliAnalysisTaskEmcalJetCDFUE*  anaTaskCDFUE  = NULL;
 
-//     const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
 
     Double_t jetpt_cuts[] =
                             {1., 5., 10. ,15., 20., 25., 30., 35., 40., 55., 60., 65., 70.};
@@ -560,16 +561,11 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
             anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
             anaTaskCDF->SetDebugLevel(debug);
 
-//             AliAnalysisTaskEmcalJetSpectraQA *qa = AddTaskEmcalJetSpectraQA(tracks, clusters, jets_name, nrho,  radius, jetptmin, jetareacut, acceptance_type);
-//             qa->SetNLeadingJets(1);
-//             qa->SelectCollisionCandidates(pSel);
-//             qa->SetHistoType(kHistoType);
-//             qa->SetHistoBins(200, 0, 200);
-
-
-//             tasknamecdfue = Form ("CDFUE%i", (unsigned int)k);
-//             anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, jetptmin, jetptmax, jetareacut, acceptance_type, leadhadtype, nrho, tasknamecdfue);
-//             anaTaskCDFUE->SetDebugLevel(debug);
+//            const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
+//            AliAnalysisTaskEmcalJetSpectraQA *qa = AddTaskEmcalJetSpectraQA(tracks, clusters, jets_name, nrho,  radius, jetptmin, jetareacut, acceptance_type);
+//            qa->SetNLeadingJets(1);
+//            qa->SelectCollisionCandidates(pSel);
+//            qa->SetHistoType(kHistoType);
 
             PrintInfoCDFtask(anaTaskCDF->GetName(),0);
             }
@@ -577,9 +573,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), jets_name, nrho, 0., 500., jetareacut, acceptance_type, leadhadtype, "CDFT" );
         anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
         anaTaskCDF->SetDebugLevel(debug);
-
-//         anaTaskCDFUE  = AddTaskEmcalJetCDFUE (jf_task, 0., 250., jetareacut, acceptance_type, leadhadtype, nrho, "CDFUET");
-//         anaTaskCDFUE->SetDebugLevel(debug);
         }
 
 
@@ -1371,7 +1364,7 @@ void LoadMacros ()
 
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C" );
 //   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetQA.C");
-//   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C");
+//  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C");
   }
 
 
