@@ -14,7 +14,19 @@
 #include "Rtypes.h"
 #include "TRint.h"
 #include "TROOT.h"
+
+#ifndef ROOT_TObject
 #include "TObject.h"
+#endif
+
+#ifndef ROOT_TNamed
+#include "TNamed.h"
+#endif
+
+#ifndef ROOT_TTask
+#include "TTask.h"
+#endif
+
 #include "TSystem.h"
 #include "TApplication.h"
 #include "TString.h"
@@ -60,6 +72,8 @@
 #include "AliAnalysisTaskEMCALClusterizeFast.h"
 #include "AliAnalysisDataContainer.h"
 
+#include "AliAnalysisTask.h"
+#include "AliAnalysisTaskSE.h"
 #include "AliAnalysisTaskEmcal.h"
 #include "AliAnalysisTaskEmcalJet.h"
 #include "AliEMCALRecoUtils.h"
@@ -255,9 +269,11 @@ Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .
 //@@@     ANALYSIS STEERING VARIABLES     @@@
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-/// WILL SET UP THE ANALYSIS BELOW
-Int_t set_analysis = 0; // 0 for TPCfid + kChargedJet ; 1 for kEMCALfid + kFullJet
+// SETUP THE ANALYSIS TYPE
+Bool_t         chgJets  = kTRUE;
+Bool_t         fullJets = kTRUE;
 
+// Default values
 AliJetContainer::EJetType_t                jettype = AliJetContainer::kChargedJet;    //  kFullJet, kChargedJet, kNeutralJet
 AliJetContainer::JetAcceptanceType acceptance_type = AliJetContainer::kTPCfid;           // kTPC, kTPCfid, kEMCAL, kEMCALfid, kDCAL, kDCALfid, kUser
 
@@ -284,21 +300,15 @@ bool localMacros = false;
 
 //__________________________________________________________________________________
 // Objects (branch names) used in Jet framework
-// TString cellName           = "emcalCells";
-TString clusName   ("usedefault");
 TString tracksName ("usedefault");
-TString rhoName    ("");
+TString clusName   ("usedefault");
+// TString cellName  ("emcalCells");
+TString rhoName  ("");
 
-int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
+AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = "test", const char* input = "data.txt")
   {
   cout << "Beging of EmcalJetCDF" << endl;
   gSystem->SetFPEMask(); // because is used in reference script
-
-  // SETUP THE ANALYSIS TYPE
-  if (set_analysis == 0 )
-    { jettype = AliJetContainer::kChargedJet; acceptance_type = AliJetContainer::kTPCfid; }
-  else
-    { jettype = AliJetContainer::kFullJet;    acceptance_type = AliJetContainer::kEMCALfid; }
 
   // set function arguments
   kPluginMode   = plugin_mode   ; kPluginMode.ToLower();    // test, offline, submit, terminate, full
@@ -308,12 +318,8 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   // if analysis is done on localhost do not use PARs
   if ( kAnalysisMode.EqualTo ("local") || kPluginMode.EqualTo ("test")  ) { kUsePAR = kFALSE; }
 
-  // sanity checks
-  if ( jettype == AliJetContainer::kFullJet )     { leadhadtype = 2; }
-  if ( jettype == AliJetContainer::kChargedJet )  { leadhadtype = 0; }
-
   // if acceptance cut on input contituents then do not cut in acceptance of jets
-  if ( tracks_etaphi_cuts ) { acceptance_type = AliJetContainer::kTPCfid;}
+  //if ( tracks_etaphi_cuts ) { acceptance_type = AliJetContainer::kTPCfid;}
 
 // ________________________________________________________________________
 // PREPARE Includes, libs and paths
@@ -388,14 +394,14 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
   const char* objs    = ""; // default = 0; objects for which alignment should be applied
   const Bool_t noOCDB = kFALSE; // default = false; if true then do not mess with OCDB
 
-  if ( jettype == AliJetContainer::kFullJet || dataType.EqualTo("esd") )
+  if ( fullJets || dataType.EqualTo("esd") )
     {
     AliEmcalSetupTask* emcalsetupTask = AddTaskEmcalSetup();
     emcalsetupTask->SelectCollisionCandidates(AliVEvent::kAny);
     emcalsetupTask->SetOcdbPath(cOCDBpath);
     }
 
-  if ( jettype == AliJetContainer::kFullJet )
+  if ( fullJets )
     {
     //______________________________________________________________________________
     // Tender
@@ -473,7 +479,7 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     }
 
 // ################# Now: Add jet finders+analyzers
-    AliJetContainer::EJetAlgo_t            algo = AliJetContainer::antikt_algorithm;                 // default: 1 ; 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
+    AliJetContainer::EJetAlgo_t            algo = AliJetContainer::antikt_algorithm;  // default: 1 ; 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
     AliJetContainer::ERecoScheme_t recombScheme = AliJetContainer::pt_scheme;
 
     Double_t       minTrPt         = 0.15;                    // default: 0.15  // min jet track momentum   (applied before clustering)
@@ -486,8 +492,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 
     if ( iBeamType != AliAnalysisTaskEmcal::kpp ) { ghostArea = 0.005; }
 
-    if ( jettype == AliJetContainer::kChargedJet ) { clusName = "";}
-
     //     AliEmcalJetTask* jetFinderTask;
     AliEmcalJetTask* jf = NULL;
 
@@ -499,17 +503,32 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
     Size_t rnr = sizeof(radius_list)/sizeof(radius_list[0]);
     for (Size_t j = 0; j < rnr; j++ )
         {
-        jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, lockTask);
-        jf->SelectCollisionCandidates(pSelAnyINT);
+        TString jftaskname ("");
+        if ( chgJets )
+          {
+          jettype = AliJetContainer::kChargedJet; clusName = "";
+          jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, lockTask);
+          jf->SelectCollisionCandidates(pSelAnyINT);
 
-        TString jftaskname = jf->GetName();
+          jftaskname = jf->GetName();
+          PrintInfoJF ( jftaskname.Data() );
+          jf_names.push_back( jftaskname );
+          }
 
-        PrintInfoJF ( jftaskname.Data() );
-        jf_names.push_back( jftaskname );
+        if ( fullJets )
+          {
+          jettype = AliJetContainer::kFullJet;
+          jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, ghostArea, recombScheme, tag, minJetPt, lockTask);
+          jf->SelectCollisionCandidates(pSelAnyINT);
 
-        if ( tracks_etaphi_cuts ) { SetJFAccFid (jftaskname.Data(), acceptance_type); }
+          jftaskname = jf->GetName();
+          PrintInfoJF ( jftaskname.Data() );
+          jf_names.push_back( jftaskname );
+          }
+
+        // if ( tracks_etaphi_cuts ) { SetJFAccFid (jftaskname.Data(), acceptance_type); }
         }
-
+    jf = NULL; // make sure this pointer is not used anymore
 
 
 //#####################################################################################
@@ -550,22 +569,37 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
         AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask((*jf_it)));
         if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
 
-        TString jets_name = jf_task->GetJetsName();
+        TString jf_name = jf_task->GetName();
+        AliJetContainer::EJetType_t       jettype_t = jf_task->GetJetType();
+        AliJetContainer::ERecoScheme_t     recomb_t = jf_task->GetRecombScheme();
+        AliJetContainer::EJetAlgo_t       jetalgo_t = jf_task->GetJetAlgo();
+        Double_t                                  r = jf_task->GetRadius();
+
+        if ( jettype_t == AliJetContainer::kChargedJet )
+          { acceptance_type = AliJetContainer::kTPCfid; clusName = ""; leadhadtype = 0; }
+        else
+        if ( jettype_t == AliJetContainer::kFullJet )
+          { acceptance_type = AliJetContainer::kEMCALfid; leadhadtype = 2; }
 
         for (Size_t k = 0; k < (Size_t)nrcuts; k++ )  // loop over all jet pt cuts
             {
             Double_t jetptmin = jetpt_cuts[(unsigned int)k];
             Double_t jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 500. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
 
-            AliJetContainer::EJetType_t       jettype_t = jf_task->GetJetType();
-            AliJetContainer::ERecoScheme_t     recomb_t = jf_task->GetRecombScheme();
-            AliJetContainer::EJetAlgo_t       jetalgo_t = jf_task->GetJetAlgo();
-            Double_t                                  r = jf_task->GetRadius();
-
             tasknamecdf = Form ("CDF%i",(unsigned int)k);
+
             anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), nrho, jetptmin, jetptmax, jetareacut, acceptance_type, leadhadtype, tasknamecdf );
+            if (!anaTaskCDF) { cout << "Could not add EmcalJetCDF; task = " << tasknamecdf << endl; continue; }
             anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
             anaTaskCDF->SetDebugLevel(debug);
+            PrintInfoCDFtask(anaTaskCDF->GetName(),0);
+            }
+
+        anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), nrho, 0., 500., jetareacut, acceptance_type, leadhadtype, "CDFT" );
+        if (!anaTaskCDF) { cout << "Could not add EmcalJetCDF; task = " << tasknamecdf << endl; continue; }
+        anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
+        anaTaskCDF->SetDebugLevel(debug);
+        PrintInfoCDFtask(anaTaskCDF->GetName(),0);
 
 //            const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
 //            AliAnalysisTaskEmcalJetSpectraQA* qa = AddTaskEmcalJetSpectraQA(tracksName.Data(), clusName.Data());
@@ -574,12 +608,6 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 //            qa->SelectCollisionCandidates(pSel);
 //            qa->SetHistoType(kHistoType);
 
-            PrintInfoCDFtask(anaTaskCDF->GetName(),0);
-            }
-
-        anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), nrho, 0., 500., jetareacut, acceptance_type, leadhadtype, "CDFT" );
-        anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
-        anaTaskCDF->SetDebugLevel(debug);
         }
 
 
@@ -609,38 +637,39 @@ int EmcalJetCDF (const char* analysis_mode = "local", const char* plugin_mode = 
 //==========================================
 // ######       START ANALYSIS       #######
 //==========================================
-    if ( mgr->InitAnalysis() )
-        {
-        cout << "##-->> Initialising Analysis :: Status :" << endl;
-        mgr->PrintStatus();
+  if (!mgr->InitAnalysis()) { return NULL; }
 
-        // grmpf, aliroot error handler overwrites root
-        if ( debug == 0 )      { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
-        else if ( debug == 1 ) { AliLog::SetGlobalLogLevel ( AliLog::kError ); }
-        else if ( debug == 2 ) { AliLog::SetGlobalLogLevel ( AliLog::kWarning ); }
-        else if ( debug == 3 ) { AliLog::SetGlobalLogLevel ( AliLog::kInfo ); }
-        else if ( debug >= 4 ) { AliLog::SetGlobalLogLevel ( AliLog::kDebug ); }
+  cout << "##-->> Initialising Analysis :: Status :" << endl;
+  mgr->PrintStatus();
 
-        gErrorIgnoreLevel = kErrorIgnoreLevel;
-        if ( gErrorIgnoreLevel > 3000 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
+  if ( debug == 0 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
+  else
+  if ( debug == 1 ) { AliLog::SetGlobalLogLevel ( AliLog::kError ); }
+  else
+  if ( debug == 2 ) { AliLog::SetGlobalLogLevel ( AliLog::kWarning ); }
+  else
+  if ( debug == 3 ) { AliLog::SetGlobalLogLevel ( AliLog::kInfo ); }
+  else
+  if ( debug >= 4 ) { AliLog::SetGlobalLogLevel ( AliLog::kDebug ); }
 
-        // task profiling
-        if ( kUseSysInfo > 0 )
-            {
-            TFile * fM = TFile::Open ( "manager_local.root", "RECREATE" );
-            mgr->Write();
-            fM->Close();
+  gErrorIgnoreLevel = kErrorIgnoreLevel;
+  if ( gErrorIgnoreLevel > 3000 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
 
-            for ( int i = 0; i < mgr->GetTopTasks()->GetEntries(); i++ ) { mgr->ProfileTask (i); }
-            }
-        mgr->SetDebugLevel(mgr_debug);
-        mgr->StartAnalysis ( kAnalysisMode.Data(), nentries );
-        }
-        // END of mgr->InitAnalysis()
+  mgr->SetDebugLevel(mgr_debug);
+  TFile* fM = TFile::Open ( "manager_local.root", "RECREATE" );
+  fM->cd(); mgr->Write(); fM->Close(); delete fM;
+  // task profiling
+  if ( kUseSysInfo > 0 )
+      {
+      for ( int i = 0; i < mgr->GetTopTasks()->GetEntries(); i++ ) { mgr->ProfileTask (i); }
+      }
 
-    cout << "EmcalJetCDF END" << endl;
-    return 0;
-    }
+  mgr->StartAnalysis ( kAnalysisMode.Data(), nentries );
+  // END of mgr->InitAnalysis()
+
+  cout << "EmcalJetCDF END" << endl;
+  return mgr;
+  }
 //>>>>>>  END of void EmcalJetCDF (.....)   <<<<<<<<<
 //##########################################################################################################################
 
