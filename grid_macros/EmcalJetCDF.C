@@ -131,6 +131,28 @@ class AliCentralitySelectionTask;
 class AliEmcalSetupTask;
 class AliJetContainer;
 
+//______________________________________________________________________________
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@     ANALYSIS STEERING VARIABLES     @@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+Int_t       kTestFiles               = 1;          // Number of test files
+Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+
+// SETUP THE ANALYSIS TYPE
+const Bool_t         chgJets  = 1;
+const Bool_t         fullJets = 0;
+const Bool_t         mcJets   = 0;
+
+Bool_t  bar = 0;
+
+// ######   DEBUG    ######
+Int_t           debug              =  1 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
+UInt_t          mgr_debug          =  1 ; // AliAnalysisManager debug level
+UInt_t          kUseSysInfo        =  10 ; // activate debugging
+Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
+//==============================================================================
+
 //    FORWARD DECLARATIONS
 void                     AddIncludePaths ();
 void                     LoadLibs ();
@@ -167,9 +189,6 @@ enum VCluUserDefEnergy_t { kNonLinCorr = 0, kHadCorr = 1, kUserDefEnergy1 = 2, k
 //        AliEN plugin variables
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
-
-Int_t       kTestFiles               = 2;    // Number of test files
-Long64_t    nentries                 = 999999999; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
 TString     kWorkDir                 = "emcalcdf";    // AliEn work dir; relative to AliEn $HOME
@@ -244,7 +263,7 @@ TString     kInputStr       = ""; // input string
 //==============================================================================
 
 // FILES USED IN MACRO
-TString     kCommonOutputFileName    = "CDFanalysis.root";
+TString     kCommonOutputFileName    = "AnalysisResults.root";
 
 // == grid plugin files rules
 TString     kGridExtraFiles          = ""; // LIBRARIES files that will be added to the input list in the JDL
@@ -257,22 +276,6 @@ TString     ListLibs      = "";
 TString     ListLibsExtra = "";
 TString     ListSources   = "";
 
-//==============================================================================
-//      DEBUG
-Int_t           debug              =  1 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
-UInt_t          mgr_debug          =  1 ; // AliAnalysisManager debug level
-UInt_t          kUseSysInfo        =  10 ; // activate debugging
-Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
-
-//______________________________________________________________________________
-//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-//@@@     ANALYSIS STEERING VARIABLES     @@@
-//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-// SETUP THE ANALYSIS TYPE
-const Bool_t         chgJets  = kTRUE;
-const Bool_t         fullJets = kTRUE;
-const Bool_t         mcJets   = kFALSE;
 
 // Default values
 AliJetContainer::EJetType_t                jettype = AliJetContainer::kChargedJet;    //  kFullJet, kChargedJet, kNeutralJet
@@ -632,8 +635,6 @@ AddIncludePathsPlugin(); // Add include paths for plugin
 //            cout << "Jet container propreties : " << endl;
 //            jetCont->PrintCuts();
 
-
-
 //     if (iBeamType != AliAnalysisTaskEmcal::kpp) {
 //       jetCont->SetRhoName(sRhoFuName);
 //       jetCont->SetPercAreaCut(0.6);
@@ -641,22 +642,12 @@ AddIncludePathsPlugin(); // Add include paths for plugin
 //     if (iBeamType != AliAnalysisTaskEmcal::kpp) {
 //       jetCont->SetRhoName(sRhoChName);
 //       jetCont->SetPercAreaCut(0.6);
-
-//
-//             if ( !rho.IsNull() ) { jetCont->SetRhoName ( nrho ); }
-
-
-
-//   if (bDoMCJets) {
+//   if (bDoMCJets)
+//     {
 //     AliMCParticleContainer* MCpartCont = pSpectraTask->AddMCParticleContainer("mcparticles");
 //
-//     if (bDoChargedJets) {
-//       pSpectraTask->AddJetContainer(AliJetContainer::kChargedJet, AliJetContainer::antikt_algorithm, AliJetContainer::pt_scheme, kJetRadius, AliJetContainer::kTPCfid, MCpartCont, 0);
-//     }
-//
-//     if (bDoFullJets) {
-//       pSpectraTask->AddJetContainer(AliJetContainer::kFullJet, AliJetContainer::antikt_algorithm, AliJetContainer::pt_scheme, kJetRadius, AliJetContainer::kTPCfid, MCpartCont, 0);
-//     }
+//     if (chgJets)  { pSpectraTask->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet"); }
+//     if (fullJets) { pSpectraTask->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet"); }
 //   }
 
             }
@@ -687,26 +678,16 @@ AddIncludePathsPlugin(); // Add include paths for plugin
 
 
 
-
-/*
-
-
-        anaTaskCDF  = AddTaskEmcalJetCDF ( jf_task, tracksName.Data(), clusName.Data(), nrho, 0., 500., jetareacut, acceptance_type, leadhadtype, "CDFT" );
-        if (!anaTaskCDF) { cout << "Could not add EmcalJetCDF; task = " << tasknamecdf << endl; continue; }
-        anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
-        anaTaskCDF->SetDebugLevel(debug);
-        PrintInfoCDFtask(anaTaskCDF->GetName(),0);
-*/
-
-
-//            const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
-//            AliAnalysisTaskEmcalJetSpectraQA* qa = AddTaskEmcalJetSpectraQA(tracksName.Data(), clusName.Data());
-//            qa->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
-//            qa->SetNLeadingJets(1);
-//            qa->SelectCollisionCandidates(pSel);
-//            qa->SetHistoType(kHistoType);
-
         }
+
+
+//        const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
+//        AliAnalysisTaskEmcalJetSpectraQA* qa = AddTaskEmcalJetSpectraQA(tracksName.Data(), clusName.Data());
+//        qa->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
+//        qa->SetNLeadingJets(1);
+//        qa->SelectCollisionCandidates(pSelAnyINT);
+//        qa->SetHistoType(kHistoType);
+
 
 
     // enable class level debugging for these classes
@@ -718,8 +699,7 @@ AddIncludePathsPlugin(); // Add include paths for plugin
 //#################################################################
     // Set the physics selection for all given tasks
     TObjArray* toptasks = mgr->GetTasks();
-
-    for ( Int_t i = 0; i < toptasks->GetEntries(); ++i )
+    for ( Int_t i = 0; i <= toptasks->GetLast(); i++ )
         {
         AliAnalysisTaskSE* task = dynamic_cast<AliAnalysisTaskSE*> ( toptasks->At (i) );
         if ( !task ) { continue; }
@@ -740,6 +720,8 @@ AddIncludePathsPlugin(); // Add include paths for plugin
   cout << "##-->> Initialising Analysis :: Status :" << endl;
   mgr->PrintStatus();
 
+  if (bar) { mgr->SetUseProgressBar(kTRUE, 250); }
+
   if ( debug == 0 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
   else
   if ( debug == 1 ) { AliLog::SetGlobalLogLevel ( AliLog::kError ); }
@@ -754,7 +736,7 @@ AddIncludePathsPlugin(); // Add include paths for plugin
   if ( gErrorIgnoreLevel > 3000 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
 
   mgr->SetDebugLevel(mgr_debug);
-  TFile* fM = TFile::Open ( "manager_local.root", "RECREATE" );
+  TFile* fM = TFile::Open ( "train.root", "RECREATE" );
   fM->cd(); mgr->Write(); fM->Close(); delete fM;
   // task profiling
   if ( kUseSysInfo > 0 )
@@ -762,7 +744,11 @@ AddIncludePathsPlugin(); // Add include paths for plugin
       for ( int i = 0; i < mgr->GetTopTasks()->GetEntries(); i++ ) { mgr->ProfileTask (i); }
       }
 
-  mgr->StartAnalysis ( kAnalysisMode.Data(), nentries );
+  if ( kAnalysisMode.EqualTo("local") )
+    { mgr->StartAnalysis ( kAnalysisMode.Data(), nentries, firstentry ); }
+  else
+    { plugin->StartAnalysis ( nentries, firstentry ); }
+
   // END of mgr->InitAnalysis()
 
   cout << "EmcalJetCDF END" << endl;
@@ -771,12 +757,14 @@ AddIncludePathsPlugin(); // Add include paths for plugin
 //>>>>>>  END of void EmcalJetCDF (.....)   <<<<<<<<<
 //##########################################################################################################################
 
+//______________________________________________________________________________
 void AddIncludePaths ()
     {
     TString includes_str = "-Wno-deprecated -I$. -I$CGAL_DIR/include -I$FASTJET/include -I$ROOTSYS/include -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include";
     gSystem->AddIncludePath(includes_str.Data());
     }
 
+//______________________________________________________________________________
 void AddIncludePathsPlugin ()
     {
     AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
@@ -794,21 +782,21 @@ void LoadLibs ()
   TString list_fj         = "CGAL fastjet siscone siscone_spherical fastjetplugins fastjettools fastjetcontribfragile";
   TString list_alicejets  = "PWGJE PWGJEEMCALJetTasks";
 
-  LoadLibList (list_fj);
+//   LoadLibList (list_fj);
 
-  gSystem->Load("libCore");
-  gSystem->Load("libPhysics");
-  gSystem->Load("libMinuit");
-  gSystem->Load("libVMC");
-  gSystem->Load("libNet");
-  gSystem->Load("libTree");
+//   gSystem->Load("libCore");
+//   gSystem->Load("libPhysics");
+//   gSystem->Load("libMinuit");
+//   gSystem->Load("libVMC");
+//   gSystem->Load("libNet");
+//   gSystem->Load("libTree");
+//
+//   gSystem->Load ("libSTEERBase.so");
+//   gSystem->Load ("libAOD");
+//   gSystem->Load ("libANALYSIS.so");
+//   gSystem->Load ("libANALYSISalice.so");
 
-  gSystem->Load ("libSTEERBase.so");
-  gSystem->Load ("libAOD");
-  gSystem->Load ("libANALYSIS.so");
-  gSystem->Load ("libANALYSISalice.so");
-
-  LoadLibList (list_alicejets);
+//   LoadLibList (list_alicejets);
 
   ::Info ( "EmcalJetCDF::LoadROOTLibs", "Load ROOT libraries:    SUCCESS" );
   gSystem->ListLibraries();
@@ -1238,6 +1226,12 @@ AliAnalysisAlien* CreateAlienHandler ( const char* plugin_mode )
     // Enable merging via automatic JDL
     plugin->SetMergeViaJDL(kTRUE);
 
+    // Maximum number of files to be merged in one chunk
+    plugin->SetOneStageMerging(kFALSE);
+
+    // Maximum number of merging stages
+    plugin->SetMaxMergeStages(3);
+
     // write the output to subdirs named after run number
     plugin->SetOutputToRunNo(1);
 
@@ -1510,7 +1504,7 @@ void LoadMacros ()
 
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C" );
 //   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetQA.C");
-//  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C");
+  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C");
   }
 
 TString CreateCDFTaskName ( TString prefix = "CDF", AliJetContainer::EJetType_t jtype, AliJetContainer::JetAcceptanceType acc, AliJetContainer::EJetAlgo_t jalgo, AliJetContainer::ERecoScheme_t reco,
