@@ -28,7 +28,7 @@ PROGRAM='root -b -l -q EmcalJetCDF.C\(\"local\",\"test\",\"data.txt\"\)'
 
 JOB_FILES_LOCAL="EmcalJetCDF.C AddTaskEmcalJetSample.C AddTaskEmcalJetCDF.C AddTaskEmcalJetCDFUE.C AliAnalysisTaskEmcalJetCDF.cxx AliAnalysisTaskEmcalJetCDF.h AliAnalysisTaskEmcalJetCDFUE.cxx AliAnalysisTaskEmcalJetCDFUE.h InputData.C"
 
-JOB_FILES_ALIROOT="EmcalJetCDF.C AddTaskEmcalJetSample.C InputData.C"
+JOB_FILES_ALIROOT="EmcalJetCDF.C InputData.C"
 
 JOB_FILES=$JOB_FILES_ALIROOT
 
