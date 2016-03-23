@@ -292,7 +292,7 @@ Bool_t         bIsRun2             = kFALSE;
 
 UInt_t         pSel                = AliVEvent::kMB | AliVEvent::kCentral | AliVEvent::kSemiCentral;  // used event selection for every task except for the analysis tasks
 UInt_t         EMCALpSel           = AliEmcalPhysicsSelection::kEmcalOk;
-UInt_t         pSelAnyINT          = AliVEvent::kAnyINT;
+UInt_t         pSelMB              = AliVEvent::kAnyINT;
 // AliEmcalPhysicsSelection::kEmcalOk, AliEmcalPhysicsSelection::kEmcalH,
 // AliVEvent::kINT7, AliVEvent::kMB, AliVEvent::kCentral, AliVEvent::kSemiCentral,
 // AliVEvent::kEMCEGA, AliVEvent::kEMCEJE
@@ -427,13 +427,13 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
     AliAnalysisTaskSE* pTenderTask = AddTaskEMCALTender(distBC, recalibClus, recalcClusPos, nonLinearCorr, remExoticCell, remExoticClus,
                                                         fidRegion, calibEnergy, calibTime, remBC, nonLinFunct, reclusterize, seedthresh,
                                                         cellthresh, clusterizer, trackMatch, updateCellOnly, timeMin, timeMax, timeCut, pass);
-    pTenderTask->SelectCollisionCandidates(pSelAnyINT);
+    pTenderTask->SelectCollisionCandidates(pSelMB);
 
     AliAnalysisTaskEMCALClusterizeFast *pClusterizerTask = AddTaskClusterizerFast("ClusterizerFast", "", "", clusterizer,
                                                                                   0.05, 0.1, timeMin, timeMax, timeCut,
                                                                                   kFALSE, kFALSE, AliAnalysisTaskEMCALClusterizeFast::kFEEData);
 
-    pClusterizerTask->SelectCollisionCandidates(pSelAnyINT);
+    pClusterizerTask->SelectCollisionCandidates(pSelMB);
 
     remExoticClus  = kTRUE;
     nonLinFunct    = AliEMCALRecoUtils::kBeamTestCorrected;
@@ -441,7 +441,7 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
     AliEmcalClusterMaker* pClusterMakerTask = AddTaskEmcalClusterMaker(nonLinFunct, remExoticClus, 0, "", 0., kTRUE);
     pClusterMakerTask->GetClusterContainer(0)->SetClusPtCut(0.);
     pClusterMakerTask->GetClusterContainer(0)->SetClusECut(0.);
-    pClusterMakerTask->SelectCollisionCandidates(pSelAnyINT);
+    pClusterMakerTask->SelectCollisionCandidates(pSelMB);
 
     // HADRONIC CORRECTIONS
     // Cluster-track matcher task
@@ -474,11 +474,11 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
 //     sRhoFuName = "Rho_Scaled";
 //
 //     AliEmcalJetTask *pKtChJetTask = AddTaskEmcalJet("usedefault", "", AliJetContainer::kt_algorithm, kJetRadius, AliJetContainer::kChargedJet, 0.15, 0, kGhostArea, AliJetContainer::pt_scheme, "Jet", 0., kFALSE, kFALSE);
-//     pKtChJetTask->SelectCollisionCandidates(pSelAnyINT);
+//     pKtChJetTask->SelectCollisionCandidates(pSelMB);
 //
 //     AliAnalysisTaskRho* pRhoTask = AddTaskRhoNew("usedefault", "usedefault", sRhoChName, kJetRadius);
 //     pRhoTask->SetExcludeLeadJets(2);
-//     pRhoTask->SelectCollisionCandidates(pSelAnyINT);
+//     pRhoTask->SelectCollisionCandidates(pSelMB);
 //
 //     if (fullJets)
 //       {
@@ -513,7 +513,7 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
           {
           jet_type = AliJetContainer::kChargedJet; minClPt = 0. ;
           jf = AddTaskEmcalJet( tracksName.Data(), "", algo, radius_list[(unsigned int)j], jet_type, minTrPt, minClPt, kGhostArea, recombScheme, tag, minJetPt, lockTask, bFillGhosts);
-          jf->SelectCollisionCandidates(pSelAnyINT);
+          jf->SelectCollisionCandidates(pSelMB);
 
           jftaskname = jf->GetName();
           PrintInfoJF ( jftaskname.Data() );
@@ -524,7 +524,7 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
           {
           jet_type = AliJetContainer::kFullJet; minClPt = 30. ;
           jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jet_type, minTrPt, minClPt, kGhostArea, recombScheme, tag, minJetPt, lockTask, bFillGhosts);
-          jf->SelectCollisionCandidates(pSelAnyINT);
+          jf->SelectCollisionCandidates(pSelMB);
 
           jftaskname = jf->GetName();
           PrintInfoJF ( jftaskname.Data() );
@@ -539,13 +539,13 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
 //   if (mcJets && chgJets )
 //     {
 //     AliEmcalJetTask *pChJetTaskMC = AddTaskEmcalJet("mcparticles", "", AliJetContainer::antikt_algorithm, kJetRadius, AliJetContainer::kChargedJet, 0.15, 0, kGhostArea, AliJetContainer::pt_scheme, "Jet", 1., kFALSE, kFALSE);
-//     pChJetTaskMC->SelectCollisionCandidates(pSelAnyINT);
+//     pChJetTaskMC->SelectCollisionCandidates(pSelMB);
 //     }
 //
 //   if (mcJets && fullJets )
 //     {
 //     AliEmcalJetTask *pChJetTaskMC = AddTaskEmcalJet("mcparticles", "", AliJetContainer::antikt_algorithm, kJetRadius, AliJetContainer::kFullJet, 0.15, 0, kGhostArea, AliJetContainer::pt_scheme, "Jet", 1., kFALSE, kFALSE);
-//     pChJetTaskMC->SelectCollisionCandidates(pSelAnyINT);
+//     pChJetTaskMC->SelectCollisionCandidates(pSelMB);
 //     }
 
 
@@ -622,7 +622,7 @@ AddIncludePathsPlugin(); // Add include paths for plugin
           else
             { cout << "task added" << endl; }
 
-          anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
+          anaTaskCDF->SelectCollisionCandidates(pSelMB);
           anaTaskCDF->SetDebugLevel(debug);
 
           AliJetContainer* jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
@@ -660,7 +660,7 @@ AddIncludePathsPlugin(); // Add include paths for plugin
         else
           { cout << "task added" << endl; }
 
-        anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
+        anaTaskCDF->SelectCollisionCandidates(pSelMB);
         anaTaskCDF->SetDebugLevel(debug);
 
         AliJetContainer* jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
@@ -673,7 +673,7 @@ AddIncludePathsPlugin(); // Add include paths for plugin
         AliAnalysisTaskEmcalJetSpectraQA* qa = AddTaskEmcalJetSpectraQA(tracksName.Data(), clusName.Data(), suffix.Data());
         qa->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
         qa->SetNLeadingJets(1);
-        qa->SelectCollisionCandidates(pSelAnyINT);
+        qa->SelectCollisionCandidates(pSelMB);
         qa->SetHistoType(kHistoType);
         }
 
