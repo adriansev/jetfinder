@@ -77,6 +77,7 @@
 #include "AliEmcalPhysicsSelection.h"
 #include "AliEmcalClusterMaker.h"
 #include "AliEmcalClusTrackMatcherTask.h"
+#include "AliEMCALRecoUtils.h"
 
 #include "AliClusterContainer.h"
 #include "AliEmcalContainer.h"
@@ -112,7 +113,7 @@
 
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskJetPreparation.C"
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C"
-// #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C"
+#include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSpectraQA.C"
 
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskRho.C"
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C"
@@ -152,6 +153,13 @@ UInt_t          mgr_debug          =  1 ; // AliAnalysisManager debug level
 UInt_t          kUseSysInfo        =  10 ; // activate debugging
 Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
 //==============================================================================
+
+// Default values
+AliJetContainer::EJetType_t               jet_type = AliJetContainer::kChargedJet;       //  kFullJet, kChargedJet, kNeutralJet
+AliJetContainer::JetAcceptanceType acceptance_type = AliJetContainer::kTPCfid;           // kTPC, kTPCfid, kEMCAL, kEMCALfid, kDCAL, kDCALfid, kUser
+AliJetContainer::EJetAlgo_t                   algo = AliJetContainer::antikt_algorithm;
+AliJetContainer::ERecoScheme_t        recombScheme = AliJetContainer::pt_scheme;
+
 
 //    FORWARD DECLARATIONS
 void                     AddIncludePaths ();
@@ -275,11 +283,6 @@ TString     ListPars      = "";
 TString     ListLibs      = "";
 TString     ListLibsExtra = "";
 TString     ListSources   = "";
-
-
-// Default values
-AliJetContainer::EJetType_t                jettype = AliJetContainer::kChargedJet;    //  kFullJet, kChargedJet, kNeutralJet
-AliJetContainer::JetAcceptanceType acceptance_type = AliJetContainer::kTPCfid;           // kTPC, kTPCfid, kEMCAL, kEMCALfid, kDCAL, kDCALfid, kUser
 
 Bool_t         isMC                = kFALSE;          // trigger, if MC handler should be used
 Bool_t         useTender           = kTRUE;           // trigger, if tender task should be used
@@ -487,9 +490,6 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
 
 
 // ################# Now: Add jet finders+analyzers
-    AliJetContainer::EJetAlgo_t            algo = AliJetContainer::antikt_algorithm;  // default: 1 ; 0 --> AliEmcalJetTask::kKT ; != 0 --> AliEmcalJetTask::kAKT
-    AliJetContainer::ERecoScheme_t recombScheme = AliJetContainer::pt_scheme;
-
     Double_t       minTrPt         = 0.15;                    // default: 0.15  // min jet track momentum   (applied before clustering)
     Double_t       minClPt         = 0.30;                    // default: 0.30  // min jet cluster momentum (applied before clustering)
     const char*    tag             = "Jet";                   // default: "Jet"
@@ -511,8 +511,8 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
         TString jftaskname ("");
         if ( chgJets )
           {
-          jettype = AliJetContainer::kChargedJet; minClPt = 0. ;
-          jf = AddTaskEmcalJet( tracksName.Data(), "", algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, kGhostArea, recombScheme, tag, minJetPt, lockTask, bFillGhosts);
+          jet_type = AliJetContainer::kChargedJet; minClPt = 0. ;
+          jf = AddTaskEmcalJet( tracksName.Data(), "", algo, radius_list[(unsigned int)j], jet_type, minTrPt, minClPt, kGhostArea, recombScheme, tag, minJetPt, lockTask, bFillGhosts);
           jf->SelectCollisionCandidates(pSelAnyINT);
 
           jftaskname = jf->GetName();
@@ -522,8 +522,8 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
 
         if ( fullJets )
           {
-          jettype = AliJetContainer::kFullJet; minClPt = 30. ;
-          jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jettype, minTrPt, minClPt, kGhostArea, recombScheme, tag, minJetPt, lockTask, bFillGhosts);
+          jet_type = AliJetContainer::kFullJet; minClPt = 30. ;
+          jf = AddTaskEmcalJet( tracksName.Data(), clusName.Data(), algo, radius_list[(unsigned int)j], jet_type, minTrPt, minClPt, kGhostArea, recombScheme, tag, minJetPt, lockTask, bFillGhosts);
           jf->SelectCollisionCandidates(pSelAnyINT);
 
           jftaskname = jf->GetName();
@@ -589,9 +589,11 @@ AddIncludePathsPlugin(); // Add include paths for plugin
         if (!jf_task) { AliError("No jet finder with the name from jf_names list");}
 
         TString jf_name = jf_task->GetName();
-        AliJetContainer::EJetType_t       jettype_t = jf_task->GetJetType();
-        AliJetContainer::ERecoScheme_t     recomb_t = jf_task->GetRecombScheme();
-        AliJetContainer::EJetAlgo_t       jetalgo_t = jf_task->GetJetAlgo();
+        UInt_t jett_tmp = jf_task->GetJetType(); Int_t reco_tmp = jf_task->GetRecombScheme(); UInt_t algo_tmp = jf_task->GetJetAlgo();
+
+        AliJetContainer::EJetType_t       jettype_t = jett_tmp;
+        AliJetContainer::ERecoScheme_t     recomb_t = reco_tmp;
+        AliJetContainer::EJetAlgo_t       jetalgo_t = algo_tmp;
         Double_t                                  r = jf_task->GetRadius();
 
         PrintInfoJF (jf_name.Data());
@@ -606,31 +608,26 @@ AddIncludePathsPlugin(); // Add include paths for plugin
 
         Double_t jetptmin = 0. ; Double_t jetptmax = 0.;
         for (Size_t k = 0; k < (Size_t)nrcuts; k++ )  // loop over all jet pt cuts
-            {
-            jetptmin = jetpt_cuts[(unsigned int)k];
-            jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 500. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
+          {
+          jetptmin = jetpt_cuts[(unsigned int)k];
+          jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 500. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
 
-            TString tasknamecdf = CreateCDFTaskName (prefixcdf, jettype_t, acceptance_type, jetalgo_t, recomb_t, jetptmin, jetptmax, r);
+          TString tasknamecdf = CreateCDFTaskName (prefixcdf, jettype_t, acceptance_type, jetalgo_t, recomb_t, jetptmin, jetptmax, r);
 
-            cout << "Adding CDF task : " << tasknamecdf.Data() << endl;
-            anaTaskCDF  = AddTaskEmcalJetCDF ( tracksName.Data(), clusName.Data(), tasknamecdf.Data() );
+          cout << "Adding CDF task : " << tasknamecdf.Data() << endl;
+          anaTaskCDF  = AddTaskEmcalJetCDF ( tracksName.Data(), clusName.Data(), tasknamecdf.Data() );
 
-            if (!anaTaskCDF)
-              { cout << "Could not add EmcalJetCDF; task = " << tasknamecdf << endl; continue; }
-            else
-              { cout << "task added" << endl; }
+          if (!anaTaskCDF)
+            { cout << "Could not add EmcalJetCDF; task = " << tasknamecdf << endl; continue; }
+          else
+            { cout << "task added" << endl; }
 
-            anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
-            anaTaskCDF->SetDebugLevel(debug);
+          anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
+          anaTaskCDF->SetDebugLevel(debug);
 
-            AliJetContainer* jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
-            if ( !jetCont ) { std::cout << "AddTaskEmcalJetCDF.C :: could not add jetCont" << std::endl; return NULL; }
-            jetCont->SetPercAreaCut ( jetareacut );
-            jetCont->SetJetPtCut ( jetptmin );
-            jetCont->SetJetPtCutMax ( jetptmax );
-            jetCont->SetLeadingHadronType ( leadhadtype ); // Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
-            jetCont->SetMaxTrackPt(1000);
-            jetCont->SetNLeadingJets(1);
+          AliJetContainer* jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
+          if ( !jetCont ) { std::cout << "AddTaskEmcalJetCDF.C :: could not add jetCont" << std::endl; return NULL; }
+          jetContSetPropreties (jetCont, jetptmin, jetptmax, jetareacut, leadhadtype ); // 1, 0.15, 1000 (NLeadingJets, track_ptmin, track_ptmax)
 
 //            cout << "Jet container propreties : " << endl;
 //            jetCont->PrintCuts();
@@ -650,51 +647,41 @@ AddIncludePathsPlugin(); // Add include paths for plugin
 //     if (fullJets) { pSpectraTask->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet"); }
 //   }
 
-            }
+          }
 
+        jetptmin = 1.; jetptmax = 500.;
+        TString tasknamecdf = CreateCDFTaskName (prefixcdf, jettype_t, acceptance_type, jetalgo_t, recomb_t, jetptmin, jetptmax, r);
 
-            jetptmin = 1.; jetptmax = 500.;
-            TString tasknamecdf = CreateCDFTaskName (prefixcdf, jettype_t, acceptance_type, jetalgo_t, recomb_t, jetptmin, jetptmax, r);
+        cout << "Adding CDF task : " << tasknamecdf.Data() << endl;
+        anaTaskCDF  = AddTaskEmcalJetCDF ( tracksName.Data(), clusName.Data(), tasknamecdf.Data() );
 
-            cout << "Adding CDF task : " << tasknamecdf.Data() << endl;
-            anaTaskCDF  = AddTaskEmcalJetCDF ( tracksName.Data(), clusName.Data(), tasknamecdf.Data() );
+        if (!anaTaskCDF)
+          { cout << "Could not add EmcalJetCDF; task = " << tasknamecdf << endl; continue; }
+        else
+          { cout << "task added" << endl; }
 
-            if (!anaTaskCDF)
-              { cout << "Could not add EmcalJetCDF; task = " << tasknamecdf << endl; continue; }
-            else
-              { cout << "task added" << endl; }
+        anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
+        anaTaskCDF->SetDebugLevel(debug);
 
-            anaTaskCDF->SelectCollisionCandidates(pSelAnyINT);
-            anaTaskCDF->SetDebugLevel(debug);
+        AliJetContainer* jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
+        if ( !jetCont ) { std::cout << "AddTaskEmcalJetCDF.C :: could not add jetCont" << std::endl; return NULL; }
+        jetContSetPropreties (jetCont, jetptmin, jetptmax, jetareacut, leadhadtype ); // 1, 0.15, 1000 (NLeadingJets, track_ptmin, track_ptmax)
 
-            AliJetContainer* jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
-            if ( !jetCont ) { std::cout << "AddTaskEmcalJetCDF.C :: could not add jetCont" << std::endl; return NULL; }
-            jetCont->SetPercAreaCut ( jetareacut );
-            jetCont->SetJetPtCut ( jetptmin );
-            jetCont->SetJetPtCutMax ( jetptmax );
-            jetCont->SetLeadingHadronType ( leadhadtype ); // Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
-            jetCont->SetMaxTrackPt(1000);
-            jetCont->SetNLeadingJets(1);
-
-
-
+        // QA Task
+        TString suffix ("QAr0"); Float_t r_str = 10*r; suffix += TString::Itoa(r_str,10);
+        const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
+        AliAnalysisTaskEmcalJetSpectraQA* qa = AddTaskEmcalJetSpectraQA(tracksName.Data(), clusName.Data(), suffix.Data());
+        qa->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
+        qa->SetNLeadingJets(1);
+        qa->SelectCollisionCandidates(pSelAnyINT);
+        qa->SetHistoType(kHistoType);
         }
-
-
-//        const AliAnalysisTaskEmcalJetSpectraQA::EHistoType_t kHistoType = AliAnalysisTaskEmcalJetSpectraQA::kTHnSparse;
-//        AliAnalysisTaskEmcalJetSpectraQA* qa = AddTaskEmcalJetSpectraQA(tracksName.Data(), clusName.Data());
-//        qa->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
-//        qa->SetNLeadingJets(1);
-//        qa->SelectCollisionCandidates(pSelAnyINT);
-//        qa->SetHistoType(kHistoType);
-
-
 
     // enable class level debugging for these classes
     if ( debug > 3 ) { mgr->AddClassDebug("AliJetContainer", 100); }
     if ( debug > 3 ) { mgr->AddClassDebug("AliEmcalJetTask", 100); }
     if ( debug > 3 ) { mgr->AddClassDebug("AliAnalysisTaskEmcalJetCDF", 100); }
-    if ( debug > 3 ) { mgr->AddClassDebug("AliAnalysisTaskEmcalJetCDFUE", 100); }
+//     if ( debug > 3 ) { mgr->AddClassDebug("AliAnalysisTaskEmcalJetCDFUE", 100); }
 
 //#################################################################
     // Set the physics selection for all given tasks
@@ -1533,6 +1520,28 @@ TString CreateCDFTaskName ( TString prefix = "CDF", AliJetContainer::EJetType_t 
   return cdftaskname;
 }
 
+//______________________________________________________________________________
+AliJetContainer* jetContSetPropreties (AliJetContainer* jetCont,
+                                      Float_t jetptmin = 1.,
+                                      Float_t jetptmax = 500.,
+                                      Float_t jetareacutperc = 0.,
+                                      Int_t leadhadtype = 2,
+                                      Int_t nLeadJets = 1,
+                                      Float_t mintrackpt = 0.15,
+                                      Float_t maxtrackpt = 1000.
+                                      )
+{
+  if (!jetCont) { return NULL; }
+  jetCont->SetJetPtCut ( jetptmin );
+  jetCont->SetJetPtCutMax ( jetptmax );
+  jetCont->SetPercAreaCut ( jetareacutperc );
+  jetCont->SetLeadingHadronType ( leadhadtype ); // Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
+  jetCont->SetNLeadingJets(nLeadJets);
+  jetCont->SetMinTrackPt(mintrackpt);
+  jetCont->SetMaxTrackPt(maxtrackpt);
+
+  return jetCont;
+}
 
 
 // kate: indent-mode none; indent-width 2; replace-tabs on;
