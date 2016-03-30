@@ -41,7 +41,7 @@ for (( c=START_IDX ; c<=STOP_IDX; c++ ))
 do
   cd ${list_of_job_files[$c]}
 
-  qsub qsub_job
+  qsub -V qsub_job
 
   cd $STARTDIR
 done
