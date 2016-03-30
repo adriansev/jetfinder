@@ -23,10 +23,11 @@ echo "NR_FILES : " $NR_FILES
 echo "NR_JOBS : " $NR_JOBS
 echo "RUN DIR : " $DIR_JOBS
 
+unalias root
 
-PROGRAM='root -b -l -q EmcalJetCDF.C\(\"local\",\"test\",\"data.txt\"\)'
+PROGRAM='root -b -l -q -x EmcalJetCDF.C\(\"local\",\"test\",\"data.txt\"\)'
 
-JOB_FILES_LOCAL="EmcalJetCDF.C AddTaskEmcalJetSample.C AddTaskEmcalJetCDF.C AddTaskEmcalJetCDFUE.C AliAnalysisTaskEmcalJetCDF.cxx AliAnalysisTaskEmcalJetCDF.h AliAnalysisTaskEmcalJetCDFUE.cxx AliAnalysisTaskEmcalJetCDFUE.h InputData.C"
+JOB_FILES_LOCAL="EmcalJetCDF.C AddTaskEmcalJetCDF.C AliAnalysisTaskEmcalJetCDF.cxx AliAnalysisTaskEmcalJetCDF.h InputData.C"
 
 JOB_FILES_ALIROOT="EmcalJetCDF.C InputData.C"
 
