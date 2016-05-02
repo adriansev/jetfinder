@@ -137,21 +137,21 @@ class AliJetContainer;
 //@@@     ANALYSIS STEERING VARIABLES     @@@
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-Int_t       kTestFiles               = 1;          // Number of test files
-Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
+const Int_t       kTestFiles               = 1;          // Number of test files
+const Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 
 // SETUP THE ANALYSIS TYPE
 const Bool_t         chgJets  = 1;
 const Bool_t         fullJets = 0;
 const Bool_t         mcJets   = 0;
 
-Bool_t  bar = 0;
+const Bool_t  bar = 0;
 
 // ######   DEBUG    ######
-Int_t           debug              =  1 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
-UInt_t          mgr_debug          =  1 ; // AliAnalysisManager debug level
-UInt_t          kUseSysInfo        =  10 ; // activate debugging
-Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
+const Int_t           debug              =  1 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
+const UInt_t          mgr_debug          =  1 ; // AliAnalysisManager debug level
+const UInt_t          kUseSysInfo        =  10 ; // activate debugging
+const Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
 //==============================================================================
 
 // Default values
@@ -290,9 +290,9 @@ Bool_t         doBkg               = kFALSE;          // background estimation w
 
 Bool_t         bIsRun2             = kFALSE;
 
-UInt_t         pSel                = AliVEvent::kMB | AliVEvent::kCentral | AliVEvent::kSemiCentral;  // used event selection for every task except for the analysis tasks
-UInt_t         EMCALpSel           = AliEmcalPhysicsSelection::kEmcalOk;
-UInt_t         pSelMB              = AliVEvent::kAnyINT;
+const UInt_t         pSel                = AliVEvent::kMB | AliVEvent::kCentral | AliVEvent::kSemiCentral;  // used event selection for every task except for the analysis tasks
+const UInt_t         EMCALpSel           = AliEmcalPhysicsSelection::kEmcalOk;
+const UInt_t         pSelMB              = AliVEvent::kAnyINT;
 // AliEmcalPhysicsSelection::kEmcalOk, AliEmcalPhysicsSelection::kEmcalH,
 // AliVEvent::kINT7, AliVEvent::kMB, AliVEvent::kCentral, AliVEvent::kSemiCentral,
 // AliVEvent::kEMCEGA, AliVEvent::kEMCEJE
