@@ -118,10 +118,11 @@
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDFUE.C"
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSample.C"
 
-#include "/home.hdd/adrian/work/jets/jetfinder/grid_macros/InputData.C"
+#include "InputData.C"
 
 #endif
 
+class AliAnalysisTaskEmcalJetCDF;
 class AliESDInputHandler;
 class AliAODInputHandler;
 class AliVEvent;
@@ -140,8 +141,8 @@ const Int_t       kTestFiles               = 6000;          // Number of test fi
 const Long64_t    nentries                 = 1234567890; // for local and proof mode, ignored in grid mode. Set to 1234567890 for all events.
 
 // SETUP THE ANALYSIS TYPE
-const Bool_t   chgJets  = kFALSE;
-const Bool_t   fullJets = kTRUE;
+const Bool_t   chgJets  = kTRUE;
+const Bool_t   fullJets = kFALSE;
 const Bool_t   mcJets   = kFALSE;
 
 Bool_t   bDoTender  = kFALSE;
@@ -151,7 +152,7 @@ Bool_t   isMC       = kFALSE;   // trigger, if MC handler should be used
 Bool_t   doBkg      = kFALSE;   // background estimation with AliAnalysisTaskRho
 
 const Bool_t  useSample = kTRUE;
-const Bool_t  useCDF = kFALSE;
+const Bool_t  useCDF = kTRUE;
 const Bool_t  bar = kFALSE;
 
 // ######   DEBUG    ######
@@ -523,8 +524,8 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
 
     Double_t radius_list[] = { 0.2, 0.4, 0.6 }; // for each radius make a jetfinder
 
-    Size_t rnr = sizeof(radius_list)/sizeof(radius_list[0]);
-    for (Size_t j = 0; j < rnr; j++ )
+    std::size_t rnr = sizeof(radius_list)/sizeof(radius_list[0]);
+    for (std::size_t j = 0; j < rnr; j++ )
         {
         TString jftaskname ("");
         if ( chgJets )
@@ -578,9 +579,8 @@ AddIncludePathsPlugin(); // Add include paths for plugin
   const char*  prefixcdf            = "CDF";
 
 if ( useSample ) {
-  // Sample task
-  AliAnalysisTaskEmcalJetSample *sampleTask = 0;
-  sampleTask = AddTaskEmcalJetSample(trk_str.Data(), clus_str.Data(), cell_str.Data());
+  //### Sample task
+  AliAnalysisTaskEmcalJetSample* sampleTask = AddTaskEmcalJetSample(trk_str.Data(), clus_str.Data(), cell_str.Data());
   sampleTask->GetParticleContainer(0)->SetParticlePtCut(0.15);
   sampleTask->SetHistoBins(600, 0, 300);
   sampleTask->SelectCollisionCandidates(pSel);
@@ -599,7 +599,7 @@ if ( useSample ) {
 
 if ( useCDF ) {
   //###   CDF task
-  AliAnalysisTaskEmcalJetCDF* anaTaskCDF = AddTaskEmcalJetCDF ( trk_str.Data(), clus_str.Data(), cell_str.Data() ,"CDF" );
+  AliAnalysisTaskEmcalJetCDF* anaTaskCDF = dynamic_cast<AliAnalysisTaskEmcalJetCDF*>NS_AliAnalysisTaskEmcalJetCDF::AddTaskEmcalJetCDF ( trk_str.Data(), clus_str.Data(), cell_str.Data() ,"CDF" );
   if (!anaTaskCDF) { cout << "Could not add EmcalJetCDF; task = " << anaTaskCDF->GetName() << endl; gApplication->Terminate(); }
   anaTaskCDF->GetParticleContainer(0)->SetParticlePtCut(0.15);
   anaTaskCDF->SelectCollisionCandidates(pSel);
@@ -630,80 +630,76 @@ cout << "End tasks initialisation\n" << endl;
   //###   Adding the jet containers
   AliJetContainer* jetCont = NULL;
 
-    cout << "There are " << jf_names.size() << " jet finders in list" << endl;
-    for ( std::vector<TString>::iterator jf_it = jf_names.begin(); jf_it != jf_names.end(); ++jf_it)  // loop over jet finders
-        {
-        AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask((*jf_it)));
-        if (!jf_task) { AliError("No jet finder with the name from jf_names list"); continue;}
+  // loop over jet finders (their names are in std::vector<TString> jf_names )
+  cout << "There are " << jf_names.size() << " jet finders in list" << endl;
+  for ( std::vector<TString>::iterator jf_it = jf_names.begin(); jf_it != jf_names.end(); ++jf_it)  // loop over jet finders
+    {
+    AliEmcalJetTask* jf_task = dynamic_cast<AliEmcalJetTask*>(mgr->GetTask( (*jf_it).Data() ));
+    if (!jf_task) { AliError("No jet finder with the name from jf_names list"); continue;}
 
-        TString jf_name = jf_task->GetName();
-        UInt_t jett_tmp = jf_task->GetJetType();
-        Int_t reco_tmp  = jf_task->GetRecombScheme();
-        UInt_t algo_tmp = jf_task->GetJetAlgo();
+    // casting does not work
+    UInt_t jett_tmp = jf_task->GetJetType();        const AliJetContainer::EJetType_t    jettype_t = jett_tmp;
+    Int_t reco_tmp  = jf_task->GetRecombScheme();   const AliJetContainer::ERecoScheme_t  recomb_t = reco_tmp;
+    UInt_t algo_tmp = jf_task->GetJetAlgo();        const AliJetContainer::EJetAlgo_t    jetalgo_t = algo_tmp;
 
-        const AliJetContainer::EJetType_t       jettype_t = jett_tmp;
-        const AliJetContainer::ERecoScheme_t     recomb_t = reco_tmp;
-        const AliJetContainer::EJetAlgo_t       jetalgo_t = algo_tmp;
-        const Double_t                                  r = jf_task->GetRadius();
+    if ( jettype_t == AliJetContainer::kChargedJet ) { acceptance_type = AliJetContainer::kTPCfid; leadhadtype = 0; }
+    else
+    if ( jettype_t == AliJetContainer::kFullJet )    { acceptance_type = AliJetContainer::kEMCALfid; leadhadtype = 2; }
+    else
+      { AliError("Unknown jet type"); continue;}
 
-        PrintInfoJF (jf_name.Data());
+    const TString jf_name = jf_task->GetName();
+    const Double_t r      = jf_task->GetRadius();
 
-        if ( jettype_t == AliJetContainer::kChargedJet ) { acceptance_type = AliJetContainer::kTPCfid; leadhadtype = 0; }
-        else
-        if ( jettype_t == AliJetContainer::kFullJet )    { acceptance_type = AliJetContainer::kEMCALfid; leadhadtype = 2; }
-        else
-          { AliError("Unknown jet type"); continue;}
+    PrintInfoJF (jf_name.Data());
 
-        if ( useSample ) {
-        // #######   SAMPLE TASK   #########################################################################
-        jetCont = sampleTask->AddJetContainer(jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
+    // #######   SAMPLE TASK   #########################################################################
+    if ( useSample ) {
+      jetCont = sampleTask->AddJetContainer(jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
 
-        if ( (iBeamType != AliAnalysisTaskEmcal::kpp) && (jettype_t == AliJetContainer::kChargedJet) )
-            { jetCont->SetRhoName(sRhoChName); jetCont->SetPercAreaCut(0.6); }
-
-        if ( (iBeamType != AliAnalysisTaskEmcal::kpp) && (jettype_t == AliJetContainer::kFullJet) )
-            { jetCont->SetRhoName(sRhoFuName); jetCont->SetPercAreaCut(0.6); }
-        // #################################################################################################
+      if ( (iBeamType != AliAnalysisTaskEmcal::kpp) ) {
+        jetCont->SetPercAreaCut(0.6);
+        if (jettype_t == AliJetContainer::kChargedJet) { jetCont->SetRhoName(sRhoChName); }
+        if (jettype_t == AliJetContainer::kFullJet)    { jetCont->SetRhoName(sRhoFuName); }
         }
+      }
+    // #################################################################################################
 
-        // #######   CDF TASK   #########################################################################
-        Double_t jetptmin = 0. ; Double_t jetptmax = 0.;
-        for (Size_t k = 0; k < (Size_t)nrcuts; k++ )  // loop over all jet pt cuts
-          {
-          jetptmin = jetpt_cuts[(unsigned int)k];
-          jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 500. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
+    // #######   CDF TASK   #########################################################################
+    Double_t jetptmin = 0. ; Double_t jetptmax = 0.;
+    for (Size_t k = 0; k < (Size_t)nrcuts; k++ )  // loop over all jet pt bins - one jet container per pt bin
+      {
+      jetptmin = jetpt_cuts[(unsigned int)k];
+      jetptmax = ((unsigned int)k == ( nrcuts - 1)) ? 500. : jetpt_cuts[(unsigned int)k+1]; // if last cut, max is unlimited
 
-          //    anaTaskCDF
-          if ( useCDF ) {
-          jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
-          if ( !jetCont ) { std::cout << "AddTaskEmcalJetCDF.C :: could not add jetCont" << std::endl; return NULL; }
-          jetContSetPropreties (jetCont, jetptmin, jetptmax, jetareacut, leadhadtype ); // 1, 0.15, 1000 (NLeadingJets, track_ptmin, track_ptmax)
-
-          if ( (iBeamType != AliAnalysisTaskEmcal::kpp) && (jettype_t == AliJetContainer::kChargedJet) )
-              { jetCont->SetRhoName(sRhoChName); jetCont->SetPercAreaCut(0.6); }
-
-          if ( (iBeamType != AliAnalysisTaskEmcal::kpp) && (jettype_t == AliJetContainer::kFullJet) )
-              { jetCont->SetRhoName(sRhoFuName); jetCont->SetPercAreaCut(0.6); }
-          }
-
-          }
-        // #################################################################################################
-
-        jetptmin = 1.; jetptmax = 500.;
-        //    anaTaskCDF
-        if ( useCDF ) {
-        AliJetContainer* jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
+      if ( useCDF ) {
+        jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
         if ( !jetCont ) { std::cout << "AddTaskEmcalJetCDF.C :: could not add jetCont" << std::endl; return NULL; }
         jetContSetPropreties (jetCont, jetptmin, jetptmax, jetareacut, leadhadtype ); // 1, 0.15, 1000 (NLeadingJets, track_ptmin, track_ptmax)
 
-        if ( (iBeamType != AliAnalysisTaskEmcal::kpp) && (jettype_t == AliJetContainer::kChargedJet) )
-            { jetCont->SetRhoName(sRhoChName); jetCont->SetPercAreaCut(0.6); }
-
-        if ( (iBeamType != AliAnalysisTaskEmcal::kpp) && (jettype_t == AliJetContainer::kFullJet) )
-            { jetCont->SetRhoName(sRhoFuName); jetCont->SetPercAreaCut(0.6); }
+        if ( (iBeamType != AliAnalysisTaskEmcal::kpp) ) {
+          jetCont->SetPercAreaCut(0.6);
+          if (jettype_t == AliJetContainer::kChargedJet) { jetCont->SetRhoName(sRhoChName); }
+          if (jettype_t == AliJetContainer::kFullJet)    { jetCont->SetRhoName(sRhoFuName); }
+          }
         }
+      }
+    // #################################################################################################
 
+    jetptmin = 1.; jetptmax = 500.; // jet container with all jets (full pt range)
+    if ( useCDF ) {
+      AliJetContainer* jetCont = anaTaskCDF->AddJetContainer( jettype_t, jetalgo_t, recomb_t, r, acceptance_type, "Jet");
+      if ( !jetCont ) { std::cout << "AddTaskEmcalJetCDF.C :: could not add jetCont" << std::endl; return NULL; }
+      jetContSetPropreties (jetCont, jetptmin, jetptmax, jetareacut, leadhadtype ); // 1, 0.15, 1000 (NLeadingJets, track_ptmin, track_ptmax)
+
+      if ( (iBeamType != AliAnalysisTaskEmcal::kpp) ) {
+        jetCont->SetPercAreaCut(0.6);
+        if (jettype_t == AliJetContainer::kChargedJet) { jetCont->SetRhoName(sRhoChName); }
+        if (jettype_t == AliJetContainer::kFullJet)    { jetCont->SetRhoName(sRhoFuName); }
         }
+      }
+
+    }
 
     // enable class level debugging for these classes
     if ( debug > 3 ) { mgr->AddClassDebug("AliJetContainer", 100); }
@@ -795,7 +791,7 @@ void LoadLibs ()
   TString list_fj         = "CGAL fastjet siscone siscone_spherical fastjetplugins fastjettools fastjetcontribfragile";
   TString list_alicejets  = "PWGJE PWGJEEMCALJetTasks";
 
-//   LoadLibList (list_fj);
+  LoadLibList (list_fj);
 
 //   gSystem->Load("libCore");
 //   gSystem->Load("libPhysics");
@@ -809,7 +805,7 @@ void LoadLibs ()
 //   gSystem->Load ("libANALYSIS.so");
 //   gSystem->Load ("libANALYSISalice.so");
 
-//   LoadLibList (list_alicejets);
+  LoadLibList (list_alicejets);
 
   ::Info ( "EmcalJetCDF::LoadROOTLibs", "Load ROOT libraries:    SUCCESS" );
   gSystem->ListLibraries();
