@@ -24,5 +24,5 @@ else
 	NEVENTS="${4}"
 fi
 
-nohup root -b -q -x runEMCalJetSampleTask.C\(\""${DATATYPE}"\",\""${PERIOD}"\",\""${FILELIST}"\","${NEVENTS}"\) &> sample.out &
+root -b -q -x runEMCalJetSampleTask.C\(\""${DATATYPE}"\",\""${PERIOD}"\",\""${FILELIST}"\","${NEVENTS}"\)
 
