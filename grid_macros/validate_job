@@ -58,18 +58,20 @@ fi
 
 
 ## check if event statistics file is present and if it is not a zombie
-[[ -e ${evstat} && -f ${evstat} ]] && evstat_status="1" || evstat_status="0"
-evstat_root_status=`check_root_file ${cdf}`
-[[ !(( evstat_status == 1 )) && "${evstat_root_status}" == "VALID" ]] && evstat_status="1" || evstat_status="0"
-((debug)) && echo "evstat_status: "${evstat_status}
+#[[ -e ${evstat} && -f ${evstat} ]] && evstat_status="1" || evstat_status="0"
+#evstat_root_status=`check_root_file ${cdf}`
+#[[ !(( evstat_status == 1 )) && "${evstat_root_status}" == "VALID" ]] && evstat_status="1" || evstat_status="0"
+#((debug)) && echo "evstat_status: "${evstat_status}
 ##############################################################################
-if !((evstat_status)); then
-  exit_notvalid
-fi
+#if !((evstat_status)); then
+#  exit_notvalid
+#fi
 
 ## condtion for both files
 output_files=""
-(( cdf_status == 1 && evstat_status == 1 )) && output_files="1" || output_files="0"
+#(( cdf_status == 1 && evstat_status == 1 )) && output_files="1" || output_files="0"
+(( cdf_status == 1 )) && output_files="1" || output_files="0"
+
 ((debug)) && echo "output_files: "${output_files}
 ##############################################################################
 
