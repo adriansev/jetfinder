@@ -14,13 +14,16 @@ void StartGridAnalysis(AliAnalysisManager* pMgr, const char* uniqueName, const c
 AliAnalysisGrid* CreateAlienHandler(const char* uniqueName, const char* gridDir, const char* gridMode, const char* runNumbers,
     const char* pattern, TString additionalCode, TString additionalHeaders, Int_t maxFilesPerWorker, Int_t workerTTL, Bool_t isMC);
 
+const UInt_t  kEMCAL   = AliEmcalPhysicsSelection::kEmcalOk;
+const UInt_t  kMB      = AliVEvent::kAnyINT | AliVEvent::kCentral | AliVEvent::kSemiCentral;
+
 //______________________________________________________________________________
 AliAnalysisManager* runEMCalJetSampleTask(
     const char   *cDataType      = "AOD",                    // set the analysis type, AOD or ESD
     const char   *cRunPeriod     = "LHC11c",                 // set the run period
     const char   *cLocalFiles    = "data.txt",               // set the local list file
     const UInt_t  iNumEvents     = 1234567890,               // number of events to be analyzed
-    const UInt_t  kPhysSel       = AliVEvent::kAnyINT | AliVEvent::kCentral | AliVEvent::kSemiCentral,      // physics selection
+    const UInt_t  kPhysSel       = kMB,                      // physics selection
     const char   *cTaskName      = "EMCalJetAna",            // sets name of analysis manager
     const Bool_t  bDoChargedJets = kTRUE,
     const Bool_t  bDoFullJets    = kTRUE,
