@@ -146,7 +146,7 @@ const Bool_t  useCDF    = kTRUE;
 // SETUP THE ANALYSIS TYPE
 const Bool_t   do_chgjets  = kTRUE;
 const Bool_t   do_fulljets = kFALSE;
-const Bool_t   mcJets   = kFALSE;
+const Bool_t   mcJets      = kFALSE;
 
 Bool_t   bDoTender  = kFALSE;
 Bool_t   bDoHadCorr = kFALSE;
@@ -163,14 +163,9 @@ const UInt_t          kUseSysInfo        =  10 ; // activate debugging
 const Int_t           kErrorIgnoreLevel  = -1 ; // takes the errror print level from .rootrc
 
 //==============================================================================
-const UInt_t  pSel                = AliVEvent::kAnyINT | AliVEvent::kCentral | AliVEvent::kSemiCentral;  // used event selection for every task except for the analysis tasks
-const UInt_t  EMCALpSel           = AliEmcalPhysicsSelection::kEmcalOk;
-// AliEmcalPhysicsSelection::kEmcalOk, AliEmcalPhysicsSelection::kEmcalH,
-// AliVEvent::kINT7, AliVEvent::kMB, AliVEvent::kCentral, AliVEvent::kSemiCentral,
-// AliVEvent::kEMCEGA, AliVEvent::kEMCEJE
-
-
-Int_t          leadhadtype         = 0;             // AliJetContainer :: Int_t fLeadingHadronType;  0 = charged, 1 = neutral, 2 = both
+const UInt_t  kMB     = AliVEvent::kAnyINT | AliVEvent::kCentral | AliVEvent::kSemiCentral;  // used event selection for every task except for the analysis tasks
+const UInt_t  kEMC    = AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA;
+const UInt_t  pSel    = kMB;
 
 const char*    cOCDBpath = "uselocal";   // change to "raw://" if running on the grid
 
@@ -193,7 +188,6 @@ void                     PrintInfoJF      ( AliEmcalJetTask* jftask );
 void                     PrintInfoCDFtask ( const char* taskname, Int_t i = 0 );
 
 AliAnalysisAlien*        CreateAlienHandler ( const char* plugin_mode = "test" );
-std::vector<TString>     GetJetFinderList();
 
 Bool_t                   LoadLibrary ( const TString& lib );
 Bool_t                   IsTreeType  ( const TString& fileInput, const TString& treeName );
@@ -233,7 +227,6 @@ Bool_t      kPluginFastReadOption    = kFALSE;         // use xrootd tweaks
 Bool_t      kPluginOverwriteMode     = kTRUE;          // overwrite existing collections
 
 Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
-Bool_t      kUsePAR                  = kFALSE;         // use par files for extra libs
 
 Int_t       kGridFilesPerJob         = 35;             // Maximum number of files per job (gives size of AOD)
 Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
@@ -340,9 +333,6 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
   kAnalysisMode = analysis_mode ; kAnalysisMode.ToLower();  // local, grid, proof
   kInputStr     = input;
 
-  // if analysis is done on localhost do not use PARs
-  if ( kAnalysisMode.EqualTo ("local") || kPluginMode.EqualTo ("test")  ) { kUsePAR = kFALSE; }
-
   // if acceptance cut on input contituents then do not cut in acceptance of jets
   //if ( tracks_etaphi_cuts ) { acceptance_type = AliJetContainer::kTPCfid;}
 
@@ -394,22 +384,16 @@ AliAnalysisManager* EmcalJetCDF (const char* analysis_mode = "local", const char
 //#######        ANALYSIS TASKS LIST
 //####################################################
 
-// Physics selection task
+  AliTaskCDBconnect *taskCDB = AddTaskCDBconnect();
+  if (!taskCDB) { cout << "--------->>>>  taskCDB :: could not connect!!!! CHECK CVMFS" << endl; return NULL;}
+
+  // Physics selection task
   if ( dataType.EqualTo("esd") ) { AliPhysicsSelectionTask *pPhysSelTask = AddTaskPhysicsSelection(); }
 
-// Centrality task
+  // Centrality task
   if ( dataType.EqualTo("esd") && (iBeamType != AliAnalysisTaskEmcal::kpp) ) {
     AliCentralitySelectionTask* centralityTask = AddTaskCentrality ( kTRUE );
     centralityTask->SelectCollisionCandidates (AliVEvent::kAny);
-    }
-
-// Setup task
-  if ( do_fulljets || dataType.EqualTo("esd") ) {
-    cout << "\n---->EmcalSetup ..." << endl;
-    AliEmcalSetupTask* emcalsetupTask = AddTaskEmcalSetup();
-    emcalsetupTask->SelectCollisionCandidates(AliVEvent::kAny);
-    emcalsetupTask->SetOcdbPath(cOCDBpath);
-    cout << "---->EmcalSetup DONE!\n" << endl;
     }
 
   if ( bDoTender ) {
@@ -597,6 +581,7 @@ cout << "End tasks initialisation\n" << endl;
   AliJetContainer* jetCont = NULL;
 
   if ( do_chgjets ) {
+
     if ( useSample ) {
       jetCont = sampleTask->AddJetContainer( chgjet, antikt, pt_scheme, 0.2, acc_tpc, "Jet");
       if ( (iBeamType != AliAnalysisTaskEmcal::kpp) ) { jetCont->SetPercAreaCut(0.6); jetCont->SetRhoName(sRhoChName); }
@@ -651,6 +636,7 @@ cout << "End tasks initialisation\n" << endl;
     }
 
   if ( do_fulljets ) {
+
     if ( useSample ) {
       jetCont = sampleTask->AddJetContainer( fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet");
       if ( (iBeamType != AliAnalysisTaskEmcal::kpp) ) { jetCont->SetPercAreaCut(0.6); jetCont->SetRhoName(sRhoFuName); }
@@ -662,43 +648,43 @@ cout << "End tasks initialisation\n" << endl;
       }
 
     if ( useCDF ) {
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont,  1.,   5., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont,  5.,  10., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 10.,  15., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 15.,  20., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 20.,  25., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 25.,  30., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 30.,  35., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 35.,  40., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 40.,  45., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 45.,  50., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 50.,  55., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 55.,  60., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 60.,  65., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 65.,  70., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 70.,  75., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 75.,  80., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 80., 500., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_tpc, "Jet"); jetContSetPropreties (jetCont,  1., 500., 0, 0);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont,  1.,   5., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont,  5.,  10., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 10.,  15., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 15.,  20., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 20.,  25., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 25.,  30., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 30.,  35., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 35.,  40., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 40.,  45., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 45.,  50., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 50.,  55., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 55.,  60., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 60.,  65., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 65.,  70., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 70.,  75., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 75.,  80., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 80., 500., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.2, acc_emcal, "Jet"); jetContSetPropreties (jetCont,  1., 500., 0, 2);
 
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont,  1.,   5., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont,  5.,  10., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 10.,  15., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 15.,  20., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 20.,  25., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 25.,  30., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 30.,  35., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 35.,  40., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 40.,  45., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 45.,  50., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 50.,  55., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 55.,  60., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 60.,  65., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 65.,  70., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 70.,  75., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 75.,  80., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont, 80., 500., 0, 0);
-      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_tpc, "Jet"); jetContSetPropreties (jetCont,  1., 500., 0, 0);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont,  1.,   5., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont,  5.,  10., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 10.,  15., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 15.,  20., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 20.,  25., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 25.,  30., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 30.,  35., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 35.,  40., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 40.,  45., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 45.,  50., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 50.,  55., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 55.,  60., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 60.,  65., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 65.,  70., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 70.,  75., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 75.,  80., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont, 80., 500., 0, 2);
+      jetCont = anaTaskCDF->AddJetContainer(fulljet, antikt, pt_scheme, 0.4, acc_emcal, "Jet"); jetContSetPropreties (jetCont,  1., 500., 0, 2);
 
       jetCont = NULL; // reset the pointer to protect againt uninitialized use
       }
@@ -727,12 +713,12 @@ cout << "End tasks initialisation\n" << endl;
 //==========================================
 // ######       START ANALYSIS       #######
 //==========================================
-  if (!mgr->InitAnalysis()) { return NULL; }
-
-  cout << "##-->> Initialising Analysis :: Status :" << endl;
-  mgr->PrintStatus();
 
   if (bar) { mgr->SetUseProgressBar(kTRUE, 100); }
+
+  //<><><><><><><><><><>
+  //    DEBUGGING
+  //<><><><><><><><><><>
 
   if ( debug == 0 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
   else
@@ -747,14 +733,29 @@ cout << "End tasks initialisation\n" << endl;
   gErrorIgnoreLevel = kErrorIgnoreLevel;
   if ( gErrorIgnoreLevel > 3000 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal ); }
 
+  mgr->SetDebugLevel(debug);
   mgr->SetDebugLevel(mgr_debug);
+
+  // Event frequency for collecting system information
+  mgr->SetNSysInfo ( kUseSysInfo );
+
   TFile* fM = TFile::Open ( "train.root", "RECREATE" );
   fM->cd(); mgr->Write(); fM->Close(); delete fM;
   // task profiling
   if ( kUseSysInfo > 0 )
       {
       for ( int i = 0; i < mgr->GetTopTasks()->GetEntries(); i++ ) { mgr->ProfileTask (i); }
+
+      mgr->RegisterExtraFile ( "syswatch.root" );
+
+      if ( kGridMergeExclude.Length() ) { kGridMergeExclude += " "; }
+      kGridMergeExclude += "syswatch.root";
       }
+
+  if (!mgr->InitAnalysis()) { return NULL; }
+
+  cout << "##-->> Initialising Analysis :: Status :" << endl;
+  mgr->PrintStatus();
 
   if ( kAnalysisMode.EqualTo("local") )
     { mgr->StartAnalysis ( kAnalysisMode.Data(), nentries, firstentry ); }
@@ -766,7 +767,7 @@ cout << "End tasks initialisation\n" << endl;
   cout << "EmcalJetCDF END" << endl;
   return mgr;
   }
-//>>>>>>  END of void EmcalJetCDF (.....)   <<<<<<<<<
+//>>>>>>  END of AliAnalysisManager* EmcalJetCDF (.....)   <<<<<<<<<
 //##########################################################################################################################
 
 //______________________________________________________________________________
@@ -798,7 +799,6 @@ void LoadLibs ()
   LoadLibList (list_alicejets);
 
   ::Info ( "EmcalJetCDF::LoadROOTLibs", "Load ROOT libraries:    SUCCESS" );
-//  gSystem->ListLibraries();
   }
 
 //______________________________________________________________________________
@@ -960,26 +960,6 @@ void PrintInfoCDFtask ( const char* taskname, Int_t i )
     }
 
 //______________________________________________________________________________
-std::vector<TString> GetJetFinderList()
-    {
-    AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
-    if (!mgr) { ::Error("EmcalJetCDF", "No analysis manager to connect to."); }
-
-    TObjArray* tasks_list = mgr->GetTasks(); // get list of of tasks
-    std::vector<TString> jf_list; // vector of strings (names of jet finder tasks)
-
-    for ( Int_t t_idx = 0; t_idx < tasks_list->GetEntries(); ++t_idx )
-        {
-        AliAnalysisTaskSE* task = dynamic_cast<AliAnalysisTaskSE*> ( tasks_list->At ( t_idx ) );
-        if ( !task ) { continue; }
-        TString task_name = task->GetName();
-        if ( task->IsA()->InheritsFrom(AliEmcalJetTask::Class()) ) { jf_list.push_back(task_name); }
-        }
-
-    return jf_list;
-    }
-
-//______________________________________________________________________________
 void PrepareAnalysisEnvironment()
     {
     // get analysis manager
@@ -1109,22 +1089,6 @@ void PrepareAnalysisEnvironment()
 
     cout << "----->>>>>>> Pass is : " << kPass.Data() << endl;
 
-    //<><><><><><><><><><>
-    //    DEBUGGING
-    //<><><><><><><><><><>
-    mgr->SetDebugLevel(debug);
-
-    // Event frequency for collecting system information
-    mgr->SetNSysInfo ( kUseSysInfo );
-
-    if ( kUseSysInfo > 0 )
-        {
-        mgr->RegisterExtraFile ( "syswatch.root" );
-
-        if ( kGridMergeExclude.Length() ) { kGridMergeExclude += " "; }
-        kGridMergeExclude += "syswatch.root";
-        }
-
     //********************
     //    DATA OUTPUT
     //********************
@@ -1135,19 +1099,19 @@ void PrepareAnalysisEnvironment()
 //______________________________________________________________________________
 // handlers definition
     if ( dataType.EqualTo("aod") )
-        {
-        AliAODInputHandler* aodH = AddAODHandler();
-        aodH->SetCheckStatistics ( kTRUE );
-        }
+      {
+      AliAODInputHandler* aodH = AddAODHandler();
+      aodH->SetCheckStatistics ( kTRUE );
+      }
     else
     if ( dataType.EqualTo("esd") || dataType.EqualTo("sesd") )
-        {
+      {
 //         AliESDInputHandler* esdH = AddESDHandler();
-        Printf("For the moment, this macro is only available for AOD analysis!");
-        gApplication->Terminate();
-       }
+      Printf("For the moment, this macro is only available for AOD analysis!");
+      gApplication->Terminate();
+      }
     else
-        { cout << "Data type not recognized! You have to specify ESD, AOD, or sESD!\n"; gApplication->Terminate(); }
+      { cout << "Data type not recognized! You have to specify ESD, AOD, or sESD!\n"; gApplication->Terminate(); }
 
     // Create MC handler, if MC is demanded
     if ( isMC && !dataType.EqualTo("aod") )
@@ -1488,16 +1452,6 @@ void LoadMacros ()
   //__________________________________________________________________________________
   // load AddTask macros
   gROOT->LoadMacro ( "InputData.C" );    // Load InputData macro
-  if (localMacros)
-    {
-    gROOT->LoadMacro ( "AddTaskEmcalJetCDF.C" );
-    gROOT->LoadMacro ( "AddTaskEmcalJetCDFUE.C" );
-    }
-  else
-    {
-    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C" );
-    gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDFUE.C" );
-    }
 
   gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C" );
   gROOT->LoadMacro ( "$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C" );
@@ -1505,6 +1459,7 @@ void LoadMacros ()
 
   gROOT->LoadMacro ( "$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
   gROOT->LoadMacro ( "$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
+  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGPP/PilotTrain/AddTaskCDBconnect.C");
 
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalSetup.C");
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEMCALTender.C");
@@ -1517,6 +1472,8 @@ void LoadMacros ()
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C" );
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSample.C" );
   gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C" );
+
+  gROOT->LoadMacro ( "$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C" );
   }
 
 TString CreateCDFTaskName ( TString prefix = "CDF", AliJetContainer::EJetType_t jtype, AliJetContainer::JetAcceptanceType acc, AliJetContainer::EJetAlgo_t jalgo, AliJetContainer::ERecoScheme_t reco,
