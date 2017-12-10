@@ -1,4 +1,4 @@
-﻿#if !( defined  (__CINT__) || defined (__CLING__) )
+#if !( defined  (__CINT__) || defined (__CLING__) )
 
 // Standard includes
 #include <cstdio>
