@@ -193,7 +193,7 @@ Bool_t                   LoadLibrary ( const TString& lib );
 Bool_t                   IsTreeType  ( const TString& fileInput, const TString& treeName );
 Bool_t                   PeriodIsMC  ( const TString& period );
 
-TString                  FindTreeName     ( const TString& file_list ) const;
+TString                  FindTreeName     ( const TString& file_list );
 TString                  GetInputDataPath ( const TString& file_list );
 TString                  GetPeriod        ( const TString& file_path );
 TString                  GetPass          ( const TString& file_path );
@@ -1438,8 +1438,7 @@ TString GetPass ( const TString& file_path)
 //______________________________________________________________________________
 Bool_t PeriodIsMC ( const TString& period )
     {
-    if (!period.IsNull())
-        {
+    if (!period.IsNull()) {
         period.ToLower();
         if ( period.BeginsWith("lhc") && (period.Length() > 6) ) {return kTRUE;}
         }

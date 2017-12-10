@@ -1,0 +1,12 @@
+/usr/include/c++/7
+/home.hdd/physics-tools/alien/api/include
+/home.hdd/physics-tools/alice/fastjet/include
+/home.hdd/physics-tools/alice/geant3/include
+/home.hdd/physics-tools/root/root/include
+/home.hdd/physics-tools/alice/aliroot/include
+/home.hdd/physics-tools/alice/aliroot/ANALYSIS/macros
+/home.hdd/physics-tools/alice/aliroot/ANALYSIS/macros/train
+/home.hdd/physics-tools/alice/aliphysics/include
+/home.hdd/physics-tools/alice/aliphysics/PWG/EMCAL/macros
+/home.hdd/physics-tools/alice/aliphysics/PWGJE/EMCALJetTasks/macros
+/home.hdd/physics-tools/alice/aliphysics/OADB/macros

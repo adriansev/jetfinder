@@ -1,4 +1,4 @@
-#if !defined(__CINT__) || !defined(__CLING__)
+﻿#if !( defined  (__CINT__) || defined (__CLING__) )
 
 // Standard includes
 #include <cstdio>
@@ -73,6 +73,7 @@
 #include "AliEMCALRecParam.h"
 #include "AliEmcalJetTask.h"
 #include "AliEmcalPhysicsSelection.h"
+
 #include "AliEmcalClusterMaker.h"
 #include "AliEmcalClusTrackMatcherTask.h"
 #include "AliEMCALRecoUtils.h"
@@ -83,6 +84,7 @@
 #include "AliParticleContainer.h"
 #include "AliTrackContainer.h"
 #include "AliJetContainer.h"
+#include "AliEmcalCorrectionTask.h"
 
 #include "AliHadCorrTask.h"
 
@@ -112,13 +114,11 @@
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C"
 
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C"
-#include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C"
-
-#include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSample.C"
 
 #include "InputData.C"
 
 #endif
+
 class AliESDInputHandler;
 class AliAODInputHandler;
 class AliVEvent;
@@ -134,11 +134,21 @@ void LoadLibList ( const TString& list );
 Bool_t LoadLibrary ( const TString& lib );
 
 void LoadMacros();
-void StartGridAnalysis(AliAnalysisManager* pMgr, const char* uniqueName, const char* cGridMode);
-AliAnalysisGrid* CreateAlienHandler(const char* uniqueName, const char* gridDir, const char* gridMode, const char* runNumbers,
-    const char* pattern, TString additionalCode, TString additionalHeaders, Int_t maxFilesPerWorker, Int_t workerTTL, Bool_t isMC);
+AliAnalysisAlien* CreateAlienHandler(const char* uniqueName, const char* gridMode );
+TString GetInputDataPath ( const TString& file_list);
+TString GetPeriod ( const TString& file_path);
+TString GetPass ( const TString& file_path);
 
-const UInt_t  kEMCAL      = AliEmcalPhysicsSelection::kEmcalOk;
+TString     ListLibs      = "";
+TString     ListLibsExtra = "";
+
+const Bool_t  bDoChargedJets = 1;
+const Bool_t  bDoFullJets    = 1;
+
+const AliAnalysisTaskEmcal::EDataType_t kAod = AliAnalysisTaskEmcal::kAOD;
+const AliAnalysisTaskEmcal::EDataType_t kEsd = AliAnalysisTaskEmcal::kESD;
+
+const AliEmcalPhysicsSelection::EOfflineEmcalTypes  kEMCAL  = AliEmcalPhysicsSelection::kEmcalOk;
 const UInt_t  kMB         = AliVEvent::kAnyINT;
 const UInt_t  kEMC        = AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA;
 const UInt_t  kEMC_noGA   = AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE;
@@ -160,44 +170,130 @@ const UInt_t kSel_chg = kEMC_noGA;
 const UInt_t kSel_full = kEMC_noGA;
 const UInt_t kSel_tasks = kEMC_noGA;
 
-const Bool_t  bDoChargedJets = 1;
-const Bool_t  bDoFullJets    = 1;
+//______________________________________________________________________________
+//(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
+//        AliEN plugin variables
+//(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
+//______________________________________________________________________________
 
-enum eDataType { kAod, kEsd };
+TString     kGridDataSet             = "pp_lhc16q_aod";
 
-TString     ListLibs      = "";
-TString     ListLibsExtra = "";
+Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
+
+TString     kWorkDir                 = "emcalcdf";    // AliEn work dir; relative to AliEn $HOME
+TString     kTrainName               = "sevjets";     // *CHANGE ME* (no blancs or special characters)
+TString     kJobTag                  = "sevcdfjet";   // *CHANGE ME*
+
+TString     kPluginExecutableCommand = "aliroot -b -q";
+Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in production mode
+
+TString     kAPIVersion              = "V1.1x";
+TString     kRootVersion             = "v5-34-30-alice-24";
+TString     kAliRootVersion          = "v5-08-12-1";
+TString     kAliPhysicsVersion       = "vAN-20171209-1";
+
+TString     kPackage1                = "boost::v1.59.0-7";
+TString     kPackage2                = "cgal::v4.6.3-10";
+TString     kPackage3                = "fastjet::v3.1.3_1.020-11";
+TString     kPackage4                = "GEANT3::v2-1-1";
+// TString     kPackage5                = "jemalloc::v3.6.0";
+
+Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
+
+Int_t       kGridFilesPerJob         = 20;             // Maximum number of files per job (gives size of AOD)
+Int_t       kTestFiles               = 1;
+Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
+Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
+
+Int_t       kTTL                     = 28800 ;         // Time To Live
+Int_t       kMergeTTL                = 1800 ;          // Time To Live merging
+
+TString     kGridOutdir              = "out";          // AliEn output directory. If blank will become output_<kTrainName>
+TString     kGridSubWorkDir          = "";             // sub working directory not to confuse different run xmls
+TString     kGridExtraAliendirLevel  = "";             // sub working directory not to confuse different run xmls
+
+TString     kAlirootMode             = "ALIROOT";     // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
+//  alirootMode="ALIROOT";   // $ALICE_ROOT/macros/loadlibs.C
+//  alirootMode="REC";       // $ALICE_ROOT/macros/loadlibsrec.C
+//  alirootMode="SIM";       // $ALICE_ROOT/macros/loadlibssim.C
+//  alirootMode="TRAIN";     // $ALICE_ROOT/macros/loadlibstrain.C (not working yet)
+//  alirootMode="CUSTOM";    // nothing is loaded, but aliroot variables are set (not working yet)
+
+//--------------------
+//   PROOF SETTINGS
+//--------------------
+TString kAAF        =
+//                         "asevcenc@alice-caf.cern.ch" ;
+//    "asevcenc@skaf.saske.sk";
+      "";
+
+Int_t   kProofReset = 0  ; Int_t   kWorkers    = 20 ; Int_t   kCores      = 8  ;
+//------------------------------------------------------------------------------
+
+using namespace std;
 
 //______________________________________________________________________________
 AliAnalysisManager* runEMCalJetSampleTask(
     const char   *cDataType      = "AOD",                    // set the analysis type, AOD or ESD
-    const char   *cRunPeriod     = "LHC11c",                 // set the run period
-    const char   *cLocalFiles    = "data.txt",               // set the local list file
-    const UInt_t  iNumEvents     = 1234567890,               // number of events to be analyzed
-    const UInt_t  kPhysSel       = kMB,                      // physics selection
-    Int_t         iStartAnalysis = 1,
-    const UInt_t  iNumFiles      = 100,                     // number of files analyzed locally
+    Int_t         iStartAnalysis = 1,                        // 1 - local analysis; 2- grid plugin
     const char   *cGridMode      = "test"
-)
-{
-  const char   *cTaskName      = "CDFJets";            // sets name of analysis manager
+) {
 
-  TString sRunPeriod(cRunPeriod);
+  const UInt_t  iNumEvents     = 1234567890;     // number of events to be analyzed
+  const UInt_t  kPhysSel       = kMB;            // physics selection
+
+  const char*   cLocalFiles    = "data.txt";     // set the local list file
+  const UInt_t  iNumFiles      = 100;            // number of files analyzed locally
+
+  const char*   cTaskName      = "CDFJets";      // sets name of analysis manager
+
+  // Analysis manager
+  AliAnalysisManager* pMgr = new AliAnalysisManager(cTaskName);
+  AliAnalysisAlien* plugin = NULL;
+
+  if (iStartAnalysis == 2) {  // start grid analysis
+    plugin = CreateAlienHandler(cTaskName, cGridMode);
+    if ( !plugin ) { ::Error ( "runEMCalJetSampleTask.C - StartGridAnalysis", "plugin invalid" ); return NULL; }
+    pMgr->SetGridHandler(plugin);
+
+    gROOT->LoadMacro("InputData.C");
+    InputData(kGridDataSet);
+    }
+
+  TString sRunPeriod, pass ;
+
+  if (iStartAnalysis == 1)  {
+    TString input_path = GetInputDataPath (cLocalFiles);
+    sRunPeriod = GetPeriod (input_path);
+    pass   = GetPass (input_path);
+    }
+  else
+  if (iStartAnalysis == 2 ) {
+    TString datadir = plugin->GetGridDataDir();
+    sRunPeriod = GetPeriod (datadir);
+
+    TString datapat = plugin->GetDataPattern();
+    pass = GetPass(datapat).ReplaceAll("*","");
+    }
+  else
+    { std::cout << "Analysis mode unknown : it should be 1 for local and 2 for GRID mode" << std::endl; return NULL; }
+
   sRunPeriod.ToLower();
+  cout  << "Detected data period : " << sRunPeriod.Data() << endl;
+  cout  << "Detected pass name : " << pass.Data() << endl;
 
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpp;
-
   Bool_t bIsRun2 = kFALSE;
-  if (sRunPeriod.Length() == 6 && sRunPeriod.BeginsWith("lhc15")) { bIsRun2 = kTRUE; }
+
+  if (sRunPeriod.Length() == 6 && (sRunPeriod.BeginsWith("lhc15") || sRunPeriod.BeginsWith("lhc16") || sRunPeriod.BeginsWith("lhc17")) ) { bIsRun2 = kTRUE; }
 
   if (sRunPeriod == "lhc10h" || sRunPeriod == "lhc11h" || sRunPeriod == "lhc15o") { iBeamType = AliAnalysisTaskEmcal::kAA; }
-  else
-  if (sRunPeriod == "lhc12g" || sRunPeriod == "lhc13b" || sRunPeriod == "lhc13c" ||
-      sRunPeriod == "lhc13d" || sRunPeriod == "lhc13e" || sRunPeriod == "lhc13f")||
-      sRunPeriod == "lhc16q" || sRunPeriod == "lhc16r" || sRunPeriod == "lhc16s" || sRunPeriod == "lhc16t" )
-  { iBeamType = AliAnalysisTaskEmcal::kpA; }
 
-  if (iBeamType != AliAnalysisTaskEmcal::kpp) { std::cout << "Comment this line if you want to run on Pb" << std::endl; gApplication->Terminate();}
+  if (sRunPeriod == "lhc12g" || sRunPeriod == "lhc13b" || sRunPeriod == "lhc13c" || sRunPeriod == "lhc13d" || sRunPeriod == "lhc13e" || sRunPeriod == "lhc13f" ||
+      sRunPeriod == "lhc16q" || sRunPeriod == "lhc16r" || sRunPeriod == "lhc16s" || sRunPeriod == "lhc16t" )
+    { iBeamType = AliAnalysisTaskEmcal::kpA; }
+
+//   if (iBeamType != AliAnalysisTaskEmcal::kpp) { std::cout << "Comment this line if you want to run on Pb" << std::endl; gApplication->Terminate();}
 
   Double_t kGhostArea = 0.01;
   if (iBeamType != AliAnalysisTaskEmcal::kpp) { kGhostArea = 0.005; }
@@ -213,16 +309,8 @@ AliAnalysisManager* runEMCalJetSampleTask(
 
   const Double_t kHadCorrF            = 2.;
 
-  eDataType iDataType;
-  if (!strcmp(cDataType, "ESD")) { iDataType = kEsd; }
-  else
-  if (!strcmp(cDataType, "AOD")) { iDataType = kAod; }
-  else
-    {
-    Printf("Incorrect data type option, check third argument of run macro.");
-    Printf("datatype = AOD or ESD");
-    return 0;
-    }
+  AliAnalysisTaskEmcal::EDataType_t iDataType = AliAnalysisTaskEmcal::kAOD;
+  if (!strcmp(cDataType, "ESD")) { iDataType = AliAnalysisTaskEmcal::kESD; }
 
   Printf("%s analysis chosen.", cDataType);
 
@@ -234,24 +322,24 @@ AliAnalysisManager* runEMCalJetSampleTask(
 
   LoadMacros();
 
-  // Analysis manager
-  AliAnalysisManager* pMgr = new AliAnalysisManager(cTaskName);
+  AliAODInputHandler* pAODHandler = NULL;
+  AliESDInputHandler* pESDHandler = NULL;
 
-  if (iDataType == kAod)
-    { AliAODInputHandler* pAODHandler = AddAODHandler(); }
+  if (iDataType == AliAnalysisTaskEmcal::kESD)
+    { pESDHandler = AddESDHandler(); }
   else
-    { AliESDInputHandler* pESDHandler = AddESDHandler(); }
+    { pAODHandler = AddAODHandler(); }
 
   // CDBconnect task
   AliTaskCDBconnect *taskCDB = AddTaskCDBconnect();
   taskCDB->SetFallBackToRaw(kTRUE);
-  if (!taskCDB) { cout << "--------->>>>  taskCDB :: could not connect!!!! CHECK CVMFS" << endl; return NULL;}
+  if (!taskCDB) { std::cout << "--------->>>>  taskCDB :: could not connect!!!! CHECK CVMFS" << std::endl; return NULL;}
 
   // Physics selection task
-  if (iDataType == kEsd) { AliPhysicsSelectionTask *pPhysSelTask = AddTaskPhysicsSelection(); }
+  if (iDataType == AliAnalysisTaskEmcal::kESD) { AliPhysicsSelectionTask* pPhysSelTask = AddTaskPhysicsSelection(); }
 
   // Centrality task
-  if (iDataType == kEsd && iBeamType != AliAnalysisTaskEmcal::kpp) {
+  if ( (iDataType == AliAnalysisTaskEmcal::kESD) && (iBeamType != AliAnalysisTaskEmcal::kpp) ) {
     AliCentralitySelectionTask *pCentralityTask = AddTaskCentrality(kTRUE);
     pCentralityTask->SelectCollisionCandidates(AliVEvent::kAny);
     }
@@ -262,21 +350,21 @@ AliAnalysisManager* runEMCalJetSampleTask(
     //       The AddTask macro still exists for use on the LEGO train
     AliEmcalCorrectionTask * correctionTask = AliEmcalCorrectionTask::AddTaskEmcalCorrectionTask();
     correctionTask->SelectCollisionCandidates(kPhysSel);
-    correctionTask->SetForceBeamType(iBeamType);
+    correctionTask->SetForceBeamType((AliEmcalCorrectionTask::BeamType)iBeamType);
 
     // Configure and initialize
     correctionTask->SetUserConfigurationFilename("PWGJE_SEV_Config.yaml");
     correctionTask->Initialize();
-  }
+    }
 
   // Background
   TString sRhoChName;
   TString sRhoFuName;
-  if (iBeamType != AliAnalysisTaskEmcal::kpp) {
+  if ( iBeamType != AliAnalysisTaskEmcal::kpp ) {
     sRhoChName = "Rho";
     sRhoFuName = "Rho_Scaled";
 
-    AliEmcalJetTask *pKtChJetTask = AddTaskEmcalJet("usedefault", "", kt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 0., kFALSE, kFALSE);
+    AliEmcalJetTask* pKtChJetTask = AddTaskEmcalJet("usedefault", "", kt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 0., kFALSE, kFALSE);
     pKtChJetTask->SelectCollisionCandidates(kPhysSel);
 
     AliAnalysisTaskRho* pRhoTask = AddTaskRhoNew("usedefault", "usedefault", sRhoChName, 0.4);
@@ -311,7 +399,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
     }
 
   // Sample task
-  AliAnalysisTaskEmcalJetSample* sampleTask = AddTaskEmcalJetSample("usedefault", "usedefault", "usedefault", "new");
+  AliAnalysisTaskEmcalJetSample* sampleTask = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample("usedefault", "usedefault", "usedefault", "new");
   sampleTask->SelectCollisionCandidates(kSel_tasks);
 
   sampleTask->GetParticleContainer(0)->SetParticlePtCut(0.15);
@@ -461,12 +549,12 @@ AliAnalysisManager* runEMCalJetSampleTask(
       }
     }
 
-  if (!pMgr->InitAnalysis()) return 0;
+  if (!pMgr->InitAnalysis()) { return NULL; }
   pMgr->PrintStatus();
 
 //  pMgr->SetUseProgressBar(kTRUE, 250);
 
-  TFile *pOutFile = new TFile("train.root","RECREATE");
+  TFile* pOutFile = new TFile("train.root","RECREATE");
   pOutFile->cd();
   pMgr->Write();
   pOutFile->Close();
@@ -477,7 +565,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
 
   if (iStartAnalysis == 1) { // start local analysis
     TChain* pChain = 0;
-    if (iDataType == kAod)
+    if (iDataType == AliAnalysisTaskEmcal::kAOD)
       { pChain = CreateAODChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE); }
     else
       { pChain = CreateESDChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE); }
@@ -487,54 +575,19 @@ AliAnalysisManager* runEMCalJetSampleTask(
     pMgr->StartAnalysis("local", pChain, iNumEvents);
     }
   else
-  if (iStartAnalysis == 2) { StartGridAnalysis(pMgr, cTaskName, cGridMode); } // start grid analysis
+  if (iStartAnalysis == 2) {  // start grid analysis
+    // start analysis
+    Printf("Starting GRID Analysis...");
+    pMgr->SetDebugLevel(0);
+    pMgr->StartAnalysis("grid");
+    }
 
 cout << "END of runEMCalJetSampleTask.C" << endl;
 return pMgr;
 }
 
-void LoadMacros()
-{
-  // Aliroot macros
-  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C");
-  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWGPP/PilotTrain/AddTaskCDBconnect.C");
-
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEMCALTender.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskClusterizerFast.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalClusterMaker.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalClusTrackMatcher.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskHadCorr.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSample.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C");
-}
-
 //######################################################################################################################################
-void StartGridAnalysis(AliAnalysisManager* pMgr, const char* uniqueName, const char* cGridMode) {
-  Int_t maxFilesPerWorker = 4;
-  Int_t workerTTL = 7200;
-  const char* runNumbers = "180720";
-  const char* pattern = "pass2/AOD/*/AliAOD.root";
-  const char* gridDir = "/alice/data/2012/LHC12c";
-  const char* additionalCXXs = "";
-  const char* additionalHs = "";
-
-  AliAnalysisGrid *plugin = CreateAlienHandler(uniqueName, gridDir, cGridMode, runNumbers, pattern, additionalCXXs, additionalHs, maxFilesPerWorker, workerTTL, kFALSE);
-  pMgr->SetGridHandler(plugin);
-
-  // start analysis
-   Printf("Starting GRID Analysis...");
-   pMgr->SetDebugLevel(0);
-   pMgr->StartAnalysis("grid");
-}
-
-//######################################################################################################################################
-AliAnalysisGrid* CreateAlienHandler(const char* uniqueName, const char* gridDir, const char* gridMode, const char* runNumbers,
-    const char* pattern, TString additionalCode, TString additionalHeaders, Int_t maxFilesPerWorker, Int_t workerTTL, Bool_t isMC) {
-
+AliAnalysisAlien* CreateAlienHandler(const char* uniqueName,  const char* gridMode ) {
   TDatime currentTime;
   TString tmpName(uniqueName);
 
@@ -553,39 +606,94 @@ AliAnalysisGrid* CreateAlienHandler(const char* uniqueName, const char* gridDir,
   execName = Form("%s.sh", tmpName.Data());
   jdlName = Form("%s.jdl", tmpName.Data());
 
-  AliAnalysisAlien *plugin = new AliAnalysisAlien();
-  plugin->SetOverwriteMode();
+  AliAnalysisAlien* plugin = new AliAnalysisAlien();
+  if ( !plugin ) { cout << "!!! -->> alien handler could not be created <<-- !!!" << endl; return NULL;}
+
+  // Set the run mode (can be "full", "test", "offline", "submit" or "terminate")
   plugin->SetRunMode(gridMode);
 
-  // Here you can set the (Ali)PHYSICS version you want to use
-  plugin->SetAliPhysicsVersion("vAN-20170622-1");
+  // Job tag
+  plugin->SetJobTag ( kJobTag.Data() );
 
-  plugin->SetGridDataDir(gridDir); // e.g. "/alice/sim/LHC10a6"
-  plugin->SetDataPattern(pattern); //dir structure in run directory
-
-  if (!isMC) plugin->SetRunPrefix("000");
-
-  plugin->AddRunList(runNumbers);
-
+  // AliEn directory containing the input packages
   plugin->SetGridWorkingDir(Form("work/%s",tmpName.Data()));
+
+  // Declare alien output directory. Relative to working directory.
   plugin->SetGridOutputDir("output"); // In this case will be $HOME/work/output
 
-  plugin->SetAnalysisSource(additionalCode.Data());
-
-  plugin->SetDefaultOutputs(kTRUE);
-  plugin->SetAnalysisMacro(macroName.Data());
-  plugin->SetSplitMaxInputFileNumber(maxFilesPerWorker);
+  // Optionally modify the executable name (default analysis.sh)
   plugin->SetExecutable(execName.Data());
-  plugin->SetTTL(workerTTL);
-  plugin->SetInputFormat("xml-single");
+
+  // Optionally set a name for the generated analysis macro (default MyAnalysis.C)
+  plugin->SetAnalysisMacro(macroName.Data());
+
+  // Optionally modify the name of the generated JDL (default analysis.jdl)
   plugin->SetJDLName(jdlName.Data());
+
+  // Use the output files connected to output containers from the analysis manager
+  // rather than the files defined by SetOutputFiles
+  plugin->SetDefaultOutputs(kTRUE);
+
+  // Here you can set the (Ali)PHYSICS version you want to use
+  plugin->SetAliPhysicsVersion ( kAliPhysicsVersion.Data() );
+
+  //********************   PLUGIN OPTIONS   ************************
+
+  // min (nr,4) replicas in grid storage
+  plugin->SetNumberOfReplicas(2);
+
+  // Set the number of test files; set to kGridFilesPerJob as to evaluate the memory consumption and ttl on grid
+  plugin->SetNtestFiles ( kTestFiles );
+
+  if ( kPluginUseProductionMode ) { plugin->SetProductionMode(); }
+
+  // Use xrootd tweaks to reduce timeouts in file access
+  plugin->SetFastReadOption ( kTRUE );
+
+  // Maximum initial consecutive subjobs accepted to fail.
+//   plugin->SetMaxInitFailed ( kMaxInitFailed );
+
+  // Optionally resubmit threshold.
+  // plugin->SetMasterResubmitThreshold(90);
+
+  // Number of runs per masterjob
+//   plugin->SetNrunsPerMaster(1);
+
+  // exit from aliensh after submmiting job
+  plugin->SetDropToShell ( kTRUE );
+
+  // Overwrite existing files if any
+  plugin->SetOverwriteMode();
+
+  // write the output to subdirs named after run number
+//   plugin->SetOutputToRunNo(1);
+
+  // Optionally set maximum number of input files/subjob (default 100, put 0 to ignore)
+  plugin->SetSplitMaxInputFileNumber ( kGridFilesPerJob );
+
+  // Optionally set time to live
+  plugin->SetTTL(kTTL);
+
+  // Optionally set input format (default xml-single)
+  plugin->SetInputFormat("xml-single");
+
+  // Optionally modify job price (default 1)
   plugin->SetPrice(1);
+
+  // We split per SE or file
   plugin->SetSplitMode("se");
 
-  // merging via jdl
+  // Enable merging via automatic JDL
   plugin->SetMergeViaJDL(kTRUE);
-  plugin->SetOneStageMerging(kFALSE);
-  plugin->SetMaxMergeStages(2);
+
+  // Maximum number of merging stages
+//   plugin->SetMaxMergeStages(3);
+
+  // Optionally set maximum number of files merged in a chunk (default 100, put 0 to ignore)
+  plugin->SetMaxMergeFiles ( kGridMaxMergeFiles );
+
+  // Maximum number of files to be merged in one chunk
+//   plugin->SetOneStageMerging(kFALSE);
 
   if ( ListLibs.Length() )       { plugin->SetAdditionalLibs     ( ListLibs.Data() ); }
   if ( ListLibsExtra.Length() )  { plugin->SetAdditionalRootLibs ( ListLibsExtra.Data() ); }
@@ -622,8 +730,9 @@ void LoadLibList ( const TString& list )
     }
 
 //______________________________________________________________________________
-Bool_t LoadLibrary ( const TString& lib  )
+Bool_t LoadLibrary ( const TString& lib_name  )
     {
+    TString lib (lib_name);
     Int_t result = -999 ;
 
     if ( !lib.Length() ) { ::Error ( "AnalysisCDFjets::LoadLibrary", "Empty module name" ); return kFALSE; }
@@ -644,6 +753,96 @@ Bool_t LoadLibrary ( const TString& lib  )
 
     return kTRUE;
     }
+
+//######################################################################################################################################
+void LoadMacros()
+{
+  // Aliroot macros
+  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C");
+  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWGPP/PilotTrain/AddTaskCDBconnect.C");
+
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEMCALTender.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskClusterizerFast.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalClusterMaker.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalClusTrackMatcher.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskHadCorr.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C");
+}
+
+//______________________________________________________________________________
+TString GetInputDataPath ( const TString& file_list) {
+  std::string line_str;
+  TString line = line_str.c_str();
+
+  if ( gSystem->AccessPathName ( file_list.Data() ) ) {
+    std::cout << "File not found: " << file_list.Data() << std::endl; return line; }
+
+  // Open the file
+  ifstream in; in.open ( file_list.Data() );
+  Int_t count = 0;
+  
+  while ( in.good() ) {
+    in >> line_str;
+    line = line_str.c_str();
+    if ( line.IsNull() || line.BeginsWith ( "#" ) ) { continue; }
+    if ( count == 1 ) { break; }  // look only over first file;
+    count++;
+    }
+  in.close();
+  line = line_str.c_str();
+  return line;
+}
+
+//______________________________________________________________________________
+TString GetPeriod ( const TString& file_path) {
+  TString period = "";
+
+  if (!file_path.IsNull()) {
+    // split string in tokens (libs)
+    TObjArray* tokens_list = file_path.Tokenize("/"); //tokens_list->Compress();
+    TIter next_str(tokens_list);
+    TObjString* token = NULL;
+    while ((token=(TObjString*)next_str())) {
+      TString token_str = token->GetString(); token_str.ToLower();
+      if ( token_str.Contains("lhc") ) { period = token_str; break; }
+      }
+    delete tokens_list;
+    }
+  return period;
+}
+
+//______________________________________________________________________________
+TString GetPass ( const TString& file_path) {
+  TString pass = "";
+
+  if (!file_path.IsNull()) {
+    // split string in tokens (libs)
+    TObjArray* tokens_list = file_path.Tokenize("/"); //tokens_list->Compress();
+    TIter next_str(tokens_list);
+    TObjString* token=0;
+    while ((token=(TObjString*)next_str())) {
+      TString token_str = token->GetString(); token_str.ToLower();
+      if ( token_str.Contains("pass") ) { pass = token_str; break; }
+      }
+    delete tokens_list;
+    }
+
+  return pass;
+}
+
+//______________________________________________________________________________
+Bool_t PeriodIsMC ( const TString& per_str ) {
+  TString period = per_str;
+  if (!period.IsNull()) {
+    period.ToLower();
+    if ( period.BeginsWith("lhc") && (period.Length() > 6) ) {return kTRUE;}
+  }
+  return kFALSE;
+}
 
 
 // kate: indent-mode none; indent-width 2; replace-tabs on;
