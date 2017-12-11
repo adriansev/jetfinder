@@ -26,9 +26,6 @@ echo "RUN DIR : " $DIR_JOBS
 unalias root
 
 PROGRAM='root -b -l -q -x EmcalJetCDF.C\(\"local\",\"test\",\"data.txt\"\)'
-
-JOB_FILES_LOCAL="EmcalJetCDF.C AddTaskEmcalJetCDF.C AliAnalysisTaskEmcalJetCDF.cxx AliAnalysisTaskEmcalJetCDF.h InputData.C"
-
 JOB_FILES_ALIROOT="EmcalJetCDF.C InputData.C"
 
 JOB_FILES=$JOB_FILES_ALIROOT
