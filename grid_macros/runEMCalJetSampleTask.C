@@ -573,7 +573,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
     Printf("Starting Analysis...");
     pMgr->StartAnalysis("local", pChain, iNumEvents);
     }
-  else
+
   if (iStartAnalysis == 2) {  // start grid analysis
     // start analysis
     Printf("Starting GRID Analysis...");
