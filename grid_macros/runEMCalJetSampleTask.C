@@ -1,3 +1,12 @@
+const UInt_t  iNumFiles      = 1;            // number of files analyzed locally
+const UInt_t  iNumEvents     = 10000;     // number of events to be analyzed
+
+const Bool_t  bDoChargedJets = 1;
+const Bool_t  bDoFullJets    = 1;
+
+TString     kGridDataSet             = "pp_lhc16q_aod";
+Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
+
 #if !( defined  (__CINT__) || defined (__CLING__) )
 
 // Standard includes
@@ -142,9 +151,6 @@ TString GetPass ( const TString& file_path);
 TString     ListLibs      = "";
 TString     ListLibsExtra = "";
 
-const Bool_t  bDoChargedJets = 1;
-const Bool_t  bDoFullJets    = 1;
-
 const AliAnalysisTaskEmcal::EDataType_t kAod = AliAnalysisTaskEmcal::kAOD;
 const AliAnalysisTaskEmcal::EDataType_t kEsd = AliAnalysisTaskEmcal::kESD;
 
@@ -175,9 +181,6 @@ const UInt_t kSel_tasks = kEMC_noGA;
 //        AliEN plugin variables
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
 //______________________________________________________________________________
-
-TString     kGridDataSet             = "pp_lhc16q_aod";
-
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
 TString     kWorkDir                 = "emcalcdf";    // AliEn work dir; relative to AliEn $HOME
@@ -198,10 +201,7 @@ TString     kPackage3                = "fastjet::v3.1.3_1.020-11";
 TString     kPackage4                = "GEANT3::v2-1-1";
 // TString     kPackage5                = "jemalloc::v3.6.0";
 
-Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
-
 Int_t       kGridFilesPerJob         = 20;             // Maximum number of files per job (gives size of AOD)
-Int_t       kTestFiles               = 1;
 Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
 Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
 
@@ -239,12 +239,8 @@ AliAnalysisManager* runEMCalJetSampleTask(
     const char   *cGridMode      = "test"
 ) {
 
-  const UInt_t  iNumEvents     = 1234567890;     // number of events to be analyzed
   const UInt_t  kPhysSel       = kMB;            // physics selection
-
   const char*   cLocalFiles    = "data.txt";     // set the local list file
-  const UInt_t  iNumFiles      = 100;            // number of files analyzed locally
-
   const char*   cTaskName      = "CDFJets";      // sets name of analysis manager
 
   // Analysis manager
@@ -579,7 +575,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
     // start analysis
     Printf("Starting GRID Analysis...");
     pMgr->SetDebugLevel(0);
-    pMgr->StartAnalysis("grid");
+    pMgr->StartAnalysis("grid", iNumEvents);
     }
 
 cout << "END of runEMCalJetSampleTask.C" << endl;
@@ -643,7 +639,7 @@ AliAnalysisAlien* CreateAlienHandler(const char* uniqueName,  const char* gridMo
   plugin->SetNumberOfReplicas(2);
 
   // Set the number of test files; set to kGridFilesPerJob as to evaluate the memory consumption and ttl on grid
-  plugin->SetNtestFiles ( kTestFiles );
+  plugin->SetNtestFiles ( iNumFiles );
 
   if ( kPluginUseProductionMode ) { plugin->SetProductionMode(); }
 
