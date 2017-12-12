@@ -1,5 +1,5 @@
 const UInt_t  iNumFiles      = 1;            // number of files analyzed locally
-const UInt_t  iNumEvents     = 10000;     // number of events to be analyzed
+const UInt_t  iNumEvents     = 10;     // number of events to be analyzed
 
 const Bool_t  bDoChargedJets = 1;
 const Bool_t  bDoFullJets    = 1;
@@ -556,15 +556,18 @@ AliAnalysisManager* runEMCalJetSampleTask(
   pOutFile->Close();
   delete pOutFile;
 
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateAODChain.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateESDChain.C");
-
   if (iStartAnalysis == 1) { // start local analysis
     TChain* pChain = 0;
-    if (iDataType == AliAnalysisTaskEmcal::kAOD)
-      { pChain = CreateAODChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE); }
+    if (iDataType == AliAnalysisTaskEmcal::kESD)
+      {
+      gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateESDChain.C");
+      pChain = CreateESDChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE);
+      }
     else
-      { pChain = CreateESDChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE); }
+      {
+      gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateAODChain.C");
+      pChain = CreateAODChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE);
+      }
 
     // start analysis
     Printf("Starting Analysis...");
