@@ -1,5 +1,5 @@
 const UInt_t  iNumFiles      = 1;            // number of files analyzed locally
-const UInt_t  iNumEvents     = 10;     // number of events to be analyzed
+const UInt_t  iNumEvents     = 100;     // number of events to be analyzed
 
 const Bool_t  bDoChargedJets = 1;
 const Bool_t  bDoFullJets    = 1;
@@ -191,14 +191,14 @@ TString     kPluginExecutableCommand = "aliroot -b -q";
 Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in production mode
 
 TString     kAPIVersion              = "V1.1x";
-TString     kRootVersion             = "v5-34-30-alice-24";
-TString     kAliRootVersion          = "v5-08-12-1";
-TString     kAliPhysicsVersion       = "vAN-20171209-1";
+TString     kRootVersion             = "v5-34-30-alice8-5";
+TString     kAliRootVersion          = "v5-09-20a-1";
+TString     kAliPhysicsVersion       = "vAN-20171212-1";
 
 TString     kPackage1                = "boost::v1.59.0-7";
 TString     kPackage2                = "cgal::v4.6.3-10";
-TString     kPackage3                = "fastjet::v3.1.3_1.020-11";
-TString     kPackage4                = "GEANT3::v2-1-1";
+TString     kPackage3                = "fastjet::v3.2.1_1.024-alice1-6";
+TString     kPackage4                = "GEANT3::v2-4-9";
 // TString     kPackage5                = "jemalloc::v3.6.0";
 
 Int_t       kGridFilesPerJob         = 20;             // Maximum number of files per job (gives size of AOD)
