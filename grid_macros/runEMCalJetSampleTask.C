@@ -1,4 +1,4 @@
-﻿#if !defined(__CINT__) && !defined(__CLING__)
+#if !defined(__CINT__) && !defined(__CLING__)
 #include "Rtypes.h"
 #include "TString.h"
 #endif
@@ -16,7 +16,6 @@ TString     kGridDataSet             = "pp_lhc16q_aod";
 Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
 
 #if !defined(__CINT__) && !defined(__CLING__)
-
 // Standard includes
 #include <cstdio>
 #include <cstring>
