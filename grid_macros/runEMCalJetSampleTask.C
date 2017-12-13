@@ -400,7 +400,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
     }
 
   // Sample task
-  AliAnalysisTaskEmcalJetSample* sampleTask = nullptr;
+  AliAnalysisTaskEmcalJetSample* sampleTask = NULL;
   if (bDoSample) {
     sampleTask = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample("usedefault", "usedefault", "usedefault", "new");
     sampleTask->SelectCollisionCandidates(kSel_tasks);
@@ -415,7 +415,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
     }
 
   //###   CDF task
-  AliAnalysisTaskEmcalJetCDF* anaTaskCDF = nullptr;
+  AliAnalysisTaskEmcalJetCDF* anaTaskCDF = NULL;
   if (bDoCDF) {
     anaTaskCDF = CDF::AddTaskEmcalJetCDF ( "usedefault", "usedefault", "usedefault", "CDF" );
     anaTaskCDF->SelectCollisionCandidates(kSel_tasks);
