@@ -647,7 +647,7 @@ AliAnalysisAlien* CreateAlienHandler(const char* uniqueName,  const char* gridMo
   if ( kPluginUseProductionMode ) { plugin->SetProductionMode(); }
 
   // Use xrootd tweaks to reduce timeouts in file access
-  plugin->SetFastReadOption ( kTRUE );
+  plugin->SetFastReadOption ( kFALSE );
 
   // Maximum initial consecutive subjobs accepted to fail.
 //   plugin->SetMaxInitFailed ( kMaxInitFailed );
