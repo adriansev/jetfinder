@@ -1,4 +1,6 @@
-#if !defined(__CINT__) && !defined(__CLING__)
+// Main steering variables just below
+
+#if ( !defined(__CINT__) && !defined(__CLING__) )
 #include "Rtypes.h"
 #include "TString.h"
 #endif
@@ -15,7 +17,7 @@ const Bool_t  bDoCDF    = kFALSE;
 TString     kGridDataSet             = "pp_lhc16q_aod";
 Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
 
-#if !defined(__CINT__) && !defined(__CLING__)
+#if ( !defined(__CINT__) && !defined(__CLING__) )
 // Standard includes
 #include <cstdio>
 #include <cstring>
@@ -143,15 +145,19 @@ class AliEmcalCorrectionTask;
 class AliEmcalJetTask;
 class AliAnalysisGrid;
 
+// Forward declarations
 void LoadLibs ();
 void LoadLibList ( const TString& list );
 Bool_t LoadLibrary ( const TString& lib );
 
 void LoadMacros();
-AliAnalysisAlien* CreateAlienHandler(const char* uniqueName, const char* gridMode );
+AliAnalysisAlien *CreateAlienHandler ( const char *gridMode );
 TString GetInputDataPath ( const TString& file_list);
 TString GetPeriod ( const TString& file_path);
 TString GetPass ( const TString& file_path);
+const char* pwd() { return gSystem->WorkingDirectory(); }
+const char* basedir() { return gSystem->BaseName( pwd() ); }
+//############################################################
 
 TString     ListLibs      = "";
 TString     ListLibsExtra = "";
@@ -190,9 +196,12 @@ Long64_t    firstentry               = 0; // for local and proof mode, ignored i
 
 TString     kWorkDir                 = "emcalcdf";    // AliEn work dir; relative to AliEn $HOME
 TString     kTrainName               = "sevjets";     // *CHANGE ME* (no blancs or special characters)
-TString     kJobTag                  = "sevcdfjet";   // *CHANGE ME*
+TString     kJobTag                  = "cdfjet";   // *CHANGE ME*
 
-TString     kPluginExecutableCommand = "aliroot -b -q";
+TString     kPluginExecutableCommand =
+                                      "aliroot -l -b -q";
+//                                       "root.exe -l -b -q";
+
 Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in production mode
 
 TString     kAPIVersion              = "V1.1x";
@@ -213,9 +222,17 @@ Int_t       kMaxInitFailed           = 10 ;            // Optionally set number 
 Int_t       kTTL                     = 28800 ;         // Time To Live
 Int_t       kMergeTTL                = 1800 ;          // Time To Live merging
 
-TString     kGridOutdir              = "out";          // AliEn output directory. If blank will become output_<kTrainName>
+TString     kGridOutdir              = "output";          // AliEn output directory. If blank will become output_<kTrainName>
 TString     kGridSubWorkDir          = "";             // sub working directory not to confuse different run xmls
 TString     kGridExtraAliendirLevel  = "";             // sub working directory not to confuse different run xmls
+
+// FILES USED IN MACRO
+TString     kCommonOutputFileName    = "AnalysisResults.root";
+
+// == grid plugin files rules
+TString     kGridExtraFiles          = ""; // LIBRARIES files that will be added to the input list in the JDL
+TString     kGridMergeExclude        = "AliAOD.root AliAOD.Jets.root"; // Files that should not be merged
+TString     kGridOutputStorages      = "disk=2"; // Make replicas on the storages
 
 TString     kAlirootMode             = "ALIROOT";     // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
 //  alirootMode="ALIROOT";   // $ALICE_ROOT/macros/loadlibs.C
@@ -239,9 +256,9 @@ using namespace std;
 
 //______________________________________________________________________________
 AliAnalysisManager* runEMCalJetSampleTask(
-    const char   *cDataType      = "AOD",                    // set the analysis type, AOD or ESD
+    const char*   cDataType      = "AOD",                    // set the analysis type, AOD or ESD
     Int_t         iStartAnalysis = 1,                        // 1 - local analysis; 2- grid plugin
-    const char   *cGridMode      = "test"
+    const char*   cGridMode      = "test"
 ) {
 
   const UInt_t  kPhysSel       = kMB;            // physics selection
@@ -253,7 +270,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
   AliAnalysisAlien* plugin = NULL;
 
   if (iStartAnalysis == 2) {  // start grid analysis
-    plugin = CreateAlienHandler(cTaskName, cGridMode);
+    plugin = CreateAlienHandler(cGridMode);
     if ( !plugin ) { ::Error ( "runEMCalJetSampleTask.C - StartGridAnalysis", "plugin invalid" ); return NULL; }
     pMgr->SetGridHandler(plugin);
 
@@ -311,7 +328,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
   const Double_t kHadCorrF            = 2.;
 
   AliAnalysisTaskEmcal::EDataType_t iDataType = AliAnalysisTaskEmcal::kAOD;
-  if (!strcmp(cDataType, "ESD")) { iDataType = AliAnalysisTaskEmcal::kESD; }
+  if (!std::strcmp(cDataType, "ESD")) { iDataType = AliAnalysisTaskEmcal::kESD; }
 
   Printf("%s analysis chosen.", cDataType);
 
@@ -574,6 +591,8 @@ AliAnalysisManager* runEMCalJetSampleTask(
   pOutFile->Close();
   delete pOutFile;
 
+  if ( (iStartAnalysis != 1) || (iStartAnalysis != 2) ) { iStartAnalysis = 1; }
+
   if (iStartAnalysis == 1) { // start local analysis
     TChain* pChain = 0;
     if (iDataType == AliAnalysisTaskEmcal::kESD)
@@ -595,7 +614,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
   if (iStartAnalysis == 2) {  // start grid analysis
     // start analysis
     Printf("Starting GRID Analysis...");
-    pMgr->SetDebugLevel(0);
+    if (!std::strcmp(cGridMode, "test")) { pMgr->SetDebugLevel(0); }
     pMgr->StartAnalysis("grid", iNumEvents);
     }
 
@@ -604,39 +623,27 @@ return pMgr;
 }
 
 //######################################################################################################################################
-AliAnalysisAlien* CreateAlienHandler(const char* uniqueName,  const char* gridMode ) {
-  TDatime currentTime;
-  TString tmpName(uniqueName);
-
-  // Only add current date and time when not in terminate mode! In this case the exact name has to be supplied by the user
-  if (strcmp(gridMode, "terminate")) {
-    tmpName += "_";
-    tmpName += currentTime.GetDate();
-    tmpName += "_";
-    tmpName += currentTime.GetTime();
-    }
-
-  TString macroName("");
-  TString execName("");
-  TString jdlName("");
-  macroName = Form("%s.C", tmpName.Data());
-  execName = Form("%s.sh", tmpName.Data());
-  jdlName = Form("%s.jdl", tmpName.Data());
-
+AliAnalysisAlien* CreateAlienHandler(const char* gridMode ) {
   AliAnalysisAlien* plugin = new AliAnalysisAlien();
   if ( !plugin ) { cout << "!!! -->> alien handler could not be created <<-- !!!" << endl; return NULL;}
+
+  TString tmpName = basedir();
+
+  TString macroName(""); macroName = Form("%s.C", kJobTag.Data());
+  TString execName("");  execName = Form("%s.sh", kJobTag.Data());
+  TString jdlName("");   jdlName = Form("%s.jdl", kJobTag.Data());
 
   // Set the run mode (can be "full", "test", "offline", "submit" or "terminate")
   plugin->SetRunMode(gridMode);
 
   // Job tag
-  plugin->SetJobTag ( kJobTag.Data() );
+  plugin->SetJobTag ( tmpName.Data() );
 
   // AliEn directory containing the input packages
-  plugin->SetGridWorkingDir(Form("work/%s",tmpName.Data()));
+  plugin->SetGridWorkingDir( tmpName.Data() );
 
   // Declare alien output directory. Relative to working directory.
-  plugin->SetGridOutputDir("output"); // In this case will be $HOME/work/output
+  plugin->SetGridOutputDir( kGridOutdir.Data() ); // In this case will be $HOME/work/output
 
   // Optionally modify the executable name (default analysis.sh)
   plugin->SetExecutable(execName.Data());
@@ -860,7 +867,6 @@ Bool_t PeriodIsMC ( const TString& per_str ) {
   }
   return kFALSE;
 }
-
 
 // kate: indent-mode none; indent-width 2; replace-tabs on;
 

@@ -1,3 +1,5 @@
+//
+
 #ifndef __CINT__
 
 // Standard includes
@@ -99,7 +101,6 @@
 
 #include "../PWG/EMCAL/macros/AddTaskEmcalPhysicsSelection.C"
 #include "../PWG/EMCAL/macros/AddTaskEmcalCompat.C"
-#include "../PWG/EMCAL/macros/AddTaskEmcalSetup.C"
 #include "../PWG/EMCAL/macros/AddTaskEMCALTender.C"
 #include "../PWG/EMCAL/macros/AddTaskEmcalPreparation.C"
 #include "../PWG/EMCAL/macros/AddTaskClusterizerFast.C"
@@ -115,7 +116,6 @@
 
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C"
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDF.C"
-#include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetCDFUE.C"
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSample.C"
 
 #include "InputData.C"
