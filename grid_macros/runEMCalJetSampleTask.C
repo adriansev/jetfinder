@@ -9,10 +9,10 @@ const UInt_t  iNumFiles      = 1;            // number of files analyzed locally
 const UInt_t  iNumEvents     = 100;     // number of events to be analyzed
 
 const Bool_t  bDoChargedJets = kTRUE;
-const Bool_t  bDoFullJets    = kTRUE;
+const Bool_t  bDoFullJets    = kFALSE;
 
 const Bool_t  bDoSample = kTRUE;
-const Bool_t  bDoCDF    = kFALSE;
+const Bool_t  bDoCDF    = kTRUE;
 
 TString     kGridDataSet             = "pp_lhc16q_aod";
 Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
