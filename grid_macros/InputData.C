@@ -1,5 +1,4 @@
-#if !( defined  (__CINT__) || defined (__CLING__) )
-
+﻿if ! (defined (__CINT__) || defined (__CLING__) || defined (__MAKECINT__) || defined (__ROOTCLING__))
 #include "Rtypes.h"
 #include "TError.h"
 #include "TString.h"
@@ -221,6 +220,21 @@ else if ( datarun.EqualTo ( "pp_lhc13g_aod" ) ) {
     return kTRUE;
     }
 
+// AOD LHC12a15f
+else if ( datarun.EqualTo ( "pp_lhc12a15f" ) ) {
+
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2012/LHC12a15f" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "*/*/AliAOD.root          *pass1/AOD155/*AliAOD.root" );
+
+    TString list_lhc12a15f = "158285 159582";
+
+    plugin->AddRunList ( list_lhc12a15f.Data() );
+    return kTRUE;
+    }
+
 // AOD LHC16q; p-Pb 5.02 TeV
 else if ( datarun.EqualTo ( "pp_lhc16q_aod" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
@@ -238,6 +252,63 @@ else if ( datarun.EqualTo ( "pp_lhc16q_aod" ) ) {
 
     plugin->AddRunList ( list_lhc16q_1.Data() );
 //           plugin->AddRunList ( list_lhc16q_2.Data() ); // present in train dataset LHC16q_pass1_wSDD but not in the list AliDPGRunList16q/RunList_LHC16q_pass1_CentralBarrelTracking_calo_20171129_v2.txt
+    return kTRUE;
+    }
+
+// AOD LHC16r; p-Pb 8.16 TeV
+else if ( datarun.EqualTo ( "pp_lhc16r_aod" ) ) {
+    plugin->SetRunPrefix ( kGridRunPattern.Data() );
+
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/data/2016/LHC16r" );
+// /alice/data/2016/LHC16r/000266318/pass1_CENT_wSDD/AOD190
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "*pass1_CENT_wSDD/AOD190/*AliAOD.root" );
+
+    // https://twiki.cern.ch/twiki/bin/view/ALICE/AliDPGRunList16r
+    // https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16r/RunList_LHC16r_pass1_CentralBarrelTracking_calo_20170202_v0.txt
+    TString list_lhc16r_1 = "266318 266317 266316 266208 266197 266196 266187 265744";
+
+    plugin->AddRunList ( list_lhc16r_1.Data() );
+    return kTRUE;
+    }
+
+// AOD LHC16s; Pb-p 8.16 TeV
+else if ( datarun.EqualTo ( "pp_lhc16s_aod" ) ) {
+    plugin->SetRunPrefix ( kGridRunPattern.Data() );
+
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/data/2016/LHC16s" );
+// /alice/data/2016/LHC16s/000266318/pass1_CENT_wSDD/AOD190
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "*pass1_CENT_wSDD/AOD190/*AliAOD.root" );
+
+    //     https://twiki.cern.ch/twiki/bin/view/ALICE/AliDPGRunList16s
+    //     https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16s/RunList_LHC16s_pass1_CentralBarrelTracking_calo_20170202_v0.txt
+    TString list_lhc16s_1 = "267110 267081 267077 267072 267070 266998 266997 266994 266993 266944 266886 266885 266883 266882 266437";
+
+    plugin->AddRunList ( list_lhc16s_1.Data() );
+    return kTRUE;
+    }
+
+// AOD LHC16t; p-Pb 5.02 TeV
+else if ( datarun.EqualTo ( "pp_lhc16t_aod" ) ) {
+    plugin->SetRunPrefix ( kGridRunPattern.Data() );
+
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/data/2016/LHC16t" );
+// /alice/data/2016/LHC16t/000266318/pass1_CENT_wSDD/AOD190
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "*pass1_CENT_wSDD/AOD190/*AliAOD.root" );
+
+    // https://twiki.cern.ch/twiki/bin/view/ALICE/AliDPGRunList16t
+    // https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16t/RunList_LHC16t_pass1_CentralBarrelTracking_calo_20170202_v0.txt
+    TString list_lhc16t_1 = "267166 267165 267164 267163";
+
+    plugin->AddRunList ( list_lhc16t_1.Data() );
     return kTRUE;
     }
 
