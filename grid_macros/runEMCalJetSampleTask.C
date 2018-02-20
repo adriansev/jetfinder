@@ -481,10 +481,14 @@ AliAnalysisManager* runEMCalJetSampleTask(
       }
 
     if (bDoCDF) {
-      // FULL JETS 0.2
-      for ( Float_t i = 0 ; i<=95 ; i+=5) {
-        AliJetContainer* jetcont  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
-        CDF::jetContSetParams (jetcont,    i,   i+5, 0, 2);
+      for ( Float_t fi = 0 ; fi<=95 ; fi+=5) {
+        // FULL JETS 0.2
+        AliJetContainer* jetcont02  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+        CDF::jetContSetParams (jetcont02,    fi,   fi+5, 0, 2);
+
+        // FULL JETS 0.4
+        AliJetContainer* jetcont04  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+        CDF::jetContSetParams (jetcont04,    fi,   fi+5, 0, 2);
         }
 
       AliJetContainer* jetCont02full_cdf_bin21 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
@@ -492,12 +496,6 @@ AliAnalysisManager* runEMCalJetSampleTask(
 
       AliJetContainer* jetCont02full_cdf_all   = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
       CDF::jetContSetParams (jetCont02full_cdf_all,     1., 500., 0, 2);
-
-      // FULL JETS 0.4
-      for ( Float_t i = 0 ; i<=95 ; i+=5) {
-        AliJetContainer* jetcont  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
-        CDF::jetContSetParams (jetcont,    i,   i+5, 0, 2);
-        }
 
       AliJetContainer* jetCont04full_cdf_bin21 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
       CDF::jetContSetParams (jetCont04full_cdf_bin21, 100., 500., 0, 2);
@@ -521,10 +519,14 @@ AliAnalysisManager* runEMCalJetSampleTask(
       }
 
     if (bDoCDF) {
-      // CHG JETS 0.2
-      for ( Float_t i = 0 ; i<=95 ; i+=5) {
-        AliJetContainer* jetcont  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
-        CDF::jetContSetParams (jetcont,    i,   i+5, 0, 0);
+      for ( Float_t fi = 0 ; fi<=95 ; fi+=5) {
+        // CHG JETS 0.2
+        AliJetContainer* jetcont02  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+        CDF::jetContSetParams (jetcont02,    fi,   fi+5, 0, 0);
+
+        // CHG JETS 0.4
+        AliJetContainer* jetcont04  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+        CDF::jetContSetParams (jetcont04,    fi,   fi+5, 0, 0);
         }
 
       AliJetContainer* jetCont02chg_cdf_bin21 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
@@ -532,12 +534,6 @@ AliAnalysisManager* runEMCalJetSampleTask(
 
       AliJetContainer* jetCont02chg_cdf_all   = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
       CDF::jetContSetParams (jetCont02chg_cdf_all,     1., 500., 0, 0);
-
-      // CHG JETS 0.4
-      for ( Float_t i = 0 ; i<=95 ; i+=5) {
-        AliJetContainer* jetcont  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
-        CDF::jetContSetParams (jetcont,    i,   i+5, 0, 0);
-        }
 
       AliJetContainer* jetCont04chg_cdf_bin21 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
       CDF::jetContSetParams (jetCont04chg_cdf_bin21, 100., 500., 0, 0);
