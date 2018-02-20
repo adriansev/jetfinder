@@ -1,4 +1,5 @@
-﻿if ! (defined (__CINT__) || defined (__CLING__) || defined (__MAKECINT__) || defined (__ROOTCLING__))
+#if !defined(__CINT__) || defined(__MAKECINT__) || defined(__CLING__) || defined(__ROOTCLING__)
+
 #include "Rtypes.h"
 #include "TError.h"
 #include "TString.h"
