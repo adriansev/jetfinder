@@ -1,31 +1,44 @@
 #!/bin/bash
 
-if [ -z "$1" ]; then
-  DATATYPE="AOD"
-else
-  DATATYPE="${1}"
-fi
+# enable GRID mode
+export CDF_GRID=0
 
-if [ -z "$2" ]; then
-  PERIOD="lhc11c"
-else
-  PERIOD="${2}"
-fi
+# Set run mode.  Can be "full", "test", "offline", "submit" or "merge"
+export CDF_GRIDMODE="test"
 
-if [ -z "$3" ]; then
-  FILELIST="data.txt"
-else
-  FILELIST="${3}"
-fi
+# for grid mode, use the dataset label found in InputData.C
+export CDF_dataset="pp_lhc12a15f"
 
-if [ -z "$4" ]; then
-  NEVENTS="1234567890"
-else
-  NEVENTS="${4}"
-fi
+# number of files to process
+export CDF_NUMFILES=1
 
-root -b -q -x runEMCalJetSampleTask.C\(\""${DATATYPE}"\",\""${PERIOD}"\",\""${FILELIST}"\","${NEVENTS}"\)
+# numeber of events to process
+export CDF_NUMEV=100
+
+# enable charged jets finder
+export CDF_CHGJETS=1
+
+# enable full jets finder
+export CDF_FULLJETS=1
+
+# enable sample task
+export CDF_doSAMPLE=1
+
+# enable CDF task
+export CDF_doCDF=1
+
+# configuration file (full path) of Correction Framework
+export CDF_EMCALCFG="PWGJE_SEV_Config.yaml"
+
+# trigger selection for charged jets task
+CDF_TRGSEL_CHG="kEMC_noGA"
+
+# trigger selection for full jets task
+CDF_TRGSEL_FULL="kEMC_noGA"
+
+root -b -q -x runEMCalJetSampleTask.C
 RV=$?
 
 echo "END runEMCalJetSampleTask.sh"
 exit $RV
+

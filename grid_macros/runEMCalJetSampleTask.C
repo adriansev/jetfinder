@@ -1,23 +1,15 @@
+// Defined defaults
+unsigned int iNumFiles      = 1;       // number of files analyzed locally
+unsigned int iNumEvents     = 100;     // number of events to be analyzed
+
+bool  bDoChargedJets = true;
+bool  bDoFullJets    = false;
+
+bool  bDoSample = true;
+bool  bDoCDF    = false;
+
 // Main steering variables just below
-
-#if ( !defined(__CINT__) && !defined(__CLING__) )
-#include "Rtypes.h"
-#include "TString.h"
-#endif
-
-const UInt_t  iNumFiles      = 1;            // number of files analyzed locally
-const UInt_t  iNumEvents     = 100;     // number of events to be analyzed
-
-const Bool_t  bDoChargedJets = kTRUE;
-const Bool_t  bDoFullJets    = kFALSE;
-
-const Bool_t  bDoSample = kTRUE;
-const Bool_t  bDoCDF    = kTRUE;
-
-TString     kGridDataSet             = "pp_lhc16q_aod";
-Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
-
-#if ( !defined(__CINT__) && !defined(__CLING__) )
+#if !defined(__CINT__) || defined(__MAKECINT__) || defined(__CLING__) || defined(__ROOTCLING__)
 // Standard includes
 #include <cstdio>
 #include <cstring>
@@ -27,11 +19,15 @@ Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
 #include <fstream>
 
 // ROOT includes
+#include "Rtypes.h"
 #include "Riostream.h"
 #include "TRint.h"
 #include "TROOT.h"
-
 #include "TSystem.h"
+#include "TString.h"
+#include "TRegexp.h"
+#include "TInterpreter.h"
+
 #include "TApplication.h"
 #include "TList.h"
 #include "TEnv.h"
@@ -65,6 +61,7 @@ Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
 #include "AliAnalysisAlien.h"
 
 #include "AliVCluster.h"
+#include "AliVEvent.h"
 
 #include "AliMultiInputEventHandler.h"
 #include "AliLog.h"
@@ -108,84 +105,41 @@ Bool_t      kSkipTerminate           = kTRUE;          // Do not call Terminate
 #include "AliAnalysisTaskEmcalJetSample.h"
 
 // Macro locations
+#include "../OADB/macros/AddTaskPhysicsSelection.C"
 #include "../OADB/macros/AddTaskCentrality.C"
 #include "../PWGPP/PilotTrain/AddTaskCDBconnect.C"
-
-#include "../ANALYSIS/macros/train/AddAODHandler.C"
-#include "../ANALYSIS/macros/train/AddESDHandler.C"
-#include "../ANALYSIS/macros/train/AddMCHandler.C"
-
 #include "../PWG/EMCAL/macros/CreateAODChain.C"
 #include "../PWG/EMCAL/macros/CreateESDChain.C"
-
-#include "../OADB/macros/AddTaskPhysicsSelection.C"
-#include "../PWG/EMCAL/macros/AddTaskEmcalPhysicsSelection.C"
-
-#include "../PWG/EMCAL/macros/AddTaskEMCALTender.C"
-#include "../PWG/EMCAL/macros/AddTaskClusterizerFast.C"
-#include "../PWG/EMCAL/macros/AddTaskEmcalClusterMaker.C"
-#include "../PWG/EMCAL/macros/AddTaskEmcalClusTrackMatcher.C"
-#include "../PWG/EMCAL/macros/AddTaskHadCorr.C"
-
-#include "../PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C"
-
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C"
 
 #include "InputData.C"
 
 #endif
 
-class AliESDInputHandler;
-class AliAODInputHandler;
-class AliVEvent;
-class AliAnalysisManager;
-class AliPhysicsSelectionTask;
-class AliCentralitySelectionTask;
-class AliEmcalCorrectionTask;
-class AliEmcalJetTask;
-class AliAnalysisGrid;
-
-// Forward declarations
-void LoadLibs ();
-void LoadLibList ( const TString& list );
-Bool_t LoadLibrary ( const TString& lib );
-
-void LoadMacros();
-AliAnalysisAlien *CreateAlienHandler ( const char *gridMode );
-TString GetInputDataPath ( const TString& file_list);
-TString GetPeriod ( const TString& file_path);
-TString GetPass ( const TString& file_path);
-const char* pwd() { return gSystem->WorkingDirectory(); }
-const char* basedir() { return gSystem->BaseName( pwd() ); }
 //############################################################
-
+//############################################################
 TString     ListLibs      = "";
 TString     ListLibsExtra = "";
 
 const AliAnalysisTaskEmcal::EDataType_t kAod = AliAnalysisTaskEmcal::kAOD;
 const AliAnalysisTaskEmcal::EDataType_t kEsd = AliAnalysisTaskEmcal::kESD;
 
-const AliEmcalPhysicsSelection::EOfflineEmcalTypes  kEMCAL  = AliEmcalPhysicsSelection::kEmcalOk;
-const UInt_t  kMB         = AliVEvent::kAnyINT;
-const UInt_t  kEMC        = AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA;
-const UInt_t  kEMC_noGA   = AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE;
+AliEmcalPhysicsSelection::EOfflineEmcalTypes kEMCAL      = AliEmcalPhysicsSelection::kEmcalOk;
+AliVEvent::EOfflineTriggerTypes  kMB         = AliVEvent::kAnyINT;
+AliVEvent::EOfflineTriggerTypes  kEMC        = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA);
+AliVEvent::EOfflineTriggerTypes  kEMC_noGA   = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE);
 
 const AliJetContainer::EJetType_t  fulljet = AliJetContainer::kFullJet;
 const AliJetContainer::EJetType_t   chgjet = AliJetContainer::kChargedJet;
 
-const AliEmcalJet::JetAcceptanceType acc_tpcfid   = AliEmcalJet::kTPCfid;      // kTPC, kTPCfid, kEMCAL, kEMCALfid, kDCAL, kDCALfid, kUser
-const AliEmcalJet::JetAcceptanceType acc_emcalfid = AliEmcalJet::kEMCALfid;    // kTPC, kTPCfid, kEMCAL, kEMCALfid, kDCAL, kDCALfid, kUser
+// kTPC, kTPCfid, kEMCAL, kEMCALfid, kDCAL, kDCALfid, kDCALonly, kDCALonlyfid, kPHOS, kPHOSfid, kUser
+const AliEmcalJet::JetAcceptanceType acc_chgjets  = AliEmcalJet::kTPCfid;
+const AliEmcalJet::JetAcceptanceType acc_fulljets = AliEmcalJet::kEMCALfid;
 
 const AliJetContainer::EJetAlgo_t     antikt = AliJetContainer::antikt_algorithm;
 const AliJetContainer::EJetAlgo_t         kt = AliJetContainer::kt_algorithm;
+
 const AliJetContainer::ERecoScheme_t  recomb = AliJetContainer::pt_scheme;
-
-const AliEmcalJet::JetAcceptanceType acc_chgjets  = acc_emcalfid;
-const AliEmcalJet::JetAcceptanceType acc_fulljets = acc_emcalfid;
-
-const UInt_t kSel_chg = kEMC_noGA;
-const UInt_t kSel_full = kEMC_noGA;
-const UInt_t kSel_tasks = kEMC_noGA;
 
 //______________________________________________________________________________
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
@@ -204,23 +158,16 @@ TString     kPluginExecutableCommand =
 
 Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in production mode
 
-TString     kAPIVersion              = "V1.1x";
-TString     kRootVersion             = "v5-34-30-alice8-5";
-TString     kAliRootVersion          = "v5-09-20a-1";
-TString     kAliPhysicsVersion       = "vAN-20171212-1";
-
-TString     kPackage1                = "boost::v1.59.0-7";
-TString     kPackage2                = "cgal::v4.6.3-10";
-TString     kPackage3                = "fastjet::v3.2.1_1.024-alice1-6";
-TString     kPackage4                = "GEANT3::v2-4-9";
-// TString     kPackage5                = "jemalloc::v3.6.0";
+// TString     kAPIVersion              = "V1.1x";
+// TString     kRootVersion             = "v5-34-30-alice8-5";
+// TString     kAliRootVersion          = "v5-09-20a-1";
+TString     kAliPhysicsVersion       = "vAN-20180218-1";
 
 Int_t       kGridFilesPerJob         = 20;             // Maximum number of files per job (gives size of AOD)
 Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
 Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
 
-Int_t       kTTL                     = 28800 ;         // Time To Live
-Int_t       kMergeTTL                = 1800 ;          // Time To Live merging
+Int_t       kTTL                     = 64800 ;         // Time To Live
 
 TString     kGridOutdir              = "output";          // AliEn output directory. If blank will become output_<kTrainName>
 TString     kGridSubWorkDir          = "";             // sub working directory not to confuse different run xmls
@@ -249,21 +196,99 @@ TString kAAF        =
 //    "asevcenc@skaf.saske.sk";
       "";
 
-Int_t   kProofReset = 0  ; Int_t   kWorkers    = 20 ; Int_t   kCores      = 8  ;
+Int_t   kProofReset = 0;
+Int_t   kWorkers    = 20;
+Int_t   kCores      = 8  ;
 //------------------------------------------------------------------------------
 
-using namespace std;
+//############################################################
+// Forward declarations
+void LoadLibs ();
+void LoadLibList ( const TString& list );
+Bool_t LoadLibrary ( const TString& lib );
 
+void LoadMacros();
+AliAnalysisAlien *CreateAlienHandler ( const char *gridMode );
+TString GetInputDataPath ( const TString& file_list);
+TString GetPeriod ( const TString& file_path);
+TString GetPass ( const TString& file_path);
+const char* pwd() { return gSystem->WorkingDirectory(); }
+const char* basedir() { return gSystem->BaseName( pwd() ); }
+//############################################################
+
+// using namespace std;
 //______________________________________________________________________________
 AliAnalysisManager* runEMCalJetSampleTask(
-    const char*   cDataType      = "AOD",                    // set the analysis type, AOD or ESD
-    Int_t         iStartAnalysis = 1,                        // 1 - local analysis; 2- grid plugin
-    const char*   cGridMode      = "test"
+    const char*   cDataType      = "AOD"                    // set the analysis type, AOD or ESD
 ) {
+  TRegexp false_regex ("[f,F][a,A][l,L][s,S][e,E]");
+  TRegexp true_regex ("[t,T][r,R][u,U][e,E]");
+  TRegexp enable_regex ("[e,E][n,N][a,A][b,B][l,L][e,E]");
+  TRegexp disable_regex ("[d,D][i,I][s,S][a,A][b,B][l,L][e,E]");
 
-  const UInt_t  kPhysSel       = kMB;            // physics selection
   const char*   cLocalFiles    = "data.txt";     // set the local list file
   const char*   cTaskName      = "CDFJets";      // sets name of analysis manager
+
+  Int_t         iStartAnalysis = 1;         // 1 - local analysis; 2- grid plugin
+  const char*   cGridMode      = "test";
+
+  TString ENV_GRID = gSystem->Getenv("CDF_GRID");
+  if (!ENV_GRID.IsNull() && ( !ENV_GRID.CompareTo("1") || ENV_GRID.Contains(true_regex) || ENV_GRID.Contains(enable_regex)) )  { iStartAnalysis = 2; }
+
+  TString ENV_GRIDMODE = gSystem->Getenv("CDF_GRIDMODE");
+  if (!ENV_GRID.IsNull() )  { cGridMode = ENV_GRIDMODE.Data(); }
+
+  TString ENV_numfiles = gSystem->Getenv("CDF_NUMFILES");
+  if (!ENV_numfiles.IsNull() && ENV_numfiles.IsDigit() ) { iNumFiles = ENV_numfiles.Atoi(); }
+
+  TString ENV_numev = gSystem->Getenv("CDF_NUMEV");
+  if (!ENV_numev.IsNull() && ENV_numev.IsDigit() ) { iNumEvents = ENV_numev.Atoi(); }
+
+  TString ENV_CHGJETS = gSystem->Getenv("CDF_CHGJETS");
+  if (!ENV_CHGJETS.IsNull() && ( !ENV_CHGJETS.CompareTo("0") || ENV_CHGJETS.Contains(false_regex) ) ) { bDoChargedJets = kFALSE; }
+  if (!ENV_CHGJETS.IsNull() && ( !ENV_CHGJETS.CompareTo("1") || ENV_CHGJETS.Contains(true_regex) ) )  { bDoChargedJets = kTRUE; }
+
+  TString ENV_FULLJETS = gSystem->Getenv("CDF_FULLJETS");
+  if (!ENV_FULLJETS.IsNull() && ( !ENV_FULLJETS.CompareTo("0") || ENV_FULLJETS.Contains(false_regex) )  ) { bDoChargedJets = kFALSE; }
+  if (!ENV_FULLJETS.IsNull() && ( !ENV_FULLJETS.CompareTo("1") || ENV_FULLJETS.Contains(true_regex) )  )  { bDoChargedJets = kTRUE; }
+
+  TString ENV_doSAMPLE = gSystem->Getenv("CDF_doSAMPLE");
+  if (!ENV_doSAMPLE.IsNull() && ( !ENV_doSAMPLE.CompareTo("0") || ENV_doSAMPLE.Contains(false_regex) )  ) { bDoSample = kFALSE; }
+  if (!ENV_doSAMPLE.IsNull() && ( !ENV_doSAMPLE.CompareTo("1") || ENV_doSAMPLE.Contains(true_regex) )  )  { bDoSample = kTRUE; }
+
+  TString ENV_doCDF = gSystem->Getenv("CDF_doCDF");
+  if (!ENV_doCDF.IsNull() && ( !ENV_doCDF.CompareTo("0") || ENV_doCDF.Contains(false_regex) )  ) { bDoCDF = kFALSE; }
+  if (!ENV_doCDF.IsNull() && ( !ENV_doCDF.CompareTo("1") || ENV_doCDF.Contains(true_regex) )  )  { bDoCDF = kTRUE; }
+
+  // label of dataset from InputData.C
+  TString kGridDataSet    = "pp_lhc16q_aod";
+  TString ENV_dataset = gSystem->Getenv("CDF_dataset");
+  if (!ENV_dataset.IsNull() ) { kGridDataSet = ENV_dataset.Data(); }
+
+  // EMCAL corrections task configuration file
+  TString EMCALcfg ("PWGJE_SEV_Config.yaml");
+  TString ENV_EMCALCFG = gSystem->Getenv("CDF_EMCALCFG");
+  if (!ENV_EMCALCFG.IsNull() ) { EMCALcfg = ENV_EMCALCFG.Data(); }
+
+
+//############################################################
+
+  AliVEvent::EOfflineTriggerTypes kPhysSel = kMB; //AliVEvent::kAnyINT; // physics selection
+  AliVEvent::EOfflineTriggerTypes kSel_chg = kEMC_noGA;
+  AliVEvent::EOfflineTriggerTypes kSel_full = kEMC_noGA;
+  AliVEvent::EOfflineTriggerTypes kSel_tasks = kMB;
+
+  TInterpreter* my_int = TInterpreter::Instance();
+
+  TString ENV_TRGSEL_CHG = gSystem->Getenv("CDF_TRGSEL_CHG");
+  if (!ENV_TRGSEL_CHG.IsNull() ) {
+    my_int->ProcessLine(Form( "kSel_chg = %s;" , ENV_TRGSEL_CHG.Data() )) ;
+    }
+
+  TString ENV_TRGSEL_FULL = gSystem->Getenv("CDF_TRGSEL_FULL");
+  if (!ENV_TRGSEL_FULL.IsNull() ) {
+    my_int->ProcessLine(Form( "kSel_full = %s;" , ENV_TRGSEL_FULL.Data() )) ;
+    }
 
   // Analysis manager
   AliAnalysisManager* pMgr = new AliAnalysisManager(cTaskName);
@@ -311,8 +336,6 @@ AliAnalysisManager* runEMCalJetSampleTask(
       sRunPeriod == "lhc16q" || sRunPeriod == "lhc16r" || sRunPeriod == "lhc16s" || sRunPeriod == "lhc16t" )
     { iBeamType = AliAnalysisTaskEmcal::kpA; }
 
-//   if (iBeamType != AliAnalysisTaskEmcal::kpp) { std::cout << "Comment this line if you want to run on Pb" << std::endl; gApplication->Terminate();}
-
   Double_t kGhostArea = 0.01;
   if (iBeamType != AliAnalysisTaskEmcal::kpp) { kGhostArea = 0.005; }
 
@@ -324,8 +347,6 @@ AliAnalysisManager* runEMCalJetSampleTask(
 
   Bool_t   bDoEmcalCorrections  = kFALSE;
   if (bDoFullJets) { bDoEmcalCorrections  = kTRUE; }
-
-  const Double_t kHadCorrF            = 2.;
 
   AliAnalysisTaskEmcal::EDataType_t iDataType = AliAnalysisTaskEmcal::kAOD;
   if (!std::strcmp(cDataType, "ESD")) { iDataType = AliAnalysisTaskEmcal::kESD; }
@@ -343,18 +364,16 @@ AliAnalysisManager* runEMCalJetSampleTask(
   AliAODInputHandler* pAODHandler = NULL;
   AliESDInputHandler* pESDHandler = NULL;
 
-  if (iDataType == AliAnalysisTaskEmcal::kESD)
-    { pESDHandler = AddESDHandler(); }
-  else
-    { pAODHandler = AddAODHandler(); }
-
-  // CDBconnect task
-  AliTaskCDBconnect *taskCDB = AddTaskCDBconnect();
-  taskCDB->SetFallBackToRaw(kTRUE);
-  if (!taskCDB) { std::cout << "--------->>>>  taskCDB :: could not connect!!!! CHECK CVMFS" << std::endl; return NULL;}
+  if ( iDataType == AliAnalysisTaskEmcal::kAOD ) {
+    pAODHandler = AliAnalysisTaskEmcal::AddAODHandler();
+    }
+  else {
+    pESDHandler = AliAnalysisTaskEmcal::AddESDHandler();
+    }
 
   // Physics selection task
-  if (iDataType == AliAnalysisTaskEmcal::kESD) { AliPhysicsSelectionTask* pPhysSelTask = AddTaskPhysicsSelection(); }
+  if (iDataType == AliAnalysisTaskEmcal::kESD) 
+    { AliPhysicsSelectionTask* pPhysSelTask = AddTaskPhysicsSelection(); }
 
   // Centrality task
   if ( (iDataType == AliAnalysisTaskEmcal::kESD) && (iBeamType != AliAnalysisTaskEmcal::kpp) ) {
@@ -362,16 +381,19 @@ AliAnalysisManager* runEMCalJetSampleTask(
     pCentralityTask->SelectCollisionCandidates(AliVEvent::kAny);
     }
 
+  // CDBconnect task
+  AliTaskCDBconnect *taskCDB = AddTaskCDBconnect();
+  taskCDB->SetFallBackToRaw(kTRUE);
+  if (!taskCDB) { std::cout << "--------->>>>  taskCDB :: could not connect!!!! CHECK CVMFS" << std::endl; return NULL;}
+
   if (bDoEmcalCorrections) {
     // Configuration of the Correction Task is handled via a YAML file, which is setup below
-    // NOTE: Calling this function is equivalent to the AddTask macro, just the function is defined in the class.
-    //       The AddTask macro still exists for use on the LEGO train
     AliEmcalCorrectionTask * correctionTask = AliEmcalCorrectionTask::AddTaskEmcalCorrectionTask();
     correctionTask->SelectCollisionCandidates(kPhysSel);
     correctionTask->SetForceBeamType((AliEmcalCorrectionTask::BeamType)iBeamType);
 
     // Configure and initialize
-    correctionTask->SetUserConfigurationFilename("PWGJE_SEV_Config.yaml");
+    correctionTask->SetUserConfigurationFilename( EMCALcfg.Data() );
     correctionTask->Initialize();
     }
 
@@ -382,7 +404,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
     sRhoChName = "Rho";
     sRhoFuName = "Rho_Scaled";
 
-    AliEmcalJetTask* pKtChJetTask = AddTaskEmcalJet("usedefault", "", kt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 0., kFALSE, kFALSE);
+    AliEmcalJetTask* pKtChJetTask = AliEmcalJetTask::AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", kt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 0., kFALSE, kFALSE);
     pKtChJetTask->SelectCollisionCandidates(kPhysSel);
 
     AliAnalysisTaskRho* pRhoTask = AddTaskRhoNew("usedefault", "usedefault", sRhoChName, 0.4);
@@ -398,20 +420,20 @@ AliAnalysisManager* runEMCalJetSampleTask(
 
   // Charged jet analysis
   if (bDoChargedJets) {
-    AliEmcalJetTask *pChJet02Task = AddTaskEmcalJet("usedefault", "", antikt, 0.2, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+    AliEmcalJetTask *pChJet02Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", antikt, 0.2, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
     pChJet02Task->SelectCollisionCandidates(kSel_chg);
 
-    AliEmcalJetTask *pChJet04Task = AddTaskEmcalJet("usedefault", "", antikt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+    AliEmcalJetTask *pChJet04Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", antikt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
     pChJet04Task->SelectCollisionCandidates(kSel_chg);
     }
 
   // Full jet analysis
   if (bDoFullJets) {
-    AliEmcalJetTask *pFuJet02Task = AddTaskEmcalJet("usedefault", "usedefault", antikt, 0.2, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+    AliEmcalJetTask *pFuJet02Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "usedefault", antikt, 0.2, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
     pFuJet02Task->SelectCollisionCandidates(kSel_full);
     pFuJet02Task->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
 
-    AliEmcalJetTask *pFuJet04Task = AddTaskEmcalJet("usedefault", "usedefault", antikt, 0.4, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+    AliEmcalJetTask *pFuJet04Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "usedefault", antikt, 0.4, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
     pFuJet04Task->SelectCollisionCandidates(kSel_full);
     pFuJet04Task->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
     }
@@ -459,51 +481,29 @@ AliAnalysisManager* runEMCalJetSampleTask(
       }
 
     if (bDoCDF) {
-      AliJetContainer* jetCont02full_cdf_bin1  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin1,    1.,   5., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin2  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin2,    5.,  10., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin3  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin3,   10.,  15., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin4  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin4,   15.,  20., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin5  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin5,   20.,  25., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin6  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin6,   25.,  30., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin7  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin7,   30.,  35., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin8  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin8,   35.,  40., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin9  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin9,   40.,  45., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin10 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin10,  45.,  50., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin11 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin11,  50.,  55., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin12 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin12,  55.,  60., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin13 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin13,  60.,  65., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin14 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin14,  65.,  70., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin15 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin15,  70.,  75., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin16 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin16,  75.,  80., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin17 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin17,  80.,  85., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin18 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin18,  85.,  90., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin19 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin19,  90.,  95., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin20 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin20,  95., 100., 0, 2);
-      AliJetContainer* jetCont02full_cdf_bin21 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_bin21, 100., 500., 0, 2);
-      AliJetContainer* jetCont02full_cdf_all   = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont02full_cdf_all,     1., 500., 0, 2);
+      // FULL JETS 0.2
+      for ( Float_t i = 0 ; i<=95 ; i+=5) {
+        AliJetContainer* jetcont  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+        CDF::jetContSetParams (jetcont,    i,   i+5, 0, 2);
+        }
 
-      AliJetContainer* jetCont04full_cdf_bin1  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin1,    1.,   5., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin2  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin2,    5.,  10., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin3  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin3,   10.,  15., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin4  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin4,   15.,  20., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin5  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin5,   20.,  25., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin6  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin6,   25.,  30., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin7  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin7,   30.,  35., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin8  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin8,   35.,  40., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin9  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin9,   40.,  45., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin10 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin10,  45.,  50., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin11 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin11,  50.,  55., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin12 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin12,  55.,  60., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin13 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin13,  60.,  65., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin14 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin14,  65.,  70., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin15 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin15,  70.,  75., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin16 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin16,  75.,  80., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin17 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin17,  80.,  85., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin18 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin18,  85.,  90., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin19 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin19,  90.,  95., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin20 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin20,  95., 100., 0, 2);
-      AliJetContainer* jetCont04full_cdf_bin21 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_bin21, 100., 500., 0, 2);
-      AliJetContainer* jetCont04full_cdf_all   = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet"); CDF::jetContSetParams (jetCont04full_cdf_all,     1., 500., 0, 2);
+      AliJetContainer* jetCont02full_cdf_bin21 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+      CDF::jetContSetParams (jetCont02full_cdf_bin21, 100., 500., 0, 2);
+
+      AliJetContainer* jetCont02full_cdf_all   = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+      CDF::jetContSetParams (jetCont02full_cdf_all,     1., 500., 0, 2);
+
+      // FULL JETS 0.4
+      for ( Float_t i = 0 ; i<=95 ; i+=5) {
+        AliJetContainer* jetcont  = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+        CDF::jetContSetParams (jetcont,    i,   i+5, 0, 2);
+        }
+
+      AliJetContainer* jetCont04full_cdf_bin21 = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+      CDF::jetContSetParams (jetCont04full_cdf_bin21, 100., 500., 0, 2);
+
+      AliJetContainer* jetCont04full_cdf_all   = anaTaskCDF->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+      CDF::jetContSetParams (jetCont04full_cdf_all,     1., 500., 0, 2);
       }
     }
 
@@ -521,58 +521,36 @@ AliAnalysisManager* runEMCalJetSampleTask(
       }
 
     if (bDoCDF) {
-      AliJetContainer* jetCont02chg_cdf_bin1  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin1,    1.,   5., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin2  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin2,    5.,  10., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin3  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin3,   10.,  15., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin4  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin4,   15.,  20., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin5  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin5,   20.,  25., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin6  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin6,   25.,  30., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin7  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin7,   30.,  35., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin8  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin8,   35.,  40., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin9  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin9,   40.,  45., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin10 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin10,  45.,  50., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin11 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin11,  50.,  55., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin12 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin12,  55.,  60., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin13 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin13,  60.,  65., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin14 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin14,  65.,  70., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin15 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin15,  70.,  75., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin16 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin16,  75.,  80., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin17 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin17,  80.,  85., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin18 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin18,  85.,  90., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin19 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin19,  90.,  95., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin20 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin20,  95., 100., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_bin21 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_bin21, 100., 500., 0, 0);
-      AliJetContainer* jetCont02chg_cdf_all   = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont02chg_cdf_all,     1., 500., 0, 0);
+      // CHG JETS 0.2
+      for ( Float_t i = 0 ; i<=95 ; i+=5) {
+        AliJetContainer* jetcont  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+        CDF::jetContSetParams (jetcont,    i,   i+5, 0, 0);
+        }
 
-      AliJetContainer* jetCont04chg_cdf_bin1  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin1,    1.,   5., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin2  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin2,    5.,  10., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin3  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin3,   10.,  15., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin4  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin4,   15.,  20., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin5  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin5,   20.,  25., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin6  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin6,   25.,  30., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin7  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin7,   30.,  35., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin8  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin8,   35.,  40., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin9  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin9,   40.,  45., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin10 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin10,  45.,  50., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin11 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin11,  50.,  55., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin12 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin12,  55.,  60., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin13 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin13,  60.,  65., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin14 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin14,  65.,  70., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin15 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin15,  70.,  75., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin16 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin16,  75.,  80., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin17 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin17,  80.,  85., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin18 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin18,  85.,  90., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin19 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin19,  90.,  95., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin20 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin20,  95., 100., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_bin21 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_bin21, 100., 500., 0, 0);
-      AliJetContainer* jetCont04chg_cdf_all   = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet"); CDF::jetContSetParams (jetCont04chg_cdf_all,     1., 500., 0, 0);
+      AliJetContainer* jetCont02chg_cdf_bin21 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+      CDF::jetContSetParams (jetCont02chg_cdf_bin21, 100., 500., 0, 0);
+
+      AliJetContainer* jetCont02chg_cdf_all   = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+      CDF::jetContSetParams (jetCont02chg_cdf_all,     1., 500., 0, 0);
+
+      // CHG JETS 0.4
+      for ( Float_t i = 0 ; i<=95 ; i+=5) {
+        AliJetContainer* jetcont  = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+        CDF::jetContSetParams (jetcont,    i,   i+5, 0, 0);
+        }
+
+      AliJetContainer* jetCont04chg_cdf_bin21 = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+      CDF::jetContSetParams (jetCont04chg_cdf_bin21, 100., 500., 0, 0);
+
+      AliJetContainer* jetCont04chg_cdf_all   = anaTaskCDF->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+      CDF::jetContSetParams (jetCont04chg_cdf_all,     1., 500., 0, 0);
       }
     }
 
   TObjArray *pTopTasks = pMgr->GetTasks();
   for (Int_t i = 0; i < pTopTasks->GetEntries(); ++i) {
     AliAnalysisTaskSE *pTask = dynamic_cast<AliAnalysisTaskSE*>(pTopTasks->At(i));
-    if (!pTask) continue;
+    if (!pTask) { continue; }
     if (pTask->InheritsFrom("AliAnalysisTaskEmcal")) {
       AliAnalysisTaskEmcal *pTaskEmcal = static_cast<AliAnalysisTaskEmcal*>(pTask);
       Printf("Setting beam type %d for task %s", iBeamType, pTaskEmcal->GetName());
@@ -594,14 +572,12 @@ AliAnalysisManager* runEMCalJetSampleTask(
   if ( (iStartAnalysis != 1) || (iStartAnalysis != 2) ) { iStartAnalysis = 1; }
 
   if (iStartAnalysis == 1) { // start local analysis
-    TChain* pChain = 0;
-    if (iDataType == AliAnalysisTaskEmcal::kESD)
-      {
+    TChain* pChain = NULL;
+    if (iDataType == AliAnalysisTaskEmcal::kESD) {
       gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateESDChain.C");
       pChain = CreateESDChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE);
       }
-    else
-      {
+    else {
       gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateAODChain.C");
       pChain = CreateAODChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE);
       }
@@ -633,7 +609,7 @@ AliAnalysisAlien* CreateAlienHandler(const char* gridMode ) {
   TString execName("");  execName = Form("%s.sh", kJobTag.Data());
   TString jdlName("");   jdlName = Form("%s.jdl", kJobTag.Data());
 
-  // Set the run mode (can be "full", "test", "offline", "submit" or "terminate")
+  // Set run mode.  Can be "full", "test", "offline", "submit" or "merge"
   plugin->SetRunMode(gridMode);
 
   // Job tag
@@ -779,21 +755,11 @@ Bool_t LoadLibrary ( const TString& lib_name  )
     }
 
 //######################################################################################################################################
-void LoadMacros()
-{
+void LoadMacros() {
   // Aliroot macros
-  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C");
-  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C");
   gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
   gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
   gROOT->LoadMacro("$ALICE_PHYSICS/PWGPP/PilotTrain/AddTaskCDBconnect.C");
-
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEMCALTender.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskClusterizerFast.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalClusterMaker.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalClusTrackMatcher.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskHadCorr.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskEmcalJet.C");
   gROOT->LoadMacro("$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C");
 }
 
