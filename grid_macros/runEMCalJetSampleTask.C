@@ -226,7 +226,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
   TRegexp enable_regex ("[e,E][n,N][a,A][b,B][l,L][e,E]");
   TRegexp disable_regex ("[d,D][i,I][s,S][a,A][b,B][l,L][e,E]");
 
-  const char*   cLocalFiles    = "data.txt";     // set the local list file
+  TString cLocalFiles ("data.txt");     // set the local list file
   const char*   cTaskName      = "CDFJets";      // sets name of analysis manager
 
   Int_t         iStartAnalysis = 1;         // 1 - local analysis; 2- grid plugin
@@ -353,10 +353,9 @@ AliAnalysisManager* runEMCalJetSampleTask(
 
   Printf("%s analysis chosen.", cDataType);
 
-  TString sLocalFiles(cLocalFiles);
   if (iStartAnalysis == 1) {
-    if (sLocalFiles == "") { Printf("You need to provide the list of local files!"); return 0; }
-    Printf("Setting local analysis for %d files from list %s, max events = %d", iNumFiles, sLocalFiles.Data(), iNumEvents);
+    if (cLocalFiles.IsNull() ) { Printf("You need to provide the list of local files!"); return 0; }
+    Printf("Setting local analysis for %d files from list %s, max events = %d", iNumFiles, cLocalFiles.Data(), iNumEvents);
     }
 
   LoadMacros();
@@ -565,17 +564,15 @@ AliAnalysisManager* runEMCalJetSampleTask(
   pOutFile->Close();
   delete pOutFile;
 
-  if ( (iStartAnalysis != 1) || (iStartAnalysis != 2) ) { iStartAnalysis = 1; }
-
   if (iStartAnalysis == 1) { // start local analysis
     TChain* pChain = NULL;
     if (iDataType == AliAnalysisTaskEmcal::kESD) {
       gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateESDChain.C");
-      pChain = CreateESDChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE);
+      pChain = CreateESDChain(cLocalFiles.Data(), iNumFiles, 0, kFALSE);
       }
     else {
       gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateAODChain.C");
-      pChain = CreateAODChain(sLocalFiles.Data(), iNumFiles, 0, kFALSE);
+      pChain = CreateAODChain(cLocalFiles.Data(), iNumFiles, 0, kFALSE);
       }
 
     // start analysis
@@ -587,7 +584,9 @@ AliAnalysisManager* runEMCalJetSampleTask(
     // start analysis
     Printf("Starting GRID Analysis...");
     if (!std::strcmp(cGridMode, "test")) { pMgr->SetDebugLevel(0); }
-    pMgr->StartAnalysis("grid", iNumEvents);
+    if (std::strcmp(cGridMode, "test"))  { plugin->SetCheckCopy(kFALSE); }
+//     pMgr->StartAnalysis("grid", iNumEvents);
+    plugin->StartAnalysis(iNumEvents);
     }
 
 cout << "END of runEMCalJetSampleTask.C" << endl;
