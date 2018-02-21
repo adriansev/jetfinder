@@ -228,7 +228,7 @@ else if ( datarun.EqualTo ( "pp_lhc12a15f" ) ) {
     plugin->SetGridDataDir ( "/alice/sim/2012/LHC12a15f" );
 
     // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
-    plugin->SetDataPattern ( "*/*/AliAOD.root          *pass1/AOD155/*AliAOD.root" );
+    plugin->SetDataPattern ( "/*/*/AliAOD.root" );
 
     TString list_lhc12a15f = "158285 159582";
 
