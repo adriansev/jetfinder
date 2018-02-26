@@ -8,6 +8,11 @@ bool  bDoFullJets    = false;
 bool  bDoSample = true;
 bool  bDoCDF    = false;
 
+Int_t       kGridFilesPerJob         = 20;             // Maximum number of files per job (gives size of AOD)
+Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
+Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
+Int_t       kTTL                     = 64800 ;         // Time To Live
+
 // Main steering variables just below
 #if !defined(__CINT__) || defined(__MAKECINT__) || defined(__CLING__) || defined(__ROOTCLING__)
 // Standard includes
@@ -161,13 +166,7 @@ Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in prod
 // TString     kAPIVersion              = "V1.1x";
 // TString     kRootVersion             = "v5-34-30-alice8-5";
 // TString     kAliRootVersion          = "v5-09-20a-1";
-TString     kAliPhysicsVersion       = "vAN-20180218-1";
-
-Int_t       kGridFilesPerJob         = 20;             // Maximum number of files per job (gives size of AOD)
-Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
-Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
-
-Int_t       kTTL                     = 64800 ;         // Time To Live
+TString     kAliPhysicsVersion       = "vAN-20180225-1";
 
 TString     kGridOutdir              = "output";          // AliEn output directory. If blank will become output_<kTrainName>
 TString     kGridSubWorkDir          = "";             // sub working directory not to confuse different run xmls
@@ -584,7 +583,6 @@ AliAnalysisManager* runEMCalJetSampleTask(
     // start analysis
     Printf("Starting GRID Analysis...");
     if (!std::strcmp(cGridMode, "test")) { pMgr->SetDebugLevel(0); }
-    if (std::strcmp(cGridMode, "test"))  { plugin->SetCheckCopy(kFALSE); }
 //     pMgr->StartAnalysis("grid", iNumEvents);
     plugin->StartAnalysis(iNumEvents);
     }
@@ -637,8 +635,18 @@ AliAnalysisAlien* CreateAlienHandler(const char* gridMode ) {
   // min (nr,4) replicas in grid storage
   plugin->SetNumberOfReplicas(2);
 
-  // Set the number of test files; set to kGridFilesPerJob as to evaluate the memory consumption and ttl on grid
-  plugin->SetNtestFiles ( iNumFiles );
+  if (std::strcmp(gridMode, "test")) {
+    plugin->SetCheckCopy(kFALSE);
+    plugin->SetNtestFiles ( iNumFiles );
+    plugin->SetTTL(kTTL);
+    }
+  else {
+    // Set the number of test files; set to kGridFilesPerJob as to evaluate the memory consumption and ttl on grid
+    plugin->SetNtestFiles ( kGridFilesPerJob );
+
+    // Optionally set time to live
+    plugin->SetTTL(172800); // 48h ttl for test mode
+    }
 
   if ( kPluginUseProductionMode ) { plugin->SetProductionMode(); }
 
@@ -665,9 +673,6 @@ AliAnalysisAlien* CreateAlienHandler(const char* gridMode ) {
 
   // Optionally set maximum number of input files/subjob (default 100, put 0 to ignore)
   plugin->SetSplitMaxInputFileNumber ( kGridFilesPerJob );
-
-  // Optionally set time to live
-  plugin->SetTTL(kTTL);
 
   // Optionally set input format (default xml-single)
   plugin->SetInputFormat("xml-single");
