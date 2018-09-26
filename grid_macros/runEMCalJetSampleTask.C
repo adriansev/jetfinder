@@ -1,17 +1,22 @@
 // Defined defaults
-unsigned int iNumFiles      = 1;       // number of files analyzed locally
-unsigned int iNumEvents     = 100;     // number of events to be analyzed
+unsigned int iNumFiles      = 10;       // number of files analyzed locally
+unsigned int iNumEvents     = 99999999;     // number of events to be analyzed
 
 bool  bDoChargedJets = true;
 bool  bDoFullJets    = false;
 
 bool  bDoSample = true;
-bool  bDoCDF    = false;
+bool  bDoCDF    = true;
 
-Int_t       kGridFilesPerJob         = 20;             // Maximum number of files per job (gives size of AOD)
-Int_t       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
-Int_t       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
-Int_t       kTTL                     = 64800 ;         // Time To Live
+unsigned int       kGridFilesPerJob         = 20;             // Maximum number of files per job (gives size of AOD)
+unsigned int       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
+unsigned int       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
+unsigned int       kTTL                     = 64800 ;         // Time To Live
+
+// Tell ROOT where to find AliRoot headers
+R__ADD_INCLUDE_PATH($ALICE_ROOT/include)
+// Tell ROOT where to find AliPhysics headers
+R__ADD_INCLUDE_PATH($ALICE_PHYSICS/include)
 
 // Main steering variables just below
 #if !defined(__CINT__) || defined(__MAKECINT__) || defined(__CLING__) || defined(__ROOTCLING__)
@@ -53,6 +58,8 @@ Int_t       kTTL                     = 64800 ;         // Time To Live
 #include "TObject.h"
 #include "TNamed.h"
 #include "TTask.h"
+
+// AliROOT includes
 #include "AliAnalysisTask.h"
 #include "AliAnalysisTaskSE.h"
 #include "AliAnalysisDataContainer.h"
@@ -60,7 +67,6 @@ Int_t       kTTL                     = 64800 ;         // Time To Live
 #include "AliAnalysisTaskEmcal.h"
 #include "AliAnalysisTaskEmcalJet.h"
 
-// AliROOT includes
 #include "AliAnalysisManager.h"
 #include "AliAnalysisGrid.h"
 #include "AliAnalysisAlien.h"
@@ -117,34 +123,30 @@ Int_t       kTTL                     = 64800 ;         // Time To Live
 #include "../PWG/EMCAL/macros/CreateESDChain.C"
 #include "../PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C"
 
+
+#include "OADB/macros/AddTaskPhysicsSelection.C"
+#include "OADB/macros/AddTaskCentrality.C"
+#include "PWGPP/PilotTrain/AddTaskCDBconnect.C"
+#include "PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C"
+#include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetSample.C"
+
 #include "InputData.C"
 
 #endif
 
-//############################################################
-//############################################################
-TString     ListLibs      = "";
-TString     ListLibsExtra = "";
+class AliESDInputHandler;
+class AliAODInputHandler;
+class AliVEvent;
+class AliAnalysisManager;
+class AliPhysicsSelectionTask;
+class AliCentralitySelectionTask;
+class AliEmcalCorrectionTask;
+class AliEmcalJetTask;
+class AliAnalysisTaskRho;
+class AliAnalysisTaskEmcalJetSample;
+class AliAnalysisGrid;
+class AliAnalysisAlien;
 
-const AliAnalysisTaskEmcal::EDataType_t kAod = AliAnalysisTaskEmcal::kAOD;
-const AliAnalysisTaskEmcal::EDataType_t kEsd = AliAnalysisTaskEmcal::kESD;
-
-AliEmcalPhysicsSelection::EOfflineEmcalTypes kEMCAL      = AliEmcalPhysicsSelection::kEmcalOk;
-AliVEvent::EOfflineTriggerTypes  kMB         = AliVEvent::kAnyINT;
-AliVEvent::EOfflineTriggerTypes  kEMC        = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA);
-AliVEvent::EOfflineTriggerTypes  kEMC_noGA   = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE);
-
-const AliJetContainer::EJetType_t  fulljet = AliJetContainer::kFullJet;
-const AliJetContainer::EJetType_t   chgjet = AliJetContainer::kChargedJet;
-
-// kTPC, kTPCfid, kEMCAL, kEMCALfid, kDCAL, kDCALfid, kDCALonly, kDCALonlyfid, kPHOS, kPHOSfid, kUser
-const AliEmcalJet::JetAcceptanceType acc_chgjets  = AliEmcalJet::kTPCfid;
-const AliEmcalJet::JetAcceptanceType acc_fulljets = AliEmcalJet::kEMCALfid;
-
-const AliJetContainer::EJetAlgo_t     antikt = AliJetContainer::antikt_algorithm;
-const AliJetContainer::EJetAlgo_t         kt = AliJetContainer::kt_algorithm;
-
-const AliJetContainer::ERecoScheme_t  recomb = AliJetContainer::pt_scheme;
 
 //______________________________________________________________________________
 //(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)(*)
@@ -215,80 +217,58 @@ const char* pwd() { return gSystem->WorkingDirectory(); }
 const char* basedir() { return gSystem->BaseName( pwd() ); }
 //############################################################
 
+const AliEmcalPhysicsSelection::EOfflineEmcalTypes mykEMCAL      = AliEmcalPhysicsSelection::kEmcalOk;
+const AliVEvent::EOfflineTriggerTypes  mykMB         = AliVEvent::kAnyINT;
+const AliVEvent::EOfflineTriggerTypes  mykEMC        = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA);
+const AliVEvent::EOfflineTriggerTypes  mykEMC_noGA   = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE);
+
+
+
 // using namespace std;
 //______________________________________________________________________________
 AliAnalysisManager* runEMCalJetSampleTask(
-    const char*   cDataType      = "AOD"                    // set the analysis type, AOD or ESD
+    const char*   cDataType      = "AOD",         // set the analysis type, AOD or ESD
+    const char*   cRunPeriod     = "LHC11d",     // set the run period
+    const char*   cLocalFiles    = "data.txt",   // set the local list file
+    AliVEvent::EOfflineTriggerTypes phys_sel_chg   = "mykMB", // "mykEMC_noGA",  // physics selection
+    AliVEvent::EOfflineTriggerTypes phys_sel_full  = "mykMB", // "mykEMC_noGA",  // physics selection
+    Int_t         iStartAnalysis = 1,
+    const char*   cGridMode      = "test",
+    const char*   cTaskName      = "CDFJets"     // sets name of analysis manager
 ) {
-  TRegexp false_regex ("[f,F][a,A][l,L][s,S][e,E]");
-  TRegexp true_regex ("[t,T][r,R][u,U][e,E]");
-  TRegexp enable_regex ("[e,E][n,N][a,A][b,B][l,L][e,E]");
-  TRegexp disable_regex ("[d,D][i,I][s,S][a,A][b,B][l,L][e,E]");
+const AliAnalysisTaskEmcal::EDataType_t kAod = AliAnalysisTaskEmcal::kAOD;
+const AliAnalysisTaskEmcal::EDataType_t kEsd = AliAnalysisTaskEmcal::kESD;
 
-  TString cLocalFiles ("data.txt");     // set the local list file
-  const char*   cTaskName      = "CDFJets";      // sets name of analysis manager
+const AliJetContainer::EJetType_t  fulljet = AliJetContainer::kFullJet;
+const AliJetContainer::EJetType_t   chgjet = AliJetContainer::kChargedJet;
 
-  Int_t         iStartAnalysis = 1;         // 1 - local analysis; 2- grid plugin
-  const char*   cGridMode      = "test";
+// kTPC, kTPCfid, kEMCAL, kEMCALfid, kDCAL, kDCALfid, kDCALonly, kDCALonlyfid, kPHOS, kPHOSfid, kUser
+const AliEmcalJet::JetAcceptanceType acc_chgjets  = AliEmcalJet::kTPCfid;
+const AliEmcalJet::JetAcceptanceType acc_fulljets = AliEmcalJet::kEMCALfid;
 
-  TString ENV_GRID = gSystem->Getenv("CDF_GRID");
-  if (!ENV_GRID.IsNull() && ( !ENV_GRID.CompareTo("1") || ENV_GRID.Contains(true_regex) || ENV_GRID.Contains(enable_regex)) )  { iStartAnalysis = 2; }
+const AliJetContainer::EJetAlgo_t     antikt = AliJetContainer::antikt_algorithm;
+const AliJetContainer::EJetAlgo_t         kt = AliJetContainer::kt_algorithm;
 
-  TString ENV_GRIDMODE = gSystem->Getenv("CDF_GRIDMODE");
-  if (!ENV_GRID.IsNull() )  { cGridMode = ENV_GRIDMODE.Data(); }
+const AliJetContainer::ERecoScheme_t  recomb = AliJetContainer::pt_scheme;
 
-  TString ENV_numfiles = gSystem->Getenv("CDF_NUMFILES");
-  if (!ENV_numfiles.IsNull() && ENV_numfiles.IsDigit() ) { iNumFiles = ENV_numfiles.Atoi(); }
+// label of dataset from InputData.C
+TString kGridDataSet ("pp_lhc16q_aod");
 
-  TString ENV_numev = gSystem->Getenv("CDF_NUMEV");
-  if (!ENV_numev.IsNull() && ENV_numev.IsDigit() ) { iNumEvents = ENV_numev.Atoi(); }
+// data source name
+TString kDataSource (cLocalFiles);
 
-  TString ENV_CHGJETS = gSystem->Getenv("CDF_CHGJETS");
-  if (!ENV_CHGJETS.IsNull() && ( !ENV_CHGJETS.CompareTo("0") || ENV_CHGJETS.Contains(false_regex) ) ) { bDoChargedJets = kFALSE; }
-  if (!ENV_CHGJETS.IsNull() && ( !ENV_CHGJETS.CompareTo("1") || ENV_CHGJETS.Contains(true_regex) ) )  { bDoChargedJets = kTRUE; }
-
-  TString ENV_FULLJETS = gSystem->Getenv("CDF_FULLJETS");
-  if (!ENV_FULLJETS.IsNull() && ( !ENV_FULLJETS.CompareTo("0") || ENV_FULLJETS.Contains(false_regex) )  ) { bDoChargedJets = kFALSE; }
-  if (!ENV_FULLJETS.IsNull() && ( !ENV_FULLJETS.CompareTo("1") || ENV_FULLJETS.Contains(true_regex) )  )  { bDoChargedJets = kTRUE; }
-
-  TString ENV_doSAMPLE = gSystem->Getenv("CDF_doSAMPLE");
-  if (!ENV_doSAMPLE.IsNull() && ( !ENV_doSAMPLE.CompareTo("0") || ENV_doSAMPLE.Contains(false_regex) )  ) { bDoSample = kFALSE; }
-  if (!ENV_doSAMPLE.IsNull() && ( !ENV_doSAMPLE.CompareTo("1") || ENV_doSAMPLE.Contains(true_regex) )  )  { bDoSample = kTRUE; }
-
-  TString ENV_doCDF = gSystem->Getenv("CDF_doCDF");
-  if (!ENV_doCDF.IsNull() && ( !ENV_doCDF.CompareTo("0") || ENV_doCDF.Contains(false_regex) )  ) { bDoCDF = kFALSE; }
-  if (!ENV_doCDF.IsNull() && ( !ENV_doCDF.CompareTo("1") || ENV_doCDF.Contains(true_regex) )  )  { bDoCDF = kTRUE; }
-
-  // label of dataset from InputData.C
-  TString kGridDataSet    = "pp_lhc16q_aod";
-  TString ENV_dataset = gSystem->Getenv("CDF_dataset");
-  if (!ENV_dataset.IsNull() ) { kGridDataSet = ENV_dataset.Data(); }
-
-  // EMCAL corrections task configuration file
-  TString EMCALcfg ("PWGJE_SEV_Config.yaml");
-  TString ENV_EMCALCFG = gSystem->Getenv("CDF_EMCALCFG");
-  if (!ENV_EMCALCFG.IsNull() ) { EMCALcfg = ENV_EMCALCFG.Data(); }
-
+// EMCAL corrections task configuration file
+TString EMCALcfg ("PWGJE_SEV_Config.yaml");
 
 //############################################################
+// SETUP OF TRIGGERS
+AliVEvent::EOfflineTriggerTypes kPhysSel   = mykMB; //AliVEvent::kAnyINT; // physics selection
+AliVEvent::EOfflineTriggerTypes kSel_tasks = mykMB;
 
-  AliVEvent::EOfflineTriggerTypes kPhysSel = kMB; //AliVEvent::kAnyINT; // physics selection
-  AliVEvent::EOfflineTriggerTypes kSel_chg = kEMC_noGA;
-  AliVEvent::EOfflineTriggerTypes kSel_full = kEMC_noGA;
-  AliVEvent::EOfflineTriggerTypes kSel_tasks = kMB;
+AliVEvent::EOfflineTriggerTypes kSel_chg   = phys_sel_chg;
+AliVEvent::EOfflineTriggerTypes kSel_full  = phys_sel_full;
 
-  TInterpreter* my_int = TInterpreter::Instance();
-
-  TString ENV_TRGSEL_CHG = gSystem->Getenv("CDF_TRGSEL_CHG");
-  if (!ENV_TRGSEL_CHG.IsNull() ) {
-    my_int->ProcessLine(Form( "kSel_chg = %s;" , ENV_TRGSEL_CHG.Data() )) ;
-    }
-
-  TString ENV_TRGSEL_FULL = gSystem->Getenv("CDF_TRGSEL_FULL");
-  if (!ENV_TRGSEL_FULL.IsNull() ) {
-    my_int->ProcessLine(Form( "kSel_full = %s;" , ENV_TRGSEL_FULL.Data() )) ;
-    }
-
+//############################################################
   // Analysis manager
   AliAnalysisManager* pMgr = new AliAnalysisManager(cTaskName);
   AliAnalysisAlien* plugin = NULL;
@@ -305,7 +285,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
   TString sRunPeriod, pass ;
 
   if (iStartAnalysis == 1)  {
-    TString input_path = GetInputDataPath (cLocalFiles);
+    TString input_path = GetInputDataPath (kDataSource);
     sRunPeriod = GetPeriod (input_path);
     pass   = GetPass (input_path);
     }
@@ -341,7 +321,11 @@ AliAnalysisManager* runEMCalJetSampleTask(
   AliTrackContainer::SetDefTrackCutsPeriod(sRunPeriod);
   Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
 
-  LoadLibs();
+  //Load needed libs
+  TString     ListLibs      = ""; // string list of loaded libs
+  TString     ListLibsExtra = ""; // string list of loaded extra libs
+
+  LoadLibs( ListLibs, ListLibsExtra );
   namespace CDF = NS_AliAnalysisTaskEmcalJetCDF;
 
   Bool_t   bDoEmcalCorrections  = kFALSE;
@@ -353,11 +337,13 @@ AliAnalysisManager* runEMCalJetSampleTask(
   Printf("%s analysis chosen.", cDataType);
 
   if (iStartAnalysis == 1) {
-    if (cLocalFiles.IsNull() ) { Printf("You need to provide the list of local files!"); return 0; }
-    Printf("Setting local analysis for %d files from list %s, max events = %d", iNumFiles, cLocalFiles.Data(), iNumEvents);
+    if ( kDataSource.IsNull() ) { Printf("You need to provide the list of local files!"); return 0; }
+    Printf("Setting local analysis for %d files from list %s, max events = %d", iNumFiles, kDataSource.Data(), iNumEvents);
     }
 
+  #ifndef __CLING__
   LoadMacros();
+  #endif
 
   AliAODInputHandler* pAODHandler = NULL;
   AliESDInputHandler* pESDHandler = NULL;
@@ -370,7 +356,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
     }
 
   // Physics selection task
-  if (iDataType == AliAnalysisTaskEmcal::kESD) 
+  if (iDataType == AliAnalysisTaskEmcal::kESD)
     { AliPhysicsSelectionTask* pPhysSelTask = AddTaskPhysicsSelection(); }
 
   // Centrality task
@@ -388,7 +374,7 @@ AliAnalysisManager* runEMCalJetSampleTask(
     // Configuration of the Correction Task is handled via a YAML file, which is setup below
     AliEmcalCorrectionTask * correctionTask = AliEmcalCorrectionTask::AddTaskEmcalCorrectionTask();
     correctionTask->SelectCollisionCandidates(kPhysSel);
-    correctionTask->SetForceBeamType((AliEmcalCorrectionTask::BeamType)iBeamType);
+    correctionTask->SetForceBeamType(static_cast<AliEmcalCorrectionTask::BeamType>(iBeamType));
 
     // Configure and initialize
     correctionTask->SetUserConfigurationFilename( EMCALcfg.Data() );
@@ -419,20 +405,20 @@ AliAnalysisManager* runEMCalJetSampleTask(
   // Charged jet analysis
   if (bDoChargedJets) {
     AliEmcalJetTask *pChJet02Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", antikt, 0.2, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
-    pChJet02Task->SelectCollisionCandidates(kSel_chg);
+    pChJet02Task->SelectCollisionCandidates(kPhysSel);
 
     AliEmcalJetTask *pChJet04Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", antikt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
-    pChJet04Task->SelectCollisionCandidates(kSel_chg);
+    pChJet04Task->SelectCollisionCandidates(kPhysSel);
     }
 
   // Full jet analysis
   if (bDoFullJets) {
     AliEmcalJetTask *pFuJet02Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "usedefault", antikt, 0.2, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
-    pFuJet02Task->SelectCollisionCandidates(kSel_full);
+    pFuJet02Task->SelectCollisionCandidates(kPhysSel);
     pFuJet02Task->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
 
     AliEmcalJetTask *pFuJet04Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "usedefault", antikt, 0.4, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
-    pFuJet04Task->SelectCollisionCandidates(kSel_full);
+    pFuJet04Task->SelectCollisionCandidates(kPhysSel);
     pFuJet04Task->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
     }
 
@@ -440,29 +426,28 @@ AliAnalysisManager* runEMCalJetSampleTask(
   AliAnalysisTaskEmcalJetSample* sampleTask = NULL;
   if (bDoSample) {
     sampleTask = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample("usedefault", "usedefault", "usedefault", "new");
-    sampleTask->SelectCollisionCandidates(kSel_tasks);
-
-    sampleTask->GetParticleContainer(0)->SetParticlePtCut(0.15);
-    sampleTask->SetHistoBins(600, 0, 300);
     sampleTask->GetClusterContainer(0)->SetClusECut(0.);
     sampleTask->GetClusterContainer(0)->SetClusPtCut(0.);
     sampleTask->GetClusterContainer(0)->SetClusNonLinCorrEnergyCut(0.);
     sampleTask->GetClusterContainer(0)->SetClusHadCorrEnergyCut(0.30);
     sampleTask->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
+    sampleTask->GetParticleContainer(0)->SetParticlePtCut(0.15);
+    sampleTask->SetHistoBins(600, 0, 300);
+    sampleTask->SelectCollisionCandidates(kPhysSel);
     }
 
   //###   CDF task
   AliAnalysisTaskEmcalJetCDF* anaTaskCDF = NULL;
   if (bDoCDF) {
     anaTaskCDF = CDF::AddTaskEmcalJetCDF ( "usedefault", "usedefault", "usedefault", "CDF" );
-    anaTaskCDF->SelectCollisionCandidates(kSel_tasks);
-
-    anaTaskCDF->GetParticleContainer(0)->SetParticlePtCut(0.15);
     anaTaskCDF->GetClusterContainer(0)->SetClusECut(0.);
     anaTaskCDF->GetClusterContainer(0)->SetClusPtCut(0.);
     anaTaskCDF->GetClusterContainer(0)->SetClusNonLinCorrEnergyCut(0.);
     anaTaskCDF->GetClusterContainer(0)->SetClusHadCorrEnergyCut(0.30);
     anaTaskCDF->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
+    anaTaskCDF->GetParticleContainer(0)->SetParticlePtCut(0.15);
+    anaTaskCDF->SetHistoBins(600, 0, 300);
+    anaTaskCDF->SelectCollisionCandidates(kPhysSel);
     }
 
   if (bDoFullJets) {
@@ -565,14 +550,35 @@ AliAnalysisManager* runEMCalJetSampleTask(
 
   if (iStartAnalysis == 1) { // start local analysis
     TChain* pChain = NULL;
-    if (iDataType == AliAnalysisTaskEmcal::kESD) {
-      gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateESDChain.C");
-      pChain = CreateESDChain(cLocalFiles.Data(), iNumFiles, 0, kFALSE);
-      }
-    else {
+
+    if (iDataType == AliAnalysisTaskEmcal::kAOD) {
+      #ifdef __CLING__
+      std::stringstream aodChain;
+      aodChain << ".x " << gSystem->Getenv("ALICE_PHYSICS") <<  "/PWG/EMCAL/macros/CreateAODChain.C(";
+      aodChain << "\"" << kDataSource.Data() << "\", ";
+      aodChain << iNumEvents << ", ";
+      aodChain << 0 << ", ";
+      aodChain << std::boolalpha << kFALSE << ");";
+      pChain = reinterpret_cast<TChain *>(gROOT->ProcessLine(aodChain.str().c_str()));
+      #else
       gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateAODChain.C");
-      pChain = CreateAODChain(cLocalFiles.Data(), iNumFiles, 0, kFALSE);
-      }
+      pChain = CreateAODChain(kDataSource.Data(), iNumFiles, 0, kFALSE);
+      #endif
+    }
+    else {
+      #ifdef __CLING__
+      std::stringstream esdChain;
+      esdChain << ".x " << gSystem->Getenv("ALICE_PHYSICS") <<  "/PWG/EMCAL/macros/CreateESDChain.C(";
+      esdChain << "\"" << kDataSource.Data() << "\", ";
+      esdChain << iNumEvents << ", ";
+      esdChain << 0 << ", ";
+      esdChain << std::boolalpha << kFALSE << ");";
+      pChain = reinterpret_cast<TChain *>(gROOT->ProcessLine(esdChain.str().c_str()));
+      #else
+      gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/CreateESDChain.C");
+      pChain = CreateESDChain(kDataSource.Data(), iNumFiles, 0, kFALSE);
+      #endif
+    }
 
     // start analysis
     Printf("Starting Analysis...");
@@ -702,19 +708,19 @@ AliAnalysisAlien* CreateAlienHandler(const char* gridMode ) {
 }
 
 //______________________________________________________________________________
-void LoadLibs ()
+void LoadLibs (TString& listlibs, TString& listlibsextra)
   {
   TString list_fj         = "CGAL fastjet siscone siscone_spherical fastjetplugins fastjettools fastjetcontribfragile";
   TString list_alicejets  = "PWGJEEMCALJetTasks";
 
-  LoadLibList (list_fj);
-  LoadLibList (list_alicejets);
+  LoadLibList (list_fj, listlibs, listlibsextra);
+  LoadLibList (list_alicejets, listlibs, listlibsextra);
 
   ::Info ( "EmcalJetCDF::LoadROOTLibs", "Load ROOT libraries:    SUCCESS" );
   }
 
 //______________________________________________________________________________
-void LoadLibList ( const TString& list )
+void LoadLibList ( const TString& list, TString& listlibs, TString& listlibsextra )
     {
     TObjArray* arr = list.Tokenize(" ");
     TObjString *objstr = NULL;
@@ -724,13 +730,13 @@ void LoadLibList ( const TString& list )
         {
         TString module = objstr->GetString();
         module.Prepend("lib");
-        if ( !LoadLibrary (module) ) { gApplication->Terminate(); }
+        if ( !LoadLibrary (module, listlibs, listlibsextra) ) { gApplication->Terminate(); }
         }
     delete arr;
     }
 
 //______________________________________________________________________________
-Bool_t LoadLibrary ( const TString& lib_name  )
+Bool_t LoadLibrary ( const TString& lib_name, TString& listlibs, TString& listlibsextra )
     {
     TString lib (lib_name);
     Int_t result = -999 ;
@@ -748,8 +754,8 @@ Bool_t LoadLibrary ( const TString& lib_name  )
     TString lib_in_list = "";
     lib_in_list = lib + ".so "; // blank after .so
 
-    ListLibs      += lib_in_list;
-    ListLibsExtra += lib_in_list;
+    listlibs      += lib_in_list;
+    listlibsextra += lib_in_list;
 
     return kTRUE;
     }
