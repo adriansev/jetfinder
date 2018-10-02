@@ -3,9 +3,9 @@ unsigned int iNumFiles      = 1;       // number of files analyzed locally
 unsigned int iNumEvents     = 99999999;     // number of events to be analyzed
 
 bool  bDoChargedJets = true;
-bool  bDoFullJets    = true;
+bool  bDoFullJets    = false;
 
-bool  bDoSample = true;
+bool  bDoSample = false;
 bool  bDoCDF    = true;
 
 unsigned int       kGridFilesPerJob         = 20;             // Maximum number of files per job (gives size of AOD)
@@ -168,7 +168,7 @@ Bool_t      kPluginUseProductionMode = kFALSE;         // use the plugin in prod
 // TString     kAPIVersion              = "V1.1x";
 // TString     kRootVersion             = "v5-34-30-alice8-5";
 // TString     kAliRootVersion          = "v5-09-20a-1";
-TString     kAliPhysicsVersion       = "vAN-20180926-1";
+TString     kAliPhysicsVersion       = "vAN-20181002-1";
 
 TString     kGridOutdir              = "output";          // AliEn output directory. If blank will become output_<kTrainName>
 TString     kGridSubWorkDir          = "";             // sub working directory not to confuse different run xmls
@@ -398,11 +398,11 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = phys_sel_full;
     pRhoTask->SetExcludeLeadJets(2);
     pRhoTask->SelectCollisionCandidates(kPhysSel);
 
-    if (bDoFullJets) {
-      TString sFuncPath = "alien:///alice/cern.ch/user/s/saiola/LHC11h_ScaleFactorFunctions.root";
-      TString sFuncName = "LHC11h_HadCorr20_ClustersV2";
-      pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
-      }
+    //if (bDoFullJets) {
+    //  TString sFuncPath = "alien:///alice/cern.ch/user/s/saiola/LHC11h_ScaleFactorFunctions.root";
+    //  TString sFuncName = "LHC11h_HadCorr20_ClustersV2";
+    //  pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
+    //  }
     }
 
   // Charged jet analysis
