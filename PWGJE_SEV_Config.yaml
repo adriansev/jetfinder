@@ -1,4 +1,3 @@
-## $ALICE_PHYSICS/PWG/EMCAL/config/PWGJESampleConfig.yaml
 configurationName: "PWGJE Sample Configuration"
 pass: ""
 CellEnergy:
@@ -15,6 +14,8 @@ Clusterizer:
     cellTimeMin: -1
     cellTimeMax: +1
     clusterTimeLength: 1
+    cellE: 0.1
+    seedE: 0.3
 ClusterExotics:
     enabled: true
     createHistos: true
