@@ -1,13 +1,20 @@
 #!/bin/bash
 
-#VER="vAN-20161119-1"
-#export VER
+#mykEMC : 50192
+#mykEMC_noGA : 17424
+#mykMB : 3145763
+#mykMB_central 3211299
+#mykMB_semicentral 3276835
+#mykMB_mostcentral 3342371
 
-#eval $(alienv printenv VO_ALICE@AliPhysics::${VER})
+EXEC_ARGS="-l -b -q -x"
 
-##root -b -q -x runEMCalJetSampleTask.C\(\"AOD\",\"lhc11d\"\,\"data.txt\",mykMB,mykMB\)
-root -b -q -x runEMCalJetSampleTask.C\(\"AOD\",\"lhc11d\"\,\"data.txt\",mykEMC_noGA,mykEMC_noGA\)
+#EXEC="root.exe ${EXEC_ARGS}"
+EXEC="aliroot ${EXEC_ARGS}"
 
-echo "end of $PBS_JOBNAME"
+export VER_ALIBUILD="ali-latest-1"
+source $(alienv printenv AliPhysics/${VER_ALIBUILD})
+
+${EXEC} EmcalJetCDF.C\(\"AOD\",\"lhc16r\"\,\"data.txt\",50192,50192,1,\"test\",\"CDFjets\",3,9999999,true,true\)
 
 

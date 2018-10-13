@@ -1,3 +1,5 @@
+#!/bin/bash
+
 help ()
 {
 echo "Signature of the macro function :"
@@ -13,8 +15,7 @@ echo "massif : for running script under the valgrind tool massif"
 echo "valgrind : for running under valgrind with --leak-check=full --suppressions=/software/physics-tools/alice/aliroot-src/etc/valgrind-aliroot.supp"
 }
 
-escape_quotes ()
-{
+escape_quotes () {
   string=$1
   substring="\""
   replacement="\\\""
@@ -22,43 +23,35 @@ escape_quotes ()
 }
 
 
-quote_args()
-{
+quote_args () {
   arg=$1
 
-  if [[ $arg == ${arg//[^0-9]/} ]]
-  then
+  if [[ $arg == ${arg//[^0-9]/} ]]; then
     echo $arg
   else
     echo "\""$arg"\""
   fi
 }
 
-dot_countdown()
-{
+dot_countdown () {
 i=0
-while (( i < $1 ))
-  do
+while (( i < $1 )); do
   echo -ne ". "
   sleep 1
   ((i++))
-  done 
+done
 echo
 }
 
-if [ "$1" = "help" ]
-then
+if [ "$1" = "help" ]; then
   help ; exit
-elif [ "$1" = "memstat" ]
-then
+elif [ "$1" = "memstat" ] ; then
   MEMSTAT=" -memstat "
   shift
-elif [ "$1" = "massif" ]
-then
+elif [ "$1" = "massif" ] ; then
   VALGRIND="valgrind --tool=massif "
   shift
-elif [ "$1" = "valgrind" ]
-then
+elif [ "$1" = "valgrind" ]; then
   VALGRIND="valgrind --leak-check=full --suppressions=/software/physics-tools/alice/aliroot-src/etc/valgrind-aliroot.supp "
   shift
 fi
@@ -69,12 +62,10 @@ COMMAND="EmcalJetCDF.C"
 # parse arguments and quote them
 ARGS_CORE=""
 
-for token in $@
-do
-  token2=`quote_args $token`
+for token in $@ ; do
+  token2=$(quote_args ${token})
 
-  if [ -n "$ARGS_CORE" ]
-  then
+  if [ -n "$ARGS_CORE" ] ; then
     ARGS_CORE=$ARGS_CORE,$token2
   else
     ARGS_CORE=$token2
