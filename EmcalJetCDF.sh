@@ -1,4 +1,11 @@
 #!/bin/bash
+
+USE_ALIROOT="" # set to yes to use aliroot instead of root.exe
+USE_CVMFS=""   # set to yes to load cvmfs environment instead of alibuild
+
+export VER_ALIBUILD="ali-latest-1"
+export VER_CVMFS="vAN-20181014-1"
+
 #mykEMC : 50192
 #mykEMC_noGA : 17424
 #mykMB : 3145763
@@ -12,15 +19,35 @@ export CDF_doCDF='true'     # toggle execution of TaskEmcalJetCDF task
 export CDF_DEBUG='0'        # set debug value kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
 export CDF_DEBUG_MGR='0'     # set debug value for AliAnalysisManager
 export CDF_NSYSINFO='0'      # set (end enable) profiling of task; any int > 0 will enable profiling at sampling rate defined
-export PROGRESSBAR='true'       # toggle the progress bar of AliAnalysisManager; will disable debugging
+export PROGRESSBAR='false'       # toggle the progress bar of AliAnalysisManager; will disable debugging
 
 EXEC_ARGS="-l -b -q -x"
 
-#EXEC="root.exe ${EXEC_ARGS}"
-EXEC="aliroot ${EXEC_ARGS}"
+# Establish the running executable and base arguments
+CMD="root.exe"
+[[ "${USE_ALIROOT}" == "yes" ]] && CMD="aliroot"
+EXEC="${CMD} ${EXEC_ARGS}"
 
-export VER_ALIBUILD="ali-latest-1"
-[[ -z "${ALICE_PHYSICS}" ]] && source $(alienv printenv AliPhysics/${VER_ALIBUILD})
+if [[ -z "${ALICE_PHYSICS}" ]]; then # if there is no environment loaded
+    if [[ "${USE_CVMFS}" == "yes" ]]; then
+        eval $(alienv printenv VO_ALICE@AliPhysics::${VER_CVMFS})
+    else
+        source $(alienv printenv AliPhysics/${VER_ALIBUILD})
+    fi
+fi
 
-${EXEC} EmcalJetCDF.C\(\"AOD\",\"lhc16r\"\,\"data.txt\",50192,50192,1,\"test\",\"CDFjets\",1,1000,true,true\)
+#    const char*   cDataType      = "AOD",
+#    const char*   cRunPeriod     = "LHC11d",
+#    const char*   cLocalFiles    = "data.txt",
+#    const UInt_t  arg_sel_chg    = 3145763,
+#    const UInt_t  arg_sel_full   = 3145763,
+#    int           iStartAnalysis = 1,
+#    const char*   cGridMode      = "test",
+#    const char*   cTaskName      = "CDFJets",
+#    unsigned int  iNumFiles      = 100,
+#    unsigned int  iNumEvents     = 999999999,
+#    bool          bDoChargedJets = true,
+#    bool          bDoFullJets    = false
+
+${EXEC} EmcalJetCDF.C\(\"AOD\",\"lhc16r\"\,\"data.txt\",50192,50192,1,\"test\",\"CDFjets\",1,1000,true,false\)
 
