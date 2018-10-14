@@ -155,25 +155,49 @@ AliAnalysisManager* EmcalJetCDF (
     bool          bDoChargedJets = true,        // enable charge jets
     bool          bDoFullJets    = false        // enable full jets
 ) {
-
-bool  bDoSample = false;
-bool  bDoCDF    = true;
-
-unsigned int       kGridFilesPerJob         = iNumFiles;             // Maximum number of files per job (gives size of AOD)
+unsigned int       kGridFilesPerJob         = iNumFiles;      // Maximum number of files per job (gives size of AOD)
 unsigned int       kTTL                     = 43200 ;         // Time To Live; 18h = 64800; 12h = 43200
 
-// ######   DEBUG    ######
-Bool_t          bUseProgBar        = kFALSE; // N.B. !! if true will set fDebug to 0
+//---------------------------------------------------------------------------------------------
+TRegexp false_regex ("[f,F][a,A][l,L][s,S][e,E]");
+TRegexp true_regex ("[t,T][r,R][u,U][e,E]");
+TRegexp enable_regex ("[e,E][n,N][a,A][b,B][l,L][e,E]");
+TRegexp disable_regex ("[d,D][i,I][s,S][a,A][b,B][l,L][e,E]");
 
+bool  bDoSample = false;
+TString ENV_doSAMPLE = gSystem->Getenv("CDF_doSAMPLE");
+if (!ENV_doSAMPLE.IsNull() && ( ENV_doSAMPLE.EqualTo("0") || ENV_doSAMPLE.Contains(false_regex) ) ) { bDoSample = kFALSE; }
+if (!ENV_doSAMPLE.IsNull() && ( ENV_doSAMPLE.EqualTo("1") || ENV_doSAMPLE.Contains(true_regex)  ) ) { bDoSample = kTRUE; }
+
+bool  bDoCDF    = true;
+TString ENV_doCDF = gSystem->Getenv("CDF_doCDF");
+if (!ENV_doCDF.IsNull() && ( ENV_doCDF.EqualTo("0") || ENV_doCDF.Contains(false_regex) ) ) { bDoCDF = kFALSE; }
+if (!ENV_doCDF.IsNull() && ( ENV_doCDF.EqualTo("1") || ENV_doCDF.Contains(true_regex)  ) ) { bDoCDF = kTRUE; }
+
+// ######   DEBUG    ######
 Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
 UInt_t          mgr_debug          =  0 ; // AliAnalysisManager debug level
 UInt_t          kUseSysInfo        =  0 ; // activate debugging
+
+TString ENV_DEBUG = gSystem->Getenv("CDF_DEBUG");
+if (!ENV_DEBUG.IsNull() && ENV_DEBUG.IsDigit() ) { debug = ENV_DEBUG.Atoi(); }
+
+TString ENV_DEBUG_MGR = gSystem->Getenv("CDF_DEBUG_MGR");
+if (!ENV_DEBUG_MGR.IsNull() && ENV_DEBUG_MGR.IsDigit() ) { mgr_debug = ENV_DEBUG_MGR.Atoi(); }
+
+TString ENV_NSYSINFO = gSystem->Getenv("CDF_NSYSINFO");
+if (!ENV_NSYSINFO.IsNull() && ENV_NSYSINFO.IsDigit() ) { kUseSysInfo = ENV_NSYSINFO.Atoi(); }
 
 if ( debug == 0 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal   ); }
 if ( debug == 1 ) { AliLog::SetGlobalLogLevel ( AliLog::kError   ); }
 if ( debug == 2 ) { AliLog::SetGlobalLogLevel ( AliLog::kWarning ); }
 if ( debug == 3 ) { AliLog::SetGlobalLogLevel ( AliLog::kInfo    ); }
 if ( debug >= 4 ) { AliLog::SetGlobalLogLevel ( AliLog::kDebug   ); }
+
+// Progress bar
+Bool_t bUseProgBar = kFALSE; // N.B. !! if true will set fDebug to 0
+TString ENV_USEPROGBAR = gSystem->Getenv("PROGRESSBAR");
+if (!ENV_USEPROGBAR.IsNull() && ( ENV_USEPROGBAR.EqualTo("1") || ENV_USEPROGBAR.Contains(true_regex) ) )  { bUseProgBar = kTRUE; }
 
 //##################################################
 //        AliEN plugin variables
