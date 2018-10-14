@@ -6,6 +6,21 @@ USE_CVMFS=""   # set to yes to load cvmfs environment instead of alibuild
 export VER_ALIBUILD="ali-latest-1"
 export VER_CVMFS="vAN-20181014-1"
 
+EXEC_ARGS="-l -b -q -x"
+# Establish the running executable and base arguments
+CMD="root.exe"
+[[ "${USE_ALIROOT}" == "yes" ]] && CMD="aliroot"
+EXEC="${CMD} ${EXEC_ARGS}"
+
+if [[ "${USE_CVMFS}" == "yes" ]]; then
+    which --skip-alias --skip-functions aliroot &>/dev/null || eval $(alienv printenv VO_ALICE@AliPhysics::${VER_CVMFS})
+else
+    which --skip-alias --skip-functions aliroot &>/dev/null || source $(alienv printenv AliPhysics/${VER_ALIBUILD})
+fi
+
+which --skip-alias --skip-functions aliroot &>/dev/null || { echo "Still not found aliroot executable; Check the setting for ALIBUILD/CVMFS versions" ; exit 1; }
+
+######################################################################
 #mykEMC : 50192
 #mykEMC_noGA : 17424
 #mykMB : 3145763
@@ -17,24 +32,9 @@ export CDF_doSAMPLE='false' # toggle execution of TaskEmcalJetSample task
 export CDF_doCDF='true'     # toggle execution of TaskEmcalJetCDF task
 
 export CDF_DEBUG='0'        # set debug value kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
-export CDF_DEBUG_MGR='0'     # set debug value for AliAnalysisManager
-export CDF_NSYSINFO='0'      # set (end enable) profiling of task; any int > 0 will enable profiling at sampling rate defined
-export PROGRESSBAR='false'       # toggle the progress bar of AliAnalysisManager; will disable debugging
-
-EXEC_ARGS="-l -b -q -x"
-
-# Establish the running executable and base arguments
-CMD="root.exe"
-[[ "${USE_ALIROOT}" == "yes" ]] && CMD="aliroot"
-EXEC="${CMD} ${EXEC_ARGS}"
-
-if [[ -z "${ALICE_PHYSICS}" ]]; then # if there is no environment loaded
-    if [[ "${USE_CVMFS}" == "yes" ]]; then
-        eval $(alienv printenv VO_ALICE@AliPhysics::${VER_CVMFS})
-    else
-        source $(alienv printenv AliPhysics/${VER_ALIBUILD})
-    fi
-fi
+export CDF_DEBUG_MGR='0'    # set debug value for AliAnalysisManager
+export CDF_NSYSINFO='0'     # set (end enable) profiling of task; any int > 0 will enable profiling at sampling rate defined
+export PROGRESSBAR='false'  # toggle the progress bar of AliAnalysisManager; will disable debugging
 
 #    const char*   cDataType      = "AOD",
 #    const char*   cRunPeriod     = "LHC11d",
