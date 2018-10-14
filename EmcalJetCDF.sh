@@ -1,10 +1,17 @@
 #!/bin/bash
 
 USE_ALIROOT="" # set to yes to use aliroot instead of root.exe
-USE_CVMFS=""   # set to yes to load cvmfs environment instead of alibuild
+USE_CVMFS=""      # set to yes to load cvmfs environment instead of alibuild
 
 export VER_ALIBUILD="ali-latest-1"
 export VER_CVMFS="vAN-20181014-1"
+
+# Check if on centos
+eval $(</etc/os-release)
+if [[ "${ID}" == "centos" ]]; then
+    IS_DEVTOOLSET=$(grep devtoolset-7 <<< "${PATH}")
+    [[ -z "${IS_DEVTOOLSET}" ]] && { source /opt/rh/devtoolset-7/enable 2>/dev/null || echo "devtoolset-7 could not be found"; }
+fi
 
 EXEC_ARGS="-l -b -q -x"
 # Establish the running executable and base arguments
@@ -12,13 +19,18 @@ CMD="root.exe"
 [[ "${USE_ALIROOT}" == "yes" ]] && CMD="aliroot"
 EXEC="${CMD} ${EXEC_ARGS}"
 
-if [[ "${USE_CVMFS}" == "yes" ]]; then
-    which --skip-alias --skip-functions aliroot &>/dev/null || eval $(alienv printenv VO_ALICE@AliPhysics::${VER_CVMFS})
-else
-    which --skip-alias --skip-functions aliroot &>/dev/null || source $(alienv printenv AliPhysics/${VER_ALIBUILD})
+IS_ALIROOT=$(which --skip-alias --skip-functions aliroot 2>/dev/null)
+if [[ -z "${IS_ALIROOT}" ]]; then
+    if [[ "${USE_CVMFS}" == "yes" ]]; then
+        eval $(/cvmfs/alice.cern.ch/bin/alienv printenv VO_ALICE@AliPhysics::${VER_CVMFS});
+    else
+        eval $(~/.local/bin/alienv -q load AliPhysics/${VER_ALIBUILD});
+    fi
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib64:/usr/lib64:/usr/local/lib:/usr/lib;
 fi
 
-which --skip-alias --skip-functions aliroot &>/dev/null || { echo "Still not found aliroot executable; Check the setting for ALIBUILD/CVMFS versions" ; exit 1; }
+IS_ALIROOT=$(which --skip-alias --skip-functions aliroot 2>/dev/null)
+[[ -z "${IS_ALIROOT}" ]] && { echo "Still not found aliroot executable; Check the settings for ALIBUILD/CVMFS versions" ; exit 1; }
 
 ######################################################################
 #mykEMC : 50192
