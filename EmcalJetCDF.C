@@ -163,35 +163,17 @@ unsigned int       kGridFilesPerJob         = iNumFiles;             // Maximum 
 unsigned int       kTTL                     = 43200 ;         // Time To Live; 18h = 64800; 12h = 43200
 
 // ######   DEBUG    ######
+Bool_t          bUseProgBar        = kFALSE; // N.B. !! if true will set fDebug to 0
+
 Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
 UInt_t          mgr_debug          =  0 ; // AliAnalysisManager debug level
-UInt_t          kUseSysInfo        =  50 ; // activate debugging
+UInt_t          kUseSysInfo        =  0 ; // activate debugging
 
 if ( debug == 0 ) { AliLog::SetGlobalLogLevel ( AliLog::kFatal   ); }
 if ( debug == 1 ) { AliLog::SetGlobalLogLevel ( AliLog::kError   ); }
 if ( debug == 2 ) { AliLog::SetGlobalLogLevel ( AliLog::kWarning ); }
 if ( debug == 3 ) { AliLog::SetGlobalLogLevel ( AliLog::kInfo    ); }
 if ( debug >= 4 ) { AliLog::SetGlobalLogLevel ( AliLog::kDebug   ); }
-
-
-const AliEmcalPhysicsSelection::EOfflineEmcalTypes mykEMCAL      = AliEmcalPhysicsSelection::kEmcalOk;
-const AliVEvent::EOfflineTriggerTypes  mykEMC             = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA);
-const AliVEvent::EOfflineTriggerTypes  mykEMC_noGA        = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE);
-
-const AliVEvent::EOfflineTriggerTypes  mykMB              = AliVEvent::kAnyINT;
-const AliVEvent::EOfflineTriggerTypes  mykMB_central      = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kAnyINT | AliVEvent::kCentral);
-const AliVEvent::EOfflineTriggerTypes  mykMB_semicentral  = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kAnyINT | AliVEvent::kSemiCentral);
-const AliVEvent::EOfflineTriggerTypes  mykMB_mostcentral  = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kAnyINT | AliVEvent::kCentral | AliVEvent::kSemiCentral);
-
-AliVEvent::EOfflineTriggerTypes phys_sel_chg  = arg_sel_chg;
-AliVEvent::EOfflineTriggerTypes phys_sel_full = arg_sel_full;
-
-// cout << "mykEMC : " << mykEMC << endl;
-// cout << "mykEMC_noGA : " << mykEMC_noGA << endl;
-// cout << "mykMB : " << mykMB << endl;
-// cout << "mykMB_central " << mykMB_central << endl;
-// cout << "mykMB_semicentral " << mykMB_semicentral << endl;
-// cout << "mykMB_mostcentral " << mykMB_mostcentral << endl;
 
 //##################################################
 //        AliEN plugin variables
@@ -203,12 +185,12 @@ TString     kTrainName               = "sevjets";     // *CHANGE ME* (no blancs 
 TString     kJobTag                  = "cdfjet";   // *CHANGE ME*
 
 TString     kPluginExecutableCommand =
-                                      "aliroot -l -b -q";
-//                                       "root.exe -l -b -q";
+                                      "aliroot -l -b -q -x";
+//                                       "root.exe -l -b -q -x";
 
-TString     kAliPhysicsVersion       = "vAN-20181002-1";
+TString     kAliPhysicsVersion       = "vAN-20181014-1";
 
-TString     kGridOutdir              = "output";          // AliEn output directory. If blank will become output_<kTrainName>
+TString     kGridOutdir              = "output";       // AliEn output directory. If blank will become output_<kTrainName>
 TString     kGridSubWorkDir          = "";             // sub working directory not to confuse different run xmls
 TString     kGridExtraAliendirLevel  = "";             // sub working directory not to confuse different run xmls
 
@@ -219,7 +201,6 @@ TString     kCommonOutputFileName    = "AnalysisResults.root";
 TString     kGridExtraFiles          = ""; // extra filesthat will be added to the input list in the JDL
 TString     kGridMergeExclude        = "AliAOD.root AliAOD.Jets.root"; // Files that should not be merged
 TString     kGridOutputStorages      = "disk=2"; // Make replicas on the storages
-
 TString     kAlirootMode             = "ALIROOT";     // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
 //--------------------
 //   PROOF SETTINGS
@@ -228,22 +209,20 @@ TString kAAF        = "";
 Int_t   kProofReset = 0;
 Int_t   kWorkers    = 20;
 Int_t   kCores      = 8  ;
-//------------------------------------------------------------------------------
-
+//############################################################
 const AliAnalysisTaskEmcal::EDataType_t kAod = AliAnalysisTaskEmcal::kAOD;
 const AliAnalysisTaskEmcal::EDataType_t kEsd = AliAnalysisTaskEmcal::kESD;
 
-const AliJetContainer::EJetType_t  fulljet = AliJetContainer::kFullJet;
-const AliJetContainer::EJetType_t   chgjet = AliJetContainer::kChargedJet;
+const AliJetContainer::EJetType_t    fulljet = AliJetContainer::kFullJet;
+const AliJetContainer::EJetType_t     chgjet = AliJetContainer::kChargedJet;
+const AliJetContainer::EJetAlgo_t     antikt = AliJetContainer::antikt_algorithm;
+const AliJetContainer::EJetAlgo_t         kt = AliJetContainer::kt_algorithm;
+const AliJetContainer::ERecoScheme_t  recomb = AliJetContainer::pt_scheme;
 
 // kTPC, kTPCfid, kEMCAL, kEMCALfid, kDCAL, kDCALfid, kDCALonly, kDCALonlyfid, kPHOS, kPHOSfid, kUser
 const AliEmcalJet::JetAcceptanceType acc_chgjets  = AliEmcalJet::kTPCfid;
 const AliEmcalJet::JetAcceptanceType acc_fulljets = AliEmcalJet::kEMCALfid;
-
-const AliJetContainer::EJetAlgo_t     antikt = AliJetContainer::antikt_algorithm;
-const AliJetContainer::EJetAlgo_t         kt = AliJetContainer::kt_algorithm;
-
-const AliJetContainer::ERecoScheme_t  recomb = AliJetContainer::pt_scheme;
+//############################################################
 
 // data source name
 TString kDataSource (cLocalFiles);
@@ -261,16 +240,20 @@ kGridExtraFiles += EMCALcfg;
 
 //############################################################
 // SETUP OF TRIGGERS
-// Int_t kPhysSel = AliVEvent::kINT7;
-// Int_t kPhysSelInt7 = AliVEvent::kAny;//kINT7; //used when running on triggered periods
-// Int_t kPhysSelAll = AliVEvent::kINT7+AliVEvent::kEMCEJE+AliVEvent::kEMCEGA;
-// Int_t kPhysSelAny = AliVEvent::kAny;
+const AliEmcalPhysicsSelection::EOfflineEmcalTypes mykEMCAL      = AliEmcalPhysicsSelection::kEmcalOk;
+const AliVEvent::EOfflineTriggerTypes  mykEMC             = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA);
+const AliVEvent::EOfflineTriggerTypes  mykEMC_noGA        = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE);
+
+const AliVEvent::EOfflineTriggerTypes  mykMB              = AliVEvent::kAnyINT;
+const AliVEvent::EOfflineTriggerTypes  mykMB_central      = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kAnyINT | AliVEvent::kCentral);
+const AliVEvent::EOfflineTriggerTypes  mykMB_semicentral  = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kAnyINT | AliVEvent::kSemiCentral);
+const AliVEvent::EOfflineTriggerTypes  mykMB_mostcentral  = (AliVEvent::EOfflineTriggerTypes) (AliVEvent::kAnyINT | AliVEvent::kCentral | AliVEvent::kSemiCentral);
 
 AliVEvent::EOfflineTriggerTypes kPhysSel   = mykMB; //AliVEvent::kAnyINT; // physics selection
 AliVEvent::EOfflineTriggerTypes kSel_tasks = mykMB;
 
-AliVEvent::EOfflineTriggerTypes kSel_chg   = phys_sel_chg;
-AliVEvent::EOfflineTriggerTypes kSel_full  = phys_sel_full;
+AliVEvent::EOfflineTriggerTypes kSel_chg   = arg_sel_chg;
+AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
 
 //############################################################
   // Analysis manager
@@ -428,19 +411,22 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = phys_sel_full;
     pFuJet04Task->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
     }
 
-  // Sample task
+  // Sample task - charge jets
   AliAnalysisTaskEmcalJetSample* sampleTaskchg = NULL;
-  AliAnalysisTaskEmcalJetSample* sampleTaskfull = NULL;
-
   if (bDoSample  && bDoChargedJets) {
     sampleTaskchg = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample("usedefault", "", "", "SMPCHG");
     sampleTaskchg->GetParticleContainer(0)->SetParticlePtCut(0.15);
     sampleTaskchg->SetHistoBins(600, 0, 300);
     sampleTaskchg->SelectCollisionCandidates(kSel_chg);
     sampleTaskchg->SetDebugLevel(debug);
-    if ( pMultSelTask ) { sampleTaskchg->SetUseNewCentralityEstimation(bIsRun2); }
+    if ( pMultSelTask ) { 
+      sampleTaskchg->SetUseNewCentralityEstimation(bIsRun2);
+      sampleTaskchg->SetNCentBins(5);
+      }
     }
 
+  // Sample task - full jets
+  AliAnalysisTaskEmcalJetSample* sampleTaskfull = NULL;
   if (bDoSample  && bDoFullJets) {
     sampleTaskfull = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample("usedefault", "usedefault", "usedefault", "SMPFULL");
     sampleTaskfull->GetClusterContainer(0)->SetClusECut(0.);
@@ -452,22 +438,28 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = phys_sel_full;
     sampleTaskfull->SetHistoBins(600, 0, 300);
     sampleTaskfull->SelectCollisionCandidates(kSel_full);
     sampleTaskfull->SetDebugLevel(debug);
-    if ( pMultSelTask ) { sampleTaskfull->SetUseNewCentralityEstimation(bIsRun2); }
+    if ( pMultSelTask ) {
+      sampleTaskfull->SetUseNewCentralityEstimation(bIsRun2);
+      sampleTaskfull->SetNCentBins(5);
+      }
     }
 
-  //###   CDF task
+  //###   CDF task - charged jets
   AliAnalysisTaskEmcalJetCDF* anaTaskCDFchg = NULL;
-  AliAnalysisTaskEmcalJetCDF* anaTaskCDFfull = NULL;
-
   if (bDoCDF && bDoChargedJets) {
     anaTaskCDFchg = CDF::AddTaskEmcalJetCDF ( "usedefault", "", "", "CDFchg" );
     anaTaskCDFchg->GetParticleContainer(0)->SetParticlePtCut(0.15);
     anaTaskCDFchg->SetHistoBins(600, 0, 300);
     anaTaskCDFchg->SelectCollisionCandidates(kSel_chg);
     anaTaskCDFchg->SetDebugLevel(debug);
-    if ( pMultSelTask ) { anaTaskCDFchg->SetUseNewCentralityEstimation(bIsRun2); }
+    if ( pMultSelTask ) { 
+      anaTaskCDFchg->SetUseNewCentralityEstimation(bIsRun2);
+      anaTaskCDFchg->SetNCentBins(5);
+      }
     }
 
+  //###   CDF task - full jets
+  AliAnalysisTaskEmcalJetCDF* anaTaskCDFfull = NULL;
   if (bDoCDF && bDoFullJets) {
     anaTaskCDFfull = CDF::AddTaskEmcalJetCDF ( "usedefault", "usedefault", "usedefault", "CDFfull" );
     anaTaskCDFfull->GetClusterContainer(0)->SetClusECut(0.);
@@ -479,100 +471,101 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = phys_sel_full;
     anaTaskCDFfull->SetHistoBins(600, 0, 300);
     anaTaskCDFfull->SelectCollisionCandidates(kSel_full);
     anaTaskCDFfull->SetDebugLevel(debug);
-    if ( pMultSelTask ) { anaTaskCDFfull->SetUseNewCentralityEstimation(bIsRun2); }
-    }
-
-
-  if (bDoFullJets) {
-    if (bDoSample) {
-      AliJetContainer* jetCont02full_sample = sampleTaskfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
-      AliJetContainer* jetCont04full_sample = sampleTaskfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
-
-      if (iBeamType != AliAnalysisTaskEmcal::kpp) {
-        jetCont02full_sample->SetRhoName(sRhoFuName);
-        jetCont02full_sample->SetPercAreaCut(0.6);
-        jetCont04full_sample->SetRhoName(sRhoFuName);
-        jetCont04full_sample->SetPercAreaCut(0.6);
-        }
-      }
-
-    if (bDoCDF) {
-      AliJetContainer* jetcont_full = NULL;
-      for ( Float_t fi = 0 ; fi<=100 ; fi+=10) {
-        // FULL JETS 0.2
-        jetcont_full  = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
-        CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 2);
-
-        // FULL JETS 0.4
-        jetcont_full  = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
-        CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 2);
-        }
-
-//       AliJetContainer* jetCont02full_cdf_bin21 = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
-//       CDF::jetContSetParams (jetCont02full_cdf_bin21, 100., 500., 0, 2);
-
-      AliJetContainer* jetCont02full_cdf_all   = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
-      CDF::jetContSetParams (jetCont02full_cdf_all,     1., 500., 0, 2);
-
-//       AliJetContainer* jetCont04full_cdf_bin21 = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
-//       CDF::jetContSetParams (jetCont04full_cdf_bin21, 100., 500., 0, 2);
-
-      AliJetContainer* jetCont04full_cdf_all   = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
-      CDF::jetContSetParams (jetCont04full_cdf_all,     1., 500., 0, 2);
-
-      AliJetContainer* jetcont_full = NULL;
+    if ( pMultSelTask ) {
+      anaTaskCDFfull->SetUseNewCentralityEstimation(bIsRun2);
+      anaTaskCDFchg->SetNCentBins(5);
       }
     }
 
-  if (bDoChargedJets) {
-    if (bDoSample) {
-      AliJetContainer* jetCont02chg_sample = sampleTaskchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
-      AliJetContainer* jetCont04chg_sample = sampleTaskchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+  // add jet containers to sample task for full jets
+  if (bDoFullJets && bDoSample) {
+    AliJetContainer* jetCont02full_sample = sampleTaskfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+    AliJetContainer* jetCont04full_sample = sampleTaskfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
 
-      if (iBeamType != AliAnalysisTaskEmcal::kpp) {
-        jetCont02chg_sample->SetRhoName(sRhoChName);
-        jetCont02chg_sample->SetPercAreaCut(0.6);
-        jetCont04chg_sample->SetRhoName(sRhoChName);
-        jetCont04chg_sample->SetPercAreaCut(0.6);
-        }
-      }
+    if (iBeamType != AliAnalysisTaskEmcal::kpp) {
+      jetCont02full_sample->SetRhoName(sRhoFuName);
+      jetCont02full_sample->SetPercAreaCut(0.6);
 
-    if (bDoCDF) {
-      AliJetContainer* jetcont_chg = NULL;
-      for ( Float_t fi = 0 ; fi<=100 ; fi+=10) {
-        // CHG JETS 0.2
-        jetcont_chg  = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
-        CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
-
-        // CHG JETS 0.4
-        jetcont_chg  = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
-        CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
-        }
-
-//       AliJetContainer* jetCont02chg_cdf_bin21 = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
-//       CDF::jetContSetParams (jetCont02chg_cdf_bin21, 100., 500., 0, 0);
-
-      AliJetContainer* jetCont02chg_cdf_all   = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
-      CDF::jetContSetParams (jetCont02chg_cdf_all,     1., 500., 0, 0);
-
-//       AliJetContainer* jetCont04chg_cdf_bin21 = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
-//       CDF::jetContSetParams (jetCont04chg_cdf_bin21, 100., 500., 0, 0);
-
-      AliJetContainer* jetCont04chg_cdf_all   = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
-      CDF::jetContSetParams (jetCont04chg_cdf_all,     1., 500., 0, 0);
-
-      AliJetContainer* jetcont_chg = NULL;
+      jetCont04full_sample->SetRhoName(sRhoFuName);
+      jetCont04full_sample->SetPercAreaCut(0.6);
       }
     }
 
-  TObjArray *pTopTasks = pMgr->GetTasks();
-  for (Int_t i = 0; i < pTopTasks->GetEntries(); ++i) {
-    AliAnalysisTaskSE *pTask = dynamic_cast<AliAnalysisTaskSE*>(pTopTasks->At(i));
-    if (!pTask) { continue; }
-    if (pTask->InheritsFrom("AliAnalysisTaskEmcal")) {
-      AliAnalysisTaskEmcal *pTaskEmcal = static_cast<AliAnalysisTaskEmcal*>(pTask);
-      Printf("Setting beam type %d for task %s", iBeamType, pTaskEmcal->GetName());
-      pTaskEmcal->SetForceBeamType(iBeamType);
+  // add jet containers to CDF task for full jets
+  if (bDoFullJets && bDoCDF) {
+    AliJetContainer* jetcont_full = NULL;
+    for ( Float_t fi = 0 ; fi<=100 ; fi+=10) {
+      // FULL JETS 0.2
+      jetcont_full  = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+      CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 2);
+
+      // FULL JETS 0.4
+      jetcont_full  = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+      CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 2);
+      }
+
+    AliJetContainer* jetcont_full   = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+    CDF::jetContSetParams (jetcont_full,     1., 500., 0, 2);
+
+    AliJetContainer* jetcont_full   = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+    CDF::jetContSetParams (jetcont_full,     1., 500., 0, 2);
+
+    AliJetContainer* jetcont_full = NULL;
+    }
+
+  // add jet containers to sample task for charged jets
+  if (bDoChargedJets && bDoSample) {
+    AliJetContainer* jetCont02chg_sample = sampleTaskchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+    AliJetContainer* jetCont04chg_sample = sampleTaskchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+
+    if (iBeamType != AliAnalysisTaskEmcal::kpp) {
+      jetCont02chg_sample->SetRhoName(sRhoChName);
+      jetCont02chg_sample->SetPercAreaCut(0.6);
+
+      jetCont04chg_sample->SetRhoName(sRhoChName);
+      jetCont04chg_sample->SetPercAreaCut(0.6);
+      }
+    }
+
+  // add jet containers to CDF task for charged jets
+  if (bDoChargedJets && bDoCDF) {
+    AliJetContainer* jetcont_chg = NULL;
+    for ( Float_t fi = 0 ; fi<=100 ; fi+=10) {
+      // CHG JETS 0.2
+      jetcont_chg  = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+      CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
+
+      // CHG JETS 0.4
+      jetcont_chg  = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+      CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
+      }
+
+    AliJetContainer* jetcont_chg   = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+    CDF::jetContSetParams (jetcont_chg,     1., 500., 0, 0);
+
+    AliJetContainer* jetcont_chg   = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+    CDF::jetContSetParams (jetcont_chg,     1., 500., 0, 0);
+
+    AliJetContainer* jetcont_chg = NULL;
+    }
+
+
+//   TObjArray *pTopTasks = pMgr->GetTasks();
+//   for (Int_t i = 0; i < pTopTasks->GetEntries(); ++i) {
+//     AliAnalysisTaskSE *pTask = dynamic_cast<AliAnalysisTaskSE*>(pTopTasks->At(i));
+//     if (!pTask) { continue; }
+//     if (pTask->InheritsFrom("AliAnalysisTaskEmcal")) {
+//       AliAnalysisTaskEmcal *pTaskEmcal = static_cast<AliAnalysisTaskEmcal*>(pTask);
+//       Printf("Setting beam type %d for task %s", iBeamType, pTaskEmcal->GetName());
+//       pTaskEmcal->SetForceBeamType(iBeamType);
+//       }
+//     }
+
+  TObjArray* tasks_list = pMgr->GetTasks(); TIter task_iter (tasks_list); AliAnalysisTaskSE* task = NULL;
+  while (( task = dynamic_cast<AliAnalysisTaskSE*>(task_iter.Next()) )) {
+    if (task->InheritsFrom("AliAnalysisTaskEmcal")) {
+      Printf("Setting beam type %d for task %s", iBeamType, static_cast<AliAnalysisTaskEmcal*>(task)->GetName());
+      static_cast<AliAnalysisTaskEmcal*>(task)->SetForceBeamType(iBeamType);
       }
     }
 
@@ -587,8 +580,7 @@ if ( debug > 2 ) {
   if (!pMgr->InitAnalysis()) { return NULL; }
   cout << "##-->> Initialising Analysis :: Status :" << endl;
   pMgr->PrintStatus();
-
-//   pMgr->SetUseProgressBar(kTRUE, 100);
+  pMgr->SetUseProgressBar(bUseProgBar, 100);
 
   TFile* pOutFile = new TFile("train.root","RECREATE");
   pOutFile->cd();
@@ -600,7 +592,6 @@ if ( debug > 2 ) {
   if ( kUseSysInfo > 0 ) {
     for ( int i = 0; i < pMgr->GetTopTasks()->GetEntries(); i++ ) { pMgr->ProfileTask (i); }
     }
-
 
   if (iStartAnalysis == 1) { // start local analysis
     TChain* pChain = NULL;
