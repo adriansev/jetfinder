@@ -10,7 +10,7 @@ export VER_CVMFS="vAN-20181014-1"
 eval $(</etc/os-release)
 if [[ "${ID}" == "centos" ]]; then
     IS_DEVTOOLSET=$(grep devtoolset-7 <<< "${PATH}")
-    [[ -z "${IS_DEVTOOLSET}" ]] && { source /opt/rh/devtoolset-7/enable 2>/dev/null || echo "devtoolset-7 could not be found"; }
+    [[ -z "${IS_DEVTOOLSET}" ]] && { source /opt/rh/devtoolset-7/enable 2>/dev/null || { echo "devtoolset-7 could not be found"; exit 1;} }
 fi
 
 EXEC_ARGS="-l -b -q -x"
@@ -24,7 +24,9 @@ if [[ -z "${IS_ALIROOT}" ]]; then
     if [[ "${USE_CVMFS}" == "yes" ]]; then
         eval $(/cvmfs/alice.cern.ch/bin/alienv printenv VO_ALICE@AliPhysics::${VER_CVMFS});
     else
-        eval $(~/.local/bin/alienv -q load AliPhysics/${VER_ALIBUILD});
+        [[ -e "${ALICE_WORK_DIR}" ]] || { echo "ALICE_WORK_DIR could not be found; make sure it is defined in environment"; exit 1; }
+        eval "$(alienv shell-helper)"
+        eval "$(alienv -q load AliPhysics/${VER_ALIBUILD})"
     fi
     export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib64:/usr/lib64:/usr/local/lib:/usr/lib;
 fi
