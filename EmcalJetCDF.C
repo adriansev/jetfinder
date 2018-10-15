@@ -573,18 +573,6 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
     AliJetContainer* jetcont_chg = NULL;
     }
 
-
-//   TObjArray *pTopTasks = pMgr->GetTasks();
-//   for (Int_t i = 0; i < pTopTasks->GetEntries(); ++i) {
-//     AliAnalysisTaskSE *pTask = dynamic_cast<AliAnalysisTaskSE*>(pTopTasks->At(i));
-//     if (!pTask) { continue; }
-//     if (pTask->InheritsFrom("AliAnalysisTaskEmcal")) {
-//       AliAnalysisTaskEmcal *pTaskEmcal = static_cast<AliAnalysisTaskEmcal*>(pTask);
-//       Printf("Setting beam type %d for task %s", iBeamType, pTaskEmcal->GetName());
-//       pTaskEmcal->SetForceBeamType(iBeamType);
-//       }
-//     }
-
   TObjArray* tasks_list = pMgr->GetTasks(); TIter task_iter (tasks_list); AliAnalysisTaskSE* task = NULL;
   while (( task = dynamic_cast<AliAnalysisTaskSE*>(task_iter.Next()) )) {
     if (task->InheritsFrom("AliAnalysisTaskEmcal")) {
