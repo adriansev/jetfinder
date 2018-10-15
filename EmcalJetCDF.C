@@ -497,7 +497,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
     anaTaskCDFfull->SetDebugLevel(debug);
     if ( pMultSelTask ) {
       anaTaskCDFfull->SetUseNewCentralityEstimation(bIsRun2);
-      anaTaskCDFchg->SetNCentBins(5);
+      anaTaskCDFfull->SetNCentBins(5);
       }
     }
 
