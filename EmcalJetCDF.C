@@ -212,7 +212,7 @@ TString     kPluginExecutableCommand =
                                       "aliroot -l -b -q -x";
 //                                       "root.exe -l -b -q -x";
 
-TString     kAliPhysicsVersion       = "vAN-20181014-1";
+TString     kAliPhysicsVersion       = "vAN-20181123-1";
 
 TString     kGridOutdir              = "output";       // AliEn output directory. If blank will become output_<kTrainName>
 TString     kGridSubWorkDir          = "";             // sub working directory not to confuse different run xmls
