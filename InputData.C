@@ -139,7 +139,6 @@ else if ( datarun.EqualTo ( "pp_lhc12a15f" ) ) {
     }
 
 // LHC14b7 p-p, Pythia6 simulation, LHC11c and LHC11d anchors, 7TeV (RAW OCDB), ALIROOT-5345
-
 else if ( datarun.EqualTo ( "pp_lhc14b7" ) ) {
     // AliEn data production directory
     plugin->SetGridDataDir ( "/alice/sim/2014/LHC14b7" );
@@ -152,15 +151,6 @@ else if ( datarun.EqualTo ( "pp_lhc14b7" ) ) {
     plugin->AddRunList ( list_lhc14b7.Data() );
     return kTRUE;
     }
-
-
-
-
-
-
-
-
-
 
 // AOD LHC16q; p-Pb 5.02 TeV
 else if ( datarun.EqualTo ( "pp_lhc16q_aod" ) ) {
@@ -183,18 +173,17 @@ else if ( datarun.EqualTo ( "pp_lhc16q_aod" ) ) {
     }
 
 // AOD LHC16r; p-Pb 8.16 TeV
+// https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16r
+// https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16r/RunList_LHC16r_pass1_CentralBarrelTracking_calo_20170202_v0.txt
 else if ( datarun.EqualTo ( "pp_lhc16r_aod" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
     plugin->SetGridDataDir ( "/alice/data/2016/LHC16r" );
-// /alice/data/2016/LHC16r/000266318/pass1_CENT_wSDD/AOD190
 
     // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
     plugin->SetDataPattern ( "*pass1_CENT_wSDD/AOD190/*AliAOD.root" );
 
-    // https://twiki.cern.ch/twiki/bin/view/ALICE/AliDPGRunList16r
-    // https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16r/RunList_LHC16r_pass1_CentralBarrelTracking_calo_20170202_v0.txt
     TString list_lhc16r_1 = "266318 266317 266316 266208 266197 266196 266187 265744";
 
     plugin->AddRunList ( list_lhc16r_1.Data() );
@@ -202,18 +191,17 @@ else if ( datarun.EqualTo ( "pp_lhc16r_aod" ) ) {
     }
 
 // AOD LHC16s; Pb-p 8.16 TeV
+// https://twiki.cern.ch/twiki/bin/view/ALICE/AliDPGRunList16s
+// https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16s/RunList_LHC16s_pass1_CentralBarrelTracking_calo_20170202_v0.txt
 else if ( datarun.EqualTo ( "pp_lhc16s_aod" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
     plugin->SetGridDataDir ( "/alice/data/2016/LHC16s" );
-// /alice/data/2016/LHC16s/000266318/pass1_CENT_wSDD/AOD190
 
     // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
     plugin->SetDataPattern ( "*pass1_CENT_wSDD/AOD190/*AliAOD.root" );
 
-    //     https://twiki.cern.ch/twiki/bin/view/ALICE/AliDPGRunList16s
-    //     https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16s/RunList_LHC16s_pass1_CentralBarrelTracking_calo_20170202_v0.txt
     TString list_lhc16s_1 = "267110 267081 267077 267072 267070 266998 266997 266994 266993 266944 266886 266885 266883 266882 266437";
 
     plugin->AddRunList ( list_lhc16s_1.Data() );
@@ -226,7 +214,6 @@ else if ( datarun.EqualTo ( "pp_lhc16t_aod" ) ) {
 
     // AliEn data production directory
     plugin->SetGridDataDir ( "/alice/data/2016/LHC16t" );
-// /alice/data/2016/LHC16t/000266318/pass1_CENT_wSDD/AOD190
 
     // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
     plugin->SetDataPattern ( "*pass1_CENT_wSDD/AOD190/*AliAOD.root" );
@@ -236,6 +223,24 @@ else if ( datarun.EqualTo ( "pp_lhc16t_aod" ) ) {
     TString list_lhc16t_1 = "267166 267165 267164 267163";
 
     plugin->AddRunList ( list_lhc16t_1.Data() );
+    return kTRUE;
+    }
+
+// LHC18f3b_cent_2	p-Pb, 8.16 TeV - DPMJET production anchored to LHC16r, CENT, ALIROOT-7792
+else if ( datarun.EqualTo ( "lhc18f3bcent" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18f3b_cent_2" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "*/*AliAOD.root" );
+
+    TString list_lhc18f3bcent_1 = "265594 265596 265607 265697 265698 265700 265701 265705 265709 265713 265714 265741 265742 265744 265746";
+    TString list_lhc18f3bcent_2 = "265754 265756 265788 265789 265795 265797 266034 266074 266076 266081 266083 266084 266085 266086 266117";
+    TString list_lhc18f3bcent_3 = "266187 266189 266190 266193 266196 266197 266208 266296 266299 266300 266304 266305 266316 266317 266318";
+
+    TString list_lhc18f3bcent_all = list_lhc18f3bcent_1 + list_lhc18f3bcent_2 + list_lhc18f3bcent_3;
+
+    plugin->AddRunList ( list_lhc18f3bcent_all.Data() );
     return kTRUE;
     }
 
