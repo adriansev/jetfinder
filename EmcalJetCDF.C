@@ -131,6 +131,7 @@ class AliAnalysisAlien;
 void                  LoadLibs ();
 void                  LoadLibList ( const TString& list );
 Bool_t                LoadLibrary ( const TString& lib );
+bool                  SaveManager ( const char* file_name = "train.root" );
 
 void                  LoadMacros();
 AliAnalysisAlien*     CreateAlienHandler ( const char* gridMode, const char* tag, unsigned int number_of_files = 20, unsigned int TTL = 43200 ,
@@ -141,6 +142,36 @@ TString GetPeriod        ( const TString& file_path);
 // TString GetPass          ( const TString& file_path);
 //############################################################
 
+enum  AnalysisType { 
+  local    = 0, // kLocalAnalysis
+  proof    = 1, // kProofAnalysis
+  grid     = 2, // kGridAnalysis
+  mixing   = 3  // kMixingAnalysis
+  };
+
+enum PluginType {
+  test     = 0,
+  offline  = 1,
+  submit   = 2,
+  merge    = 3,
+  full     = 4
+  };
+
+/*
+enum EPluginRunMode {
+  kFull     = 0,        // 0
+  kTest     = BIT(14),  // 16384
+  kOffline  = BIT(15),  // 32768
+  kSubmit   = BIT(16),  // 65536
+  kMerge    = BIT(17),  // 131072
+  kUseTags  = BIT(18),  // 262144
+  kUseESD   = BIT(19),  // 524288
+  kUseAOD   = BIT(20),  // 1048576
+  kUseMC    = BIT(21),  // 2097152
+  kUsePars  = BIT(22),  // 4194304
+  kDefaultOutputs = BIT(23) // 8388608
+  };
+*/
 
 //##################################################
 AliAnalysisManager* EmcalJetCDF (
@@ -149,8 +180,8 @@ AliAnalysisManager* EmcalJetCDF (
     const char*   cLocalFiles    = "data.txt",  // set the local list file
     const UInt_t  arg_sel_chg    = 3145763, // "mykEMC_noGA",  // physics selection
     const UInt_t  arg_sel_full   = 3145763, // "mykEMC_noGA",  // physics selection
-    int           iStartAnalysis = 1,
-    const char*   cGridMode      = "test",
+    AnalysisType  ManagerMode    = AnalysisType::local, // local = 0, proof = 1, grid = 2, mixing = 3
+    PluginType    PluginMode     = PluginType::test,    // test = 0, offline = 1, submit = 2, merge = 3, full = 4
     const char*   cTaskName      = "CDFJets",   // sets name of task manager
     unsigned int  iNumFiles      = 100,         // numger of files to process from list file
     unsigned int  iNumEvents     = 999999999,    // number of events to be analyzed
@@ -159,6 +190,21 @@ AliAnalysisManager* EmcalJetCDF (
 ) {
 unsigned int       kGridFilesPerJob         = iNumFiles;      // Maximum number of files per job (gives size of AOD)
 unsigned int       kTTL                     = 64800 ;         // Time To Live; 18h = 64800; 12h = 43200
+
+TString sGridMode ("test");
+if ( PluginMode == PluginType::offline ) { sGridMode = "offline"; }
+if ( PluginMode == PluginType::submit )  { sGridMode = "submit"; }
+if ( PluginMode == PluginType::merge )   { sGridMode = "merge"; }
+if ( PluginMode == PluginType::full )    { sGridMode = "full"; }
+const char* cGridMode = sGridMode.Data();
+
+TString sAnalysisType ("local");
+if ( ManagerMode == AnalysisType::proof )  { sAnalysisType = "proof"; }
+if ( ManagerMode == AnalysisType::grid )   { sAnalysisType = "grid"; }
+if ( ManagerMode == AnalysisType::mixing ) { sAnalysisType = "mix"; }
+const char* cAnalysisType = sAnalysisType.Data();
+
+cout << endl << ">>>>>>>> ManagerMode : " << ManagerMode << " ; String value : " << cAnalysisType << endl << ">>>>>>>> PluginMode : " << PluginMode << " ; String value : " << cGridMode << endl << endl;
 
 //---------------------------------------------------------------------------------------------
 TRegexp false_regex ("[f,F][a,A][l,L][s,S][e,E]");
@@ -209,9 +255,12 @@ Long64_t    firstentry               = 0; // for local and proof mode, ignored i
 const char* curdir = gSystem->BaseName(gSystem->pwd());
 TString     kJobTag (curdir);
 
-TString     kPluginExecutableCommand =
-//                                      "aliroot -l -b -q -x";
-                                        "root.exe -l -b -q -x";
+TString execArgs (" -l -b -q -x");
+TString exec =
+//               "aliroot";
+              "root.exe";
+
+TString     kPluginExecutableCommand = exec + execArgs;
 
 TString     kAliPhysicsVersion       = "vAN-20181123-1";
 
@@ -251,7 +300,7 @@ TString kDataSource (cLocalFiles);
 
 // label of dataset from InputData.C
 TString kGridDataSet ("");
-if (iStartAnalysis == 2) { kGridDataSet = kDataSource;}
+if ( ManagerMode == AnalysisType::grid ) { kGridDataSet = kDataSource;}
 
 // EMCAL corrections task configuration file
 TString EMCALcfg ("PWGJE_SEV_Config.yaml");
@@ -278,14 +327,14 @@ AliVEvent::EOfflineTriggerTypes kSel_chg   = arg_sel_chg;
 AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
 
 //############################################################
-  // Analysis manager
+// Analysis manager
   AliAnalysisManager* pMgr = new AliAnalysisManager(cTaskName);
   pMgr->SetDebugLevel(mgr_debug);
   if ( kUseSysInfo > 0 ) { pMgr->SetNSysInfo ( kUseSysInfo ); }
 
   AliAnalysisAlien* plugin = NULL;
 
-  if (iStartAnalysis == 2) {  // start grid analysis
+  if ( ManagerMode == AnalysisType::grid ) {  // start grid analysis
     // ( const char* gridMode, const char* tag, unsigned int number_of_files, unsigned int TTL, const char* outdir, const char subworkdir, const char* extradirlvl);
     plugin = CreateAlienHandler(cGridMode, kJobTag.Data(), kGridFilesPerJob, kTTL);
     if ( !plugin ) { ::Error ( "runEMCalJetSampleTask.C - StartGridAnalysis", "plugin invalid" ); return NULL; }
@@ -337,7 +386,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
 
   Printf("%s analysis chosen.", cDataType);
 
-  if (iStartAnalysis == 1) {
+  if ( ManagerMode == AnalysisType::local ) {
     if ( kDataSource.IsNull() ) { Printf("You need to provide the list of local files!"); return 0; }
     Printf("Setting local analysis for %d files from list %s, max events = %d", iNumFiles, kDataSource.Data(), iNumEvents);
     }
@@ -364,13 +413,13 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
   // Physics selection task
   if (iDataType == AliAnalysisTaskEmcal::kESD) {
     // signature : (Bool_t mCAnalysisFlag = kFALSE, Bool_t applyPileupCuts = kFALSE, UInt_t deprecatedFlag2 = 0, Bool_t useSpecialOutput=kFALSE)
-    AliPhysicsSelectionTask* pPhysSelTask = AddTaskPhysicsSelection();
+    AliPhysicsSelectionTask* pPhysSelTask = AliPhysicsSelectionTask::AddTaskPhysicsSelection();
     }
 
   // Centrality task
   if ( iBeamType != AliAnalysisTaskEmcal::kpp && bIsRun2 ) {
     //signature : (Bool_t fillHistos=kTRUE, Bool_t aod=kFALSE)
-    AliCentralitySelectionTask *pCentralityTask = AddTaskCentrality(kFALSE, kIsAOD);
+    AliCentralitySelectionTask *pCentralityTask = AliCentralitySelectionTask::AddTaskCentrality(kFALSE, kIsAOD);
     pCentralityTask->SelectCollisionCandidates(AliVEvent::kAny);
     }
 
@@ -583,31 +632,28 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
       }
     }
 
-// enable class level debugging for these classes
-if ( debug > 2 ) {
-//   pMgr->AddClassDebug("AliJetContainer", 100);
-//   pMgr->AddClassDebug("AliEmcalJetTask", 100);
-  if (bDoCDF)    { pMgr->AddClassDebug("AliAnalysisTaskEmcalJetCDF", 100); }
-  if (bDoSample) { pMgr->AddClassDebug("AliAnalysisTaskEmcalJetSample", 100); }
-  }
-
-  if (!pMgr->InitAnalysis()) { return NULL; }
+  //   Let's start #########################################################################################################
+  if ( !pMgr->InitAnalysis() ) { cout << ">>>>>>>>>>>>>> AliAnalysisManager Initialising FAILED!!! " << endl; return NULL; }
   cout << "##-->> Initialising Analysis :: Status :" << endl;
   pMgr->PrintStatus();
   pMgr->SetUseProgressBar(bUseProgBar, 100);
-
-  TFile* pOutFile = new TFile("train.root","RECREATE");
-  pOutFile->cd();
-  pMgr->Write();
-  pOutFile->Close();
-  delete pOutFile;
 
   // task profiling
   if ( kUseSysInfo > 0 ) {
     for ( int i = 0; i < pMgr->GetTopTasks()->GetEntries(); i++ ) { pMgr->ProfileTask (i); }
     }
 
-  if (iStartAnalysis == 1) { // start local analysis
+  SaveManager ("train.root");
+
+  if ( ManagerMode == AnalysisType::local ) { // start local analysis
+    // enable class level debugging for these classes
+    if ( debug > 2 ) {
+    //   pMgr->AddClassDebug("AliJetContainer", 100);
+    //   pMgr->AddClassDebug("AliEmcalJetTask", 100);
+      if (bDoCDF)    { pMgr->AddClassDebug("AliAnalysisTaskEmcalJetCDF", 100); }
+      if (bDoSample) { pMgr->AddClassDebug("AliAnalysisTaskEmcalJetSample", 100); }
+      }
+
     TChain* pChain = NULL;
 
     if (iDataType == AliAnalysisTaskEmcal::kAOD) {
@@ -641,10 +687,10 @@ if ( debug > 2 ) {
 
     // start analysis
     Printf("Starting Analysis...");
-    pMgr->StartAnalysis("local", pChain, iNumEvents);
+    pMgr->StartAnalysis( cAnalysisType, pChain, iNumEvents );
     }
 
-  if (iStartAnalysis == 2) {  // start grid analysis
+  if ( ManagerMode == AnalysisType::grid ) {  // start grid analysis
     // start analysis
     Printf("Starting GRID Analysis...");
 
@@ -652,9 +698,12 @@ if ( debug > 2 ) {
     if ( ListLibs.Length() )       { plugin->SetAdditionalLibs     ( ListLibs.Data() ); }
     if ( ListLibsExtra.Length() )  { plugin->SetAdditionalRootLibs ( ListLibsExtra.Data() ); }
 
-    if (!std::strcmp(cGridMode, "test")) { pMgr->SetDebugLevel(0); }
-//     pMgr->StartAnalysis("grid", iNumEvents);
-    plugin->StartAnalysis(iNumEvents);
+    if ( PluginMode == PluginType::test )
+      { plugin->StartAnalysis(iNumEvents); }
+    else {
+      pMgr->SetDebugLevel(0);
+      plugin->StartAnalysis();
+      }
     }
 
 cout << "END of EmcalJetCDF.C" << endl;
@@ -824,10 +873,20 @@ Bool_t LoadLibrary ( const TString& lib_name, TString& listlibs, TString& listli
 
 //######################################################################################################################################
 void LoadMacros() {
-  // Aliroot macros
-  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
-  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
   gROOT->LoadMacro("$ALICE_PHYSICS/PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C");
+}
+
+//######################################################################################################################################
+bool SaveManager ( const char* file_name) {
+  AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
+  if ( !mgr ) { ::Error ( "SaveManager", "No analysis manager to connect to." ); return kFALSE; }
+
+  TFile* pOutFile = new TFile(file_name,"RECREATE");
+  if ( ! pOutFile->cd() ) { ::Error ( "SaveManager", "Could not use the new created file" ); return kFALSE; }
+  Int_t written_bytes = mgr->Write();
+  pOutFile->Close();
+  delete pOutFile;
+  if (written_bytes == 0 ) { ::Error ( "SaveManager", "0 bytes written saving manager to file" ); return kFALSE; }
 }
 
 //##################################################

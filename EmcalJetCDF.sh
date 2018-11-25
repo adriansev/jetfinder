@@ -35,6 +35,7 @@ IS_ALIROOT=$(which --skip-alias --skip-functions aliroot 2>/dev/null)
 [[ -z "${IS_ALIROOT}" ]] && { echo "Still not found aliroot executable; Check the settings for ALIBUILD/CVMFS versions" ; exit 1; }
 
 ######################################################################
+# Trigger values : (to be used as arguments)
 #mykEMC : 50192
 #mykEMC_noGA : 17424
 #mykMB : 3145763
@@ -50,18 +51,31 @@ export CDF_DEBUG_MGR='0'    # set debug value for AliAnalysisManager
 export CDF_NSYSINFO='0'     # set (end enable) profiling of task; any int > 0 will enable profiling at sampling rate defined
 export PROGRESSBAR='false'  # toggle the progress bar of AliAnalysisManager; will disable debugging
 
+# Analysis mode
+# AnalysisType::local    = 0, // kLocalAnalysis
+# AnalysisType::proof    = 1, // kProofAnalysis
+# AnalysisType::grid     = 2, // kGridAnalysis
+# AnalysisType::mixing   = 3  // kMixingAnalysis
+
+# Plugin Mode
+# PluginType::test     = 0,
+# PluginType::offline  = 1,
+# PluginType::submit   = 2,
+# PluginType::merge    = 3,
+# PluginType::full     = 4
+
 #    const char*   cDataType      = "AOD",
 #    const char*   cRunPeriod     = "LHC11d",
 #    const char*   cLocalFiles    = "data.txt",
 #    const UInt_t  arg_sel_chg    = 3145763,
 #    const UInt_t  arg_sel_full   = 3145763,
-#    int           iStartAnalysis = 1,
-#    const char*   cGridMode      = "test",
+#    AnalysisType  ManagerMode    = AnalysisType::local, // local = 0, proof = 1, grid = 2, mixing = 3
+#    PluginType    PluginMode     = PluginType::test,    // test = 0, offline = 1, submit = 2, merge = 3, full = 4
 #    const char*   cTaskName      = "CDFJets",
 #    unsigned int  iNumFiles      = 100,
 #    unsigned int  iNumEvents     = 999999999,
 #    bool          bDoChargedJets = true,
 #    bool          bDoFullJets    = false
 
-${EXEC} EmcalJetCDF.C\(\"AOD\",\"lhc16r\"\,\"data.txt\",50192,50192,1,\"test\",\"CDFjets\",1,1000,true,false\)
+${EXEC} EmcalJetCDF.C\(\"AOD\",\"lhc16r\"\,\"data.txt\",50192,50192,0,0,\"CDFjets\",1,1000,true,false\)
 
