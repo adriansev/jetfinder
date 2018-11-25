@@ -133,7 +133,9 @@ void                  LoadLibList ( const TString& list );
 Bool_t                LoadLibrary ( const TString& lib );
 
 void                  LoadMacros();
-AliAnalysisAlien*     CreateAlienHandler ( const char* gridMode, const char* tag, unsigned int number_of_files = 20, unsigned int TTL = 43200 );
+AliAnalysisAlien*     CreateAlienHandler ( const char* gridMode, const char* tag, unsigned int number_of_files = 20, unsigned int TTL = 43200 ,
+                                           const char* outdir = "output", const char subworkdir = "", const char* extradirlvl = "");
+
 TString GetInputDataPath ( const TString& file_list);
 TString GetPeriod        ( const TString& file_path);
 // TString GetPass          ( const TString& file_path);
@@ -156,7 +158,7 @@ AliAnalysisManager* EmcalJetCDF (
     bool          bDoFullJets    = false        // enable full jets
 ) {
 unsigned int       kGridFilesPerJob         = iNumFiles;      // Maximum number of files per job (gives size of AOD)
-unsigned int       kTTL                     = 43200 ;         // Time To Live; 18h = 64800; 12h = 43200
+unsigned int       kTTL                     = 64800 ;         // Time To Live; 18h = 64800; 12h = 43200
 
 //---------------------------------------------------------------------------------------------
 TRegexp false_regex ("[f,F][a,A][l,L][s,S][e,E]");
@@ -204,28 +206,24 @@ if (!ENV_USEPROGBAR.IsNull() && ( ENV_USEPROGBAR.EqualTo("1") || ENV_USEPROGBAR.
 //##################################################
 Long64_t    firstentry               = 0; // for local and proof mode, ignored in grid mode
 
-TString     kWorkDir                 = "emcalcdf";    // AliEn work dir; relative to AliEn $HOME
-TString     kTrainName               = "sevjets";     // *CHANGE ME* (no blancs or special characters)
-TString     kJobTag                  = "cdfjet";   // *CHANGE ME*
+const char* curdir = gSystem->BaseName(gSystem->pwd());
+TString     kJobTag (curdir);
 
 TString     kPluginExecutableCommand =
-                                      "aliroot -l -b -q -x";
-//                                       "root.exe -l -b -q -x";
+//                                      "aliroot -l -b -q -x";
+                                        "root.exe -l -b -q -x";
 
 TString     kAliPhysicsVersion       = "vAN-20181123-1";
 
-TString     kGridOutdir              = "output";       // AliEn output directory. If blank will become output_<kTrainName>
-TString     kGridSubWorkDir          = "";             // sub working directory not to confuse different run xmls
-TString     kGridExtraAliendirLevel  = "";             // sub working directory not to confuse different run xmls
+// == grid plugin files rules
+TString     kGridExtraFiles          = ""; // extra files that will be added to the input list in the JDL
+TString     kGridMergeExclude        = "AliAOD.root AliAOD.Jets.root"; // Files that should not be merged
+TString     kGridOutputStorages      = "disk=2"; // Make replicas on the storages
+TString     kAlirootMode             = "ALIROOT";     // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
 
 // FILES USED IN MACRO
 TString     kCommonOutputFileName    = "AnalysisResults.root";
 
-// == grid plugin files rules
-TString     kGridExtraFiles          = ""; // extra filesthat will be added to the input list in the JDL
-TString     kGridMergeExclude        = "AliAOD.root AliAOD.Jets.root"; // Files that should not be merged
-TString     kGridOutputStorages      = "disk=2"; // Make replicas on the storages
-TString     kAlirootMode             = "ALIROOT";     // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
 //--------------------
 //   PROOF SETTINGS
 //--------------------
@@ -288,12 +286,16 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
   AliAnalysisAlien* plugin = NULL;
 
   if (iStartAnalysis == 2) {  // start grid analysis
+    // ( const char* gridMode, const char* tag, unsigned int number_of_files, unsigned int TTL, const char* outdir, const char subworkdir, const char* extradirlvl);
     plugin = CreateAlienHandler(cGridMode, kJobTag.Data(), kGridFilesPerJob, kTTL);
     if ( !plugin ) { ::Error ( "runEMCalJetSampleTask.C - StartGridAnalysis", "plugin invalid" ); return NULL; }
     pMgr->SetGridHandler(plugin);
 
+    // use this command to run the macro
+    plugin->SetExecutableCommand(kPluginExecutableCommand.Data());
+
+    // AliPhysics version.
     plugin->SetAliPhysicsVersion ( kAliPhysicsVersion.Data() ); // Here you can set the (Ali)PHYSICS version you want to use
-    if ( kPluginUseProductionMode ) { plugin->SetProductionMode(); }
 
     gROOT->LoadMacro("InputData.C");
     InputData(kGridDataSet);
@@ -660,29 +662,35 @@ return pMgr;
 }
 
 //######################################################################################################################################
-AliAnalysisAlien* CreateAlienHandler(const char* gridMode, const char* tag, unsigned int number_of_files, unsigned int TTL) {
+AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, unsigned int number_of_files, unsigned int TTL,
+                                       const char* outdir, const char subworkdir, const char* extradirlvl ) {
+
   AliAnalysisAlien* plugin = new AliAnalysisAlien();
   if ( !plugin ) { cout << "!!! -->> alien handler could not be created <<-- !!!" << endl; return NULL;}
 
   unsigned int       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
   unsigned int       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
 
-  TString pwd = gSystem->WorkingDirectory();
-  TString basedir = gSystem->BaseName(pwd.Data())  ;
+  TString     kGridOutdir              = outdir ;       // AliEn output directory. If blank will become output_<kTrainName>
+  TString     kGridSubWorkDir          = subworkdir ;   // sub working directory not to confuse different run xmls
+  TString     kGridExtraAliendirLevel  = extradirlvl ;  // sub working directory not to confuse different run xmls
 
-  TString tmpName (basedir);
-  TString macroName(""); macroName = Form("%s.C", tag);
-  TString execName("");  execName = Form("%s.sh", tag);
-  TString jdlName("");   jdlName = Form("%s.jdl", tag);
+  TString     kWorkDir                 = tag;  // AliEn work dir; relative to AliEn $HOME
+
+  TString     kTrainName               = "cdfjets";     // *CHANGE ME* (no blancs or special characters)
+
+  TString macroName("");  macroName = Form("%s.C", kTrainName.Data());
+  TString execName("");   execName  = Form("%s.sh", kTrainName.Data());
+  TString jdlName("");    jdlName   = Form("%s.jdl", kTrainName.Data());
 
   // Set run mode.  Can be "full", "test", "offline", "submit" or "merge"
   plugin->SetRunMode(gridMode);
 
   // Job tag
-  plugin->SetJobTag ( tmpName.Data() );
+  plugin->SetJobTag(tag);
 
   // AliEn directory containing the input packages
-  plugin->SetGridWorkingDir( tmpName.Data() );
+  plugin->SetGridWorkingDir(tag);
 
   // Declare alien output directory. Relative to working directory.
   plugin->SetGridOutputDir( kGridOutdir.Data() ); // In this case will be $HOME/work/output
