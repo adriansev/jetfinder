@@ -75,7 +75,8 @@ export PROGRESSBAR='false'  # toggle the progress bar of AliAnalysisManager; wil
 #    unsigned int  iNumFiles      = 100,
 #    unsigned int  iNumEvents     = 999999999,
 #    bool          bDoChargedJets = true,
-#    bool          bDoFullJets    = false
+#    bool          bDoFullJets    = false,
+#    bool          isMC           = false         // use mcparticles for analysis
 
-${EXEC} EmcalJetCDF.C\(\"AOD\",\"lhc16r\"\,\"data.txt\",50192,50192,0,0,\"CDFjets\",1,1000,true,false\)
+${EXEC} EmcalJetCDF.C\(\"AOD\",\"lhc16r\"\,\"data.txt\",50192,50192,0,0,\"CDFjets\",1,1000,true,false,false\)
 

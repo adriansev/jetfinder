@@ -184,9 +184,10 @@ AliAnalysisManager* EmcalJetCDF (
     PluginType    PluginMode     = PluginType::test,    // test = 0, offline = 1, submit = 2, merge = 3, full = 4
     const char*   cTaskName      = "CDFJets",   // sets name of task manager
     unsigned int  iNumFiles      = 100,         // numger of files to process from list file
-    unsigned int  iNumEvents     = 999999999,    // number of events to be analyzed
+    unsigned int  iNumEvents     = 999999999,   // number of events to be analyzed
     bool          bDoChargedJets = true,        // enable charge jets
-    bool          bDoFullJets    = false        // enable full jets
+    bool          bDoFullJets    = false,       // enable full jets
+    bool          isMC           = false        // use mcparticles for analysis
 ) {
 unsigned int       kGridFilesPerJob         = iNumFiles;      // Maximum number of files per job (gives size of AOD)
 unsigned int       kTTL                     = 64800 ;         // Time To Live; 18h = 64800; 12h = 43200
@@ -395,15 +396,19 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
   LoadMacros();
   #endif
 
+  TString name_tracks   = "usedefault";
+  TString name_clusters = "usedefault";
+  TString name_cells    = "usedefault";
+
+  if (isMC) { name_tracks = "mcparticles"; }
+
   AliAODInputHandler* pAODHandler = NULL;
   AliESDInputHandler* pESDHandler = NULL;
 
-  if ( iDataType == AliAnalysisTaskEmcal::kAOD ) {
-    pAODHandler = AliAnalysisTaskEmcal::AddAODHandler();
-    }
-  else {
-    pESDHandler = AliAnalysisTaskEmcal::AddESDHandler();
-    }
+  if ( iDataType == AliAnalysisTaskEmcal::kAOD )
+    { pAODHandler = AliAnalysisTaskEmcal::AddAODHandler(); }
+  else
+    { pESDHandler = AliAnalysisTaskEmcal::AddESDHandler(); }
 
   // CDBconnect task
   AliTaskCDBconnect *taskCDB = AliTaskCDBconnect::AddTaskCDBconnect();
@@ -452,10 +457,10 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
     sRhoChName = "Rho";
     sRhoFuName = "Rho_Scaled";
 
-    AliEmcalJetTask* pKtChJetTask = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", kt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 0., kFALSE, kFALSE);
+    AliEmcalJetTask* pKtChJetTask = AliEmcalJetTask::AddTaskEmcalJet(name_tracks.Data(), "", kt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 0., kFALSE, kFALSE);
     pKtChJetTask->SelectCollisionCandidates(kPhysSel);
 
-    AliAnalysisTaskRho* pRhoTask = AddTaskRhoNew("usedefault", "usedefault", sRhoChName, 0.4);
+    AliAnalysisTaskRho* pRhoTask = AddTaskRhoNew(name_tracks.Data(), name_clusters.Data(), sRhoChName, 0.4);
     pRhoTask->SetExcludeLeadJets(2);
     pRhoTask->SelectCollisionCandidates(kPhysSel);
 
@@ -468,20 +473,20 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
 
   // Charged jet analysis
   if (bDoChargedJets) {
-    AliEmcalJetTask *pChJet02Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", antikt, 0.2, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+    AliEmcalJetTask *pChJet02Task = AliEmcalJetTask::AddTaskEmcalJet(name_tracks.Data(), "", antikt, 0.2, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
     pChJet02Task->SelectCollisionCandidates(kSel_chg);
 
-    AliEmcalJetTask *pChJet04Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", antikt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+    AliEmcalJetTask *pChJet04Task = AliEmcalJetTask::AddTaskEmcalJet(name_tracks.Data(), "", antikt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
     pChJet04Task->SelectCollisionCandidates(kSel_chg);
     }
 
   // Full jet analysis
   if (bDoFullJets) {
-    AliEmcalJetTask *pFuJet02Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "usedefault", antikt, 0.2, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+    AliEmcalJetTask *pFuJet02Task = AliEmcalJetTask::AddTaskEmcalJet(name_tracks.Data(), name_clusters.Data(), antikt, 0.2, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
     pFuJet02Task->SelectCollisionCandidates(kSel_full);
     pFuJet02Task->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
 
-    AliEmcalJetTask *pFuJet04Task = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "usedefault", antikt, 0.4, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+    AliEmcalJetTask *pFuJet04Task = AliEmcalJetTask::AddTaskEmcalJet(name_tracks.Data(), name_clusters.Data(), antikt, 0.4, fulljet, 0.15, 0.30, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
     pFuJet04Task->SelectCollisionCandidates(kSel_full);
     pFuJet04Task->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
     }
@@ -489,12 +494,12 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
   // Sample task - charge jets
   AliAnalysisTaskEmcalJetSample* sampleTaskchg = NULL;
   if (bDoSample  && bDoChargedJets) {
-    sampleTaskchg = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample("usedefault", "", "", "SMPCHG");
+    sampleTaskchg = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample(name_tracks.Data(), "", "", "SMPCHG");
     sampleTaskchg->GetParticleContainer(0)->SetParticlePtCut(0.15);
     sampleTaskchg->SetHistoBins(600, 0, 300);
     sampleTaskchg->SelectCollisionCandidates(kSel_chg);
     sampleTaskchg->SetDebugLevel(debug);
-    if ( pMultSelTask ) { 
+    if ( pMultSelTask ) {
       sampleTaskchg->SetUseNewCentralityEstimation(bIsRun2);
       sampleTaskchg->SetNCentBins(5);
       }
@@ -503,7 +508,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
   // Sample task - full jets
   AliAnalysisTaskEmcalJetSample* sampleTaskfull = NULL;
   if (bDoSample  && bDoFullJets) {
-    sampleTaskfull = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample("usedefault", "usedefault", "usedefault", "SMPFULL");
+    sampleTaskfull = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample(name_tracks.Data(), name_clusters.Data(), name_cells.Data(), "SMPFULL");
     sampleTaskfull->GetClusterContainer(0)->SetClusECut(0.);
     sampleTaskfull->GetClusterContainer(0)->SetClusPtCut(0.);
     sampleTaskfull->GetClusterContainer(0)->SetClusNonLinCorrEnergyCut(0.);
@@ -522,7 +527,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
   //###   CDF task - charged jets
   AliAnalysisTaskEmcalJetCDF* anaTaskCDFchg = NULL;
   if (bDoCDF && bDoChargedJets) {
-    anaTaskCDFchg = CDF::AddTaskEmcalJetCDF ( "usedefault", "", "", "CDFchg" );
+    anaTaskCDFchg = CDF::AddTaskEmcalJetCDF ( name_tracks.Data(), "", "", "CDFchg" );
     anaTaskCDFchg->GetParticleContainer(0)->SetParticlePtCut(0.15);
     anaTaskCDFchg->SetHistoBins(600, 0, 300);
     anaTaskCDFchg->SelectCollisionCandidates(kSel_chg);
@@ -536,7 +541,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = arg_sel_full;
   //###   CDF task - full jets
   AliAnalysisTaskEmcalJetCDF* anaTaskCDFfull = NULL;
   if (bDoCDF && bDoFullJets) {
-    anaTaskCDFfull = CDF::AddTaskEmcalJetCDF ( "usedefault", "usedefault", "usedefault", "CDFfull" );
+    anaTaskCDFfull = CDF::AddTaskEmcalJetCDF ( name_tracks.Data(), name_clusters.Data(), name_cells.Data(), "CDFfull" );
     anaTaskCDFfull->GetClusterContainer(0)->SetClusECut(0.);
     anaTaskCDFfull->GetClusterContainer(0)->SetClusPtCut(0.);
     anaTaskCDFfull->GetClusterContainer(0)->SetClusNonLinCorrEnergyCut(0.);
