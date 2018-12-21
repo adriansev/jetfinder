@@ -4,7 +4,7 @@ USE_ALIROOT="" # set to yes to use aliroot instead of root.exe
 USE_CVMFS=""      # set to yes to load cvmfs environment instead of alibuild
 
 export VER_ALIBUILD="ali-latest-1"
-export VER_CVMFS="vAN-20181014-1"
+export VER_CVMFS="vAN-20181220-1"
 
 # Check if on centos
 eval $(</etc/os-release)
