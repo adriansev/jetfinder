@@ -4,7 +4,7 @@ USE_ALIROOT="" # set to yes to use aliroot instead of root.exe
 USE_CVMFS=""      # set to yes to load cvmfs environment instead of alibuild
 
 export VER_ALIBUILD="ali-latest-1"
-export VER_CVMFS="vAN-20181220-1"
+export VER_CVMFS="vAN-20190310-1"
 
 # Check if on centos
 eval $(</etc/os-release)
@@ -64,7 +64,6 @@ export PROGRESSBAR='false'  # toggle the progress bar of AliAnalysisManager; wil
 # PluginType::merge    = 3,
 # PluginType::full     = 4
 
-#    const char*   cDataType      = "AOD",
 #    const char*   cRunPeriod     = "LHC11d",
 #    const char*   cLocalFiles    = "data.txt",
 #    const UInt_t  arg_sel_chg    = 3145763,
@@ -75,8 +74,7 @@ export PROGRESSBAR='false'  # toggle the progress bar of AliAnalysisManager; wil
 #    unsigned int  iNumFiles      = 100,
 #    unsigned int  iNumEvents     = 999999999,
 #    bool          bDoChargedJets = true,
-#    bool          bDoFullJets    = false,
-#    bool          isMC           = false         // use mcparticles for analysis
+#    bool          bDoFullJets    = false
 
-${EXEC} EmcalJetCDF.C\(\"AOD\",\"lhc16r\"\,\"data.txt\",50192,50192,0,0,\"CDFjets\",1,1000,true,false,false\)
+${EXEC} EmcalJetCDF.C\(\"lhc16r\"\,\"data.txt\",3145763,3145763,0,0,\"CDFjets\",50,9999999,true,false\)
 
