@@ -34,6 +34,10 @@ fi
 IS_ALIROOT=$(which --skip-alias --skip-functions aliroot 2>/dev/null)
 [[ -z "${IS_ALIROOT}" ]] && { echo "Still not found aliroot executable; Check the settings for ALIBUILD/CVMFS versions" ; exit 1; }
 
+ROOT_VER=$(root-config --version)
+[[ "${ROOT_VER}" =~ ^5 ]] && IsROOT5="1"
+[[ "${ROOT_VER}" =~ ^6 ]] && IsROOT6="1"
+
 ######################################################################
 # Trigger values : (to be used as arguments)
 #mykEMC : 50192
@@ -76,5 +80,8 @@ export PROGRESSBAR='false'  # toggle the progress bar of AliAnalysisManager; wil
 #    bool          bDoChargedJets = true,
 #    bool          bDoFullJets    = false
 
-${EXEC} EmcalJetCDF.C\(\"lhc16r\"\,\"data.txt\",3145763,3145763,0,0,\"CDFjets\",50,9999999,true,false\)
+MACRO="EmcalJetCDF.C"
+[[ -n "${IsROOT6}" ]] && MACRO="${MACRO}+"
+
+${EXEC} ${MACRO}\(\"lhc16r\"\,\"data.txt\",3145763,3145763,0,0,\"CDFjets\",1,10000,true,false\)
 
