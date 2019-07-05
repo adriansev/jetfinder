@@ -75,6 +75,26 @@ else if ( datarun.EqualTo ( "pp_lhc10d_aod" ) ) {
     return kTRUE;
     }
 
+// https://alice.its.cern.ch/jira/browse/ALIROOT-5603
+else if ( datarun.EqualTo ( "pp_lhc10d_14j4d" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2014/LHC14j4d" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "*/AOD173/*/*AliAOD.root" );
+
+    TString list_lhc10d_AN_1 = "126432 126425 126424 126422 126409 126408 126407 126406 126405 126404 126403 126359 126352 126351 126350 126285 126284";
+    TString list_lhc10d_AN_2 = "126283 126168 126167 126160 126158 126097 126090 126088 126082 126081 126078 126073 126008 126007 126004 125855 125851";
+    TString list_lhc10d_AN_3 = "125850 125849 125848 125847 125844 125843 125842 125633 125632 125630 125628 125296 125295 125186 125156 125140 125139";
+    TString list_lhc10d_AN_4 = "125134 125133 125101 125100 125097 125085 125083 125023 124751 122375 122374";
+
+    plugin->AddRunList ( list_lhc10d_AN_1.Data() );
+    plugin->AddRunList ( list_lhc10d_AN_2.Data() );
+    plugin->AddRunList ( list_lhc10d_AN_3.Data() );
+    plugin->AddRunList ( list_lhc10d_AN_4.Data() );
+    return kTRUE;
+    }
+
 // ##################################################################################
 
 // AOD LHC10e; 7 TeV
@@ -226,7 +246,7 @@ else if ( datarun.EqualTo ( "pp_lhc16t_aod" ) ) {
     return kTRUE;
     }
 
-// LHC18f3b_cent_2	p-Pb, 8.16 TeV - DPMJET production anchored to LHC16r, CENT, ALIROOT-7792
+// LHC18f3b_cent_2 p-Pb, 8.16 TeV - DPMJET production anchored to LHC16r, CENT, ALIROOT-7792
 else if ( datarun.EqualTo ( "lhc18f3bcent" ) ) {
     // AliEn data production directory
     plugin->SetGridDataDir ( "/alice/sim/2018/LHC18f3b_cent_2" );
