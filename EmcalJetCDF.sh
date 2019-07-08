@@ -48,7 +48,8 @@ ROOT_VER=$(root-config --version)
 #mykEMC : 50192
 #mykEMC_noGA : 17424
 
-#export CDF_doMULT='false'   # disable unconditionaly the running of AliMultSelectionTask
+export CDF_doMULT='false'   # disable unconditionaly the running of AliMultSelectionTask
+export CDF_doBKRD='false'   # disable unconditionaly the running of RhoTask
 export CDF_doSAMPLE='false' # toggle execution of TaskEmcalJetSample task
 export CDF_doCDF='true'     # toggle execution of TaskEmcalJetCDF task
 
@@ -85,5 +86,5 @@ export PROGRESSBAR='false'  # toggle the progress bar of AliAnalysisManager; wil
 MACRO="EmcalJetCDF.C"
 [[ -n "${IsROOT6}" ]] && MACRO="${MACRO}+"
 
-${EXEC} ${MACRO}\(\"lhc16r\"\,\"data.txt\",1,1,0,0,\"CDFjets\",1,10000,true,false\)
+${EXEC} ${MACRO}\(\"lhc16r\"\,\"data.txt\",3145763,3145763,0,0,\"CDFjets\",1,100000,true,false\)
 

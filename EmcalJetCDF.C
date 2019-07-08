@@ -193,7 +193,6 @@ namespace CDF = PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetCDF_NS; // shortcut
 unsigned int       kGridFilesPerJob         = iNumFiles;      // Maximum number of files per job (gives size of AOD)
 unsigned int       kTTL                     = 64800 ;         // Time To Live; 18h = 64800; 12h = 43200
 
-bool bDoBackgroundSubtraction = true;
 bool bDoEmbedding = false;
 
 // Embeded Configuration options
@@ -229,7 +228,11 @@ TRegexp disable_regex ("[d,D][i,I][s,S][a,A][b,B][l,L][e,E]");
 
 bool bDoMultSelect = true;
 TString ENV_doMult = gSystem->Getenv("CDF_doMULT");
-if (!ENV_doMult.IsNull() && ( ENV_doMult.EqualTo("0") || ENV_doMult.Contains(false_regex) ) ) { bDoSample = false; }
+if (!ENV_doMult.IsNull() && ( ENV_doMult.EqualTo("0") || ENV_doMult.Contains(false_regex) ) ) { bDoMultSelect = false; }
+
+bool bDoBackgroundSubtraction = true;
+TString ENV_doBackground = gSystem->Getenv("CDF_doBKRD");
+if (!ENV_doBackground.IsNull() && ( ENV_doBackground.EqualTo("0") || ENV_doBackground.Contains(false_regex) ) ) { bDoBackgroundSubtraction = false; }
 
 bool  bDoSample = false;
 TString ENV_doSAMPLE = gSystem->Getenv("CDF_doSAMPLE");
@@ -552,13 +555,13 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     sRhoChName = "Rho";
     sRhoFuName = "Rho_Scaled";
 
-    AliEmcalJetTask* pKtChJetTask = AliEmcalJetTask::AddTaskEmcalJet(name_tracks.Data(), "", kt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 0., kFALSE, kFALSE);
+    AliEmcalJetTask* pKtChJetTask = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", kt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 0., kFALSE, kFALSE);
     pKtChJetTask->SelectCollisionCandidates(kPhysSel);
 
     //signature :
     // const char* nTracks = "usedefault", const char* nClusters = "usedefault", const char* nRho = "Rho", Double_t jetradius = 0.2, UInt_t acceptance = AliEmcalJet::kTPCfid,
     // AliJetContainer::EJetType_t jetType = AliJetContainer::kChargedJet, const Bool_t histo = kFALSE, AliJetContainer::ERecoScheme_t rscheme = AliJetContainer::pt_scheme, const char* suffix = ""
-    pRhoTask = AliAnalysisTaskRho::AddTaskRhoNew(name_tracks.Data(), name_clusters.Data(), sRhoChName, 0.4);
+    pRhoTask = AliAnalysisTaskRho::AddTaskRhoNew("usedefault", "usedefault", sRhoChName.Data(), 0.4);
     pRhoTask->SetExcludeLeadJets(2);
     pRhoTask->SelectCollisionCandidates(kPhysSel);
     pRhoTask->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
@@ -567,6 +570,31 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
       TString sFuncPath = "alien:///alice/cern.ch/user/s/saiola/LHC11h_ScaleFactorFunctions.root";
       TString sFuncName = "LHC11h_HadCorr20_ClustersV2";
       pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
+      }
+    }
+
+  TString sRhoChName_MC;
+  TString sRhoFuName_MC;
+  AliAnalysisTaskRho* pRhoTask_MC = NULL;
+  if ( bDoBackgroundSubtraction && isMC && iBeamType != AliAnalysisTaskEmcal::kpp ) {
+    sRhoChName = "Rho_MC";
+    sRhoFuName = "Rho_Scaled_MC";
+
+    AliEmcalJetTask* pKtChJetTask_MC = AliEmcalJetTask::AddTaskEmcalJet("mcparticles", "", kt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "JetMC", 0., kFALSE, kFALSE);
+    pKtChJetTask_MC->SelectCollisionCandidates(kPhysSel);
+
+    //signature :
+    // const char* nTracks = "usedefault", const char* nClusters = "usedefault", const char* nRho = "Rho", Double_t jetradius = 0.2, UInt_t acceptance = AliEmcalJet::kTPCfid,
+    // AliJetContainer::EJetType_t jetType = AliJetContainer::kChargedJet, const Bool_t histo = kFALSE, AliJetContainer::ERecoScheme_t rscheme = AliJetContainer::pt_scheme, const char* suffix = ""
+    pRhoTask_MC = AliAnalysisTaskRho::AddTaskRhoNew("mcparticles", "usedefault", sRhoChName_MC.Data(), 0.4);
+    pRhoTask_MC->SetExcludeLeadJets(2);
+    pRhoTask_MC->SelectCollisionCandidates(kPhysSel);
+    pRhoTask_MC->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+
+    if (bDoFullJets) {
+      TString sFuncPath = "alien:///alice/cern.ch/user/s/saiola/LHC11h_ScaleFactorFunctions.root";
+      TString sFuncName = "LHC11h_HadCorr20_ClustersV2";
+      pRhoTask_MC->LoadRhoFunction(sFuncPath, sFuncName);
       }
     }
 
@@ -583,18 +611,18 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     pChJet04Task->SelectCollisionCandidates(kSel_chg);
 
     if (isMC) {
-      pChJet02Task_MC = AliEmcalJetTask::AddTaskEmcalJet(mc_container.Data(), "", antikt, 0.2, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+      pChJet02Task_MC = AliEmcalJetTask::AddTaskEmcalJet("mcparticles", "", antikt, 0.2, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
       pChJet02Task_MC->SelectCollisionCandidates(kSel_chg);
+
+      pChJet04Task_MC = AliEmcalJetTask::AddTaskEmcalJet("mcparticles", "", antikt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+      pChJet04Task_MC->SelectCollisionCandidates(kSel_chg);
+
       if (bDoEmbedding) {
         pChJet02Task_MC->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
         AliParticleContainer* partLevelTracks02Task_MC = pChJet02Task_MC->GetParticleContainer(0);
         // Called Embedded, but really just means get from an external event!
         partLevelTracks02Task_MC->SetIsEmbedding(kTRUE);
-        }
 
-      pChJet04Task_MC = AliEmcalJetTask::AddTaskEmcalJet(mc_container.Data(), "", antikt, 0.4, chgjet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
-      pChJet04Task_MC->SelectCollisionCandidates(kSel_chg);
-      if (bDoEmbedding) {
         pChJet04Task_MC->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
         AliParticleContainer* partLevelTracks04Task_MC = pChJet04Task_MC->GetParticleContainer(0);
         // Called Embedded, but really just means get from an external event!
@@ -617,20 +645,20 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     pFuJet04Task->SelectCollisionCandidates(kSel_full);
     pFuJet04Task->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
 
+    // runEmbeddingAnalysis.C - seems that for mc there is no setting of cluster containers
     if (isMC) {
-      pFuJet02Task_MC = AliEmcalJetTask::AddTaskEmcalJet(mc_container.Data(), name_clusters.Data(), antikt, 0.2, fulljet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+      pFuJet02Task_MC = AliEmcalJetTask::AddTaskEmcalJet("mcparticles", "", antikt, 0.2, fulljet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
       pFuJet02Task_MC->SelectCollisionCandidates(kSel_full);
+
+      pFuJet04Task_MC = AliEmcalJetTask::AddTaskEmcalJet("mcparticles", "", antikt, 0.4, fulljet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
+      pFuJet04Task_MC->SelectCollisionCandidates(kSel_full);
+
       if (bDoEmbedding) {
         pFuJet02Task_MC->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
         AliParticleContainer* partLevelTracks02Task_MC = pFuJet02Task_MC->GetParticleContainer(0);
         // Called Embedded, but really just means get from an external event!
         partLevelTracks02Task_MC->SetIsEmbedding(kTRUE);
-        }
 
-      pFuJet04Task_MC = AliEmcalJetTask::AddTaskEmcalJet(mc_container.Data(), name_clusters.Data(), antikt, 0.4, fulljet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
-      pFuJet04Task_MC->SelectCollisionCandidates(kSel_full);
-      pFuJet04Task_MC->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
-      if (bDoEmbedding) {
         pFuJet04Task_MC->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
         AliParticleContainer* partLevelTracks04Task_MC = pFuJet04Task_MC->GetParticleContainer(0);
         // Called Embedded, but really just means get from an external event!
@@ -700,6 +728,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     anaTaskCDFchg->SetHistoBins(600, 0, 300);
     anaTaskCDFchg->SelectCollisionCandidates(kSel_chg);
     anaTaskCDFchg->SetDebugLevel(debug);
+    anaTaskCDFchg->SetNCentBins(1);
 
     AliParticleContainer* anaTaskCDFchg_partCont = anaTaskCDFchg->GetParticleContainer(0);
     anaTaskCDFchg_partCont->SetParticlePtCut(0.15);
@@ -714,10 +743,11 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
     //#################################################
     if (isMC){
-      anaTaskCDFchg_MC = CDF::AddTaskEmcalJetCDF ( mc_container.Data(), "", "", "", "CDFchgMC" );
+      anaTaskCDFchg_MC = CDF::AddTaskEmcalJetCDF ( "mcparticles", "", "", "", "CDFchgMC" );
       anaTaskCDFchg_MC->SetHistoBins(600, 0, 300);
       anaTaskCDFchg_MC->SelectCollisionCandidates(kSel_chg);
       anaTaskCDFchg_MC->SetDebugLevel(debug);
+      anaTaskCDFchg_MC->SetNCentBins(1);
 
       AliParticleContainer* anaTaskCDFchg_partCont_MC = anaTaskCDFchg_MC->GetMCParticleContainer(0);
       anaTaskCDFchg_partCont->SetParticlePtCut(0.15);
@@ -734,8 +764,9 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
   //###   CDF task - full jets
   AliAnalysisTaskEmcalJetCDF* anaTaskCDFfull = NULL;
+  AliAnalysisTaskEmcalJetCDF* anaTaskCDFfull_MC = NULL;
   if (bDoCDF && bDoFullJets) {
-    anaTaskCDFfull = CDF::AddTaskEmcalJetCDF ( name_tracks.Data(), name_clusters.Data(), name_cells.Data(), mc_container.Data(), "CDFfull" );
+    anaTaskCDFfull = CDF::AddTaskEmcalJetCDF ( name_tracks.Data(), name_clusters.Data(), "", "", "CDFfull" );
     anaTaskCDFfull->SetHistoBins(600, 0, 300);
     anaTaskCDFfull->SelectCollisionCandidates(kSel_full);
     anaTaskCDFfull->SetDebugLevel(debug);
@@ -743,24 +774,34 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     AliParticleContainer* anaTaskCDFfull_partCont = anaTaskCDFfull->GetParticleContainer(0);
     anaTaskCDFfull_partCont->SetParticlePtCut(0.15);
 
-    AliClusterContainer* anaTaskCDFfull_clusCont = anaTaskCDFfull->GetClusterContainer(0);
-    anaTaskCDFfull_clusCont->SetClusECut(0.);
-    anaTaskCDFfull_clusCont->SetClusPtCut(0.);
-    anaTaskCDFfull_clusCont->SetClusNonLinCorrEnergyCut(0.);
-    anaTaskCDFfull_clusCont->SetClusHadCorrEnergyCut(0.30);
-    anaTaskCDFfull_clusCont->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
-
-    if (bDoEmbedding) {
-      anaTaskCDFfull_partCont->SetIsEmbedding(kTRUE);
-      anaTaskCDFfull_clusCont->SetIsEmbedding(kTRUE);
-      }
+    if (bDoEmbedding) { anaTaskCDFfull_partCont->SetIsEmbedding(kTRUE); }
 
     if ( pMultSelTask ) {
       anaTaskCDFfull->SetUseNewCentralityEstimation(bIsRun2);
       anaTaskCDFfull->SetNCentBins(5);
       anaTaskCDFfull->SetCentralityEstimator(cent_est_full.Data());
       }
+
+    //#################################################
+    if (isMC){
+      anaTaskCDFfull_MC = CDF::AddTaskEmcalJetCDF ( "mcparticles", "", "", "", "CDFfullMC" );
+      anaTaskCDFfull_MC->SetHistoBins(600, 0, 300);
+      anaTaskCDFfull_MC->SelectCollisionCandidates(kSel_full);
+      anaTaskCDFfull_MC->SetDebugLevel(debug);
+
+      AliParticleContainer* anaTaskCDFfull_partCont_MC = anaTaskCDFfull_MC->GetMCParticleContainer(0);
+      anaTaskCDFfull_partCont->SetParticlePtCut(0.15);
+
+      if (bDoEmbedding) { anaTaskCDFfull_partCont_MC->SetIsEmbedding(kTRUE); }
+
+      if ( pMultSelTask ) {
+        anaTaskCDFfull_MC->SetUseNewCentralityEstimation(bIsRun2);
+        anaTaskCDFfull_MC->SetNCentBins(5);
+        anaTaskCDFfull_MC->SetCentralityEstimator(cent_est_full.Data());
+        }
+      }
     }
+
 
 //########################
 //   ANALYSIS TASKS - CONTAINERS SETUP
@@ -774,35 +815,71 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     AliJetContainer* jetcont_chg = NULL;
     for ( Float_t fi = 0 ; fi<=100 ; fi+=10) {
       // CHG JETS 0.2
-      jetcont_chg  = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+      jetcont_chg = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+      //jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg), pChJet02Task, acc_chgjets);
       CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
+      if (pRhoTask) {
+        jetcont_chg->SetRhoName(sRhoChName.Data());
+        // jetcont_chg->SetPercAreaCut(0.6);
+        }
 
       // CHG JETS 0.4
-      jetcont_chg  = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+      jetcont_chg = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+      //jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg), pChJet04Task, acc_chgjets);
       CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
+      if (pRhoTask) {
+        jetcont_chg->SetRhoName(sRhoChName.Data());
+        // jetcont_chg->SetPercAreaCut(0.6);
+        }
 
       if (isMC) {
         // CHG JETS MC 0.2
         jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg_MC), pChJet02Task_MC, acc_chgjets);
         CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
+        if (pRhoTask_MC) {
+          jetcont_chg->SetRhoName(sRhoChName_MC.Data());
+          // jetcont_chg->SetPercAreaCut(0.6);
+          }
 
         // CHG JETS MC 0.4
         jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg_MC), pChJet04Task_MC, acc_chgjets);
         CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
+        if (pRhoTask_MC) {
+          jetcont_chg->SetRhoName(sRhoChName_MC.Data());
+          // jetcont_chg->SetPercAreaCut(0.6);
+          }
         }
       }
 
     jetcont_chg   = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
     CDF::jetContSetParams (jetcont_chg,     1., 500., 0, 0);
+    if (pRhoTask) {
+      jetcont_chg->SetRhoName(sRhoChName.Data());
+      // jetcont_chg->SetPercAreaCut(0.6);
+      }
+
     jetcont_chg   = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
     CDF::jetContSetParams (jetcont_chg,     1., 500., 0, 0);
+    if (pRhoTask_MC) {
+      jetcont_chg->SetRhoName(sRhoChName.Data());
+      // jetcont_chg->SetPercAreaCut(0.6);
+      }
+
 
     if (isMC) {
       jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg_MC), pChJet02Task_MC, acc_chgjets);
       CDF::jetContSetParams (jetcont_chg,     1., 500., 0, 0);
+      if (pRhoTask_MC) {
+        jetcont_chg->SetRhoName(sRhoChName.Data());
+        // jetcont_chg->SetPercAreaCut(0.6);
+        }
 
       jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg_MC), pChJet04Task_MC, acc_chgjets);
       CDF::jetContSetParams (jetcont_chg,     1., 500., 0, 0);
+      if (pRhoTask_MC) {
+        jetcont_chg->SetRhoName(sRhoChName.Data());
+        // jetcont_chg->SetPercAreaCut(0.6);
+        }
       }
 
     jetcont_chg = NULL;
@@ -813,36 +890,73 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     AliJetContainer* jetcont_full = NULL;
     for ( Float_t fi = 0 ; fi<=100 ; fi+=10) {
       // FULL JETS 0.2
-      jetcont_full  = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+      // jetcont_full  = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+      jetcont_full = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFfull), pFuJet02Task, acc_fulljets);
       CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 2);
+      if (pRhoTask) {
+        jetcont_full->SetRhoName(sRhoFuName.Data());
+        // jetcont_chg->SetPercAreaCut(0.6);
+        }
 
       // FULL JETS 0.4
-      jetcont_full  = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+      // jetcont_full  = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+      jetcont_full = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFfull), pFuJet04Task, acc_fulljets);
       CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 2);
+      if (pRhoTask) {
+        jetcont_full->SetRhoName(sRhoFuName.Data());
+        // jetcont_chg->SetPercAreaCut(0.6);
+        }
+
 
       if (isMC) {
         // CHG JETS MC 0.2
         jetcont_full = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFfull_MC), pFuJet02Task_MC, acc_fulljets);
-        CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 0);
+        CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 2);
+        if (pRhoTask_MC) {
+          jetcont_full->SetRhoName(sRhoFuName.Data());
+          // jetcont_chg->SetPercAreaCut(0.6);
+          }
 
         // CHG JETS MC 0.4
         jetcont_full = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFfull_MC), pFuJet04Task_MC, acc_fulljets);
-        CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 0);
+        CDF::jetContSetParams (jetcont_full,    fi,   fi+10, 0, 2);
+        if (pRhoTask_MC) {
+          jetcont_full->SetRhoName(sRhoFuName.Data());
+          // jetcont_chg->SetPercAreaCut(0.6);
+          }
         }
       }
 
-    jetcont_full   = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+    // jetcont_full   = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.2, acc_fulljets, "Jet");
+    jetcont_full = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFfull), pFuJet02Task, acc_fulljets);
     CDF::jetContSetParams (jetcont_full,     1., 500., 0, 2);
+    if (pRhoTask) {
+      jetcont_full->SetRhoName(sRhoFuName.Data());
+      // jetcont_chg->SetPercAreaCut(0.6);
+      }
 
-    jetcont_full   = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+    // jetcont_full   = anaTaskCDFfull->AddJetContainer(fulljet, antikt, recomb, 0.4, acc_fulljets, "Jet");
+    jetcont_full = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFfull), pFuJet04Task, acc_fulljets);
     CDF::jetContSetParams (jetcont_full,     1., 500., 0, 2);
+    if (pRhoTask) {
+      jetcont_full->SetRhoName(sRhoFuName.Data());
+      // jetcont_chg->SetPercAreaCut(0.6);
+      }
 
     if (isMC) {
       jetcont_full = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFfull_MC), pFuJet02Task_MC, acc_fulljets);
-      CDF::jetContSetParams (jetcont_full,     1., 500., 0, 0);
+      CDF::jetContSetParams (jetcont_full,     1., 500., 0, 2);
+      if (pRhoTask_MC) {
+        jetcont_full->SetRhoName(sRhoFuName.Data());
+        // jetcont_chg->SetPercAreaCut(0.6);
+        }
 
       jetcont_full = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFfull_MC), pFuJet04Task_MC, acc_fulljets);
-      CDF::jetContSetParams (jetcont_full,     1., 500., 0, 0);
+      CDF::jetContSetParams (jetcont_full,     1., 500., 0, 2);
+      if (pRhoTask_MC) {
+        jetcont_full->SetRhoName(sRhoFuName.Data());
+        // jetcont_chg->SetPercAreaCut(0.6);
+        }
       }
     jetcont_full = NULL;
     }
