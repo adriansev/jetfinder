@@ -171,10 +171,10 @@ enum EPluginRunMode {
 AliAnalysisManager* EmcalJetCDF (
     const char*   cRunPeriod     = "LHC11d",    // set the run period
     const char*   cLocalFiles    = "data.txt",  // set the local list file
-    const Int_t   arg_sel_chg    = 3145763,   // "mykEMC_noGA",  // physics selection
-    const Int_t   arg_sel_full   = 3145763,   // "mykEMC_noGA",  // physics selection
-    const Int_t   mgr_mode       = 0,         // local = 0, proof = 1, grid = 2, mixing = 3
-    const Int_t   alien_mode     = 0,         // test = 0, offline = 1, submit = 2, merge = 3, full = 4
+    const Int_t   arg_sel_chg    = 3145763,     // defaults kAnyINT  // physics selection
+    const Int_t   arg_sel_full   = 3145763,     // defaults kAnyINT  // physics selection
+    const Int_t   mgr_mode       = 0,           // local = 0, proof = 1, grid = 2, mixing = 3
+    const Int_t   alien_mode     = 0,           // test = 0, offline = 1, submit = 2, merge = 3, full = 4
     const char*   cTaskName      = "CDFJets",   // sets name of task manager
     unsigned int  iNumFiles      = 100,         // numger of files to process from list file
     unsigned int  iNumEvents     = 999999999,   // number of events to be analyzed
@@ -205,7 +205,6 @@ const bool internalEventSelection = true;
 // Do jet matching
 const bool useJetTagger = true;
 
-
 TString sGridMode ("test");
 if ( PluginMode == PluginType::offline ) { sGridMode = "offline"; }
 if ( PluginMode == PluginType::submit )  { sGridMode = "submit"; }
@@ -221,21 +220,24 @@ const char* cAnalysisType = sAnalysisType.Data();
 
 cout << std::endl << ">>>>>>>> ManagerMode : " << ManagerMode << " ; String value : " << cAnalysisType << std::endl << ">>>>>>>> PluginMode : " << PluginMode << " ; String value : " << cGridMode << std::endl << std::endl;
 
+
 //---------------------------------------------------------------------------------------------
 TRegexp false_regex ("[f,F][a,A][l,L][s,S][e,E]");
 TRegexp true_regex ("[t,T][r,R][u,U][e,E]");
 TRegexp enable_regex ("[e,E][n,N][a,A][b,B][l,L][e,E]");
 TRegexp disable_regex ("[d,D][i,I][s,S][a,A][b,B][l,L][e,E]");
 
+bool bDoMultSelect = true;
+TString ENV_doMult = gSystem->Getenv("CDF_doMULT");
+if (!ENV_doMult.IsNull() && ( ENV_doMult.EqualTo("0") || ENV_doMult.Contains(false_regex) ) ) { bDoSample = false; }
+
 bool  bDoSample = false;
 TString ENV_doSAMPLE = gSystem->Getenv("CDF_doSAMPLE");
-if (!ENV_doSAMPLE.IsNull() && ( ENV_doSAMPLE.EqualTo("0") || ENV_doSAMPLE.Contains(false_regex) ) ) { bDoSample = kFALSE; }
-if (!ENV_doSAMPLE.IsNull() && ( ENV_doSAMPLE.EqualTo("1") || ENV_doSAMPLE.Contains(true_regex)  ) ) { bDoSample = kTRUE; }
+if (!ENV_doSAMPLE.IsNull() && ( ENV_doSAMPLE.EqualTo("1") || ENV_doSAMPLE.Contains(true_regex)  ) ) { bDoSample = true; }
 
 bool  bDoCDF    = true;
 TString ENV_doCDF = gSystem->Getenv("CDF_doCDF");
 if (!ENV_doCDF.IsNull() && ( ENV_doCDF.EqualTo("0") || ENV_doCDF.Contains(false_regex) ) ) { bDoCDF = kFALSE; }
-if (!ENV_doCDF.IsNull() && ( ENV_doCDF.EqualTo("1") || ENV_doCDF.Contains(true_regex)  ) ) { bDoCDF = kTRUE; }
 
 // ######   DEBUG    ######
 Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
@@ -323,12 +325,14 @@ const AliEmcalPhysicsSelection::EOfflineEmcalTypes mykEMCAL  = AliEmcalPhysicsSe
 const AliVEvent::EOfflineTriggerTypes  mykEMC             = static_cast<AliVEvent::EOfflineTriggerTypes>(AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA);
 const AliVEvent::EOfflineTriggerTypes  mykEMC_noGA        = static_cast<AliVEvent::EOfflineTriggerTypes>(AliVEvent::kEMC1 | AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE);
 
-const AliVEvent::EOfflineTriggerTypes  mykMB              = AliVEvent::kAnyINT;
+const AliVEvent::EOfflineTriggerTypes  mykMB              = AliVEvent::kMB;
+const AliVEvent::EOfflineTriggerTypes  mykINT7            = AliVEvent::kINT7;
+const AliVEvent::EOfflineTriggerTypes  mykAny             = AliVEvent::kAnyINT; // kAnyINT = kMB | kINT7 | kINT5 | kINT8 | kSPI7 
 const AliVEvent::EOfflineTriggerTypes  mykMB_central      = static_cast<AliVEvent::EOfflineTriggerTypes>(AliVEvent::kAnyINT | AliVEvent::kCentral);
 const AliVEvent::EOfflineTriggerTypes  mykMB_semicentral  = static_cast<AliVEvent::EOfflineTriggerTypes>(AliVEvent::kAnyINT | AliVEvent::kSemiCentral);
 const AliVEvent::EOfflineTriggerTypes  mykMB_mostcentral  = static_cast<AliVEvent::EOfflineTriggerTypes>(AliVEvent::kAnyINT | AliVEvent::kCentral | AliVEvent::kSemiCentral);
 
-AliVEvent::EOfflineTriggerTypes kPhysSel   = mykMB; //AliVEvent::kAnyINT; // physics selection
+AliVEvent::EOfflineTriggerTypes kPhysSel   = mykAny; //AliVEvent::kAnyINT; // physics selection
 // AliVEvent::EOfflineTriggerTypes kSel_tasks = mykMB;
 
 AliVEvent::EOfflineTriggerTypes kSel_chg   = static_cast<AliVEvent::EOfflineTriggerTypes>(arg_sel_chg);
@@ -388,8 +392,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
   TString sRunPeriod (cRunPeriod);
   sRunPeriod.ToLower();
 
-  bool isMC = false;
-  isMC = CDF::PeriodIsMC(sRunName.Data());
+  bool isMC = CDF::PeriodIsMC(sRunName.Data());
 
   // EMCAL corrections task configuration file
   TString EMCALcfg ("CDF_CorrectionsConf.yaml");
@@ -470,7 +473,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
   // AliMultSelection
   AliMultSelectionTask* pMultSelTask = NULL;
-  if (bIsRun2) {
+  if (bDoMultSelect && bIsRun2) {
     // signature : ( Bool_t lCalibration = kFALSE, TString lExtraOptions = "", Int_t lNDebugEstimators = 1, const TString lMasterJobSessionFlag = "")
     pMultSelTask = AliMultSelectionTask::AddTaskMultSelection();
     pMultSelTask->SelectCollisionCandidates(AliVEvent::kAny);
@@ -616,7 +619,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
     if (isMC) {
       pFuJet02Task_MC = AliEmcalJetTask::AddTaskEmcalJet(mc_container.Data(), name_clusters.Data(), antikt, 0.2, fulljet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
-      pFuJet02Task_MC->SelectCollisionCandidates(kSel_chg);
+      pFuJet02Task_MC->SelectCollisionCandidates(kSel_full);
       if (bDoEmbedding) {
         pFuJet02Task_MC->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
         AliParticleContainer* partLevelTracks02Task_MC = pFuJet02Task_MC->GetParticleContainer(0);
@@ -625,7 +628,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
         }
 
       pFuJet04Task_MC = AliEmcalJetTask::AddTaskEmcalJet(mc_container.Data(), name_clusters.Data(), antikt, 0.4, fulljet, 0.15, 0, kGhostArea, recomb, "Jet", 1., kFALSE, kFALSE);
-      pFuJet04Task_MC->SelectCollisionCandidates(kSel_chg);
+      pFuJet04Task_MC->SelectCollisionCandidates(kSel_full);
       pFuJet04Task_MC->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
       if (bDoEmbedding) {
         pFuJet04Task_MC->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
