@@ -4,7 +4,7 @@ USE_ALIROOT="" # set to yes to use aliroot instead of root.exe
 USE_CVMFS=""      # set to yes to load cvmfs environment instead of alibuild
 
 export VER_ALIBUILD="ali-latest-1"
-export VER_CVMFS="vAN-20190310-1"
+export VER_CVMFS="vAN-20190709-1"
 
 # Check if on centos
 eval $(</etc/os-release)
@@ -40,13 +40,14 @@ ROOT_VER=$(root-config --version)
 
 ######################################################################
 # Trigger values : (to be used as arguments)
-#mykMB : 1
-#mykAnyINT : 3145763
-#mykMB_central 3211299
-#mykMB_semicentral 3276835
-#mykMB_mostcentral 3342371
-#mykEMC : 50192
-#mykEMC_noGA : 17424
+#kMB : 1
+#kINT7 : 2
+#kAnyINT : 3145763
+#kMB_central 3211299
+#kMB_semicentral 3276835
+#kMB_mostcentral 3342371
+#kEMC : 50192
+#kEMC_noGA : 17424
 
 export CDF_doMULT='false'   # disable unconditionaly the running of AliMultSelectionTask
 export CDF_doBKRD='false'   # disable unconditionaly the running of RhoTask
