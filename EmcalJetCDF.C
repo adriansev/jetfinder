@@ -226,6 +226,15 @@ TRegexp true_regex ("[t,T][r,R][u,U][e,E]");
 TRegexp enable_regex ("[e,E][n,N][a,A][b,B][l,L][e,E]");
 TRegexp disable_regex ("[d,D][i,I][s,S][a,A][b,B][l,L][e,E]");
 
+// Physics selection task
+bool bDoPhysicsSelect = false;
+TString ENV_doPhysSelect = gSystem->Getenv("CDF_doPhysSelect");
+if (!ENV_doPhysSelect.IsNull() && ( ENV_doPhysSelect.EqualTo("1") || ENV_doPhysSelect.Contains(true_regex) ) ) { bDoPhysicsSelect = true; }
+
+bool applyPileupCuts = false;
+TString ENV_doPileup = gSystem->Getenv("CDF_doPileup");
+if (!ENV_doPileup.IsNull() && ( ENV_doPileup.EqualTo("1") || ENV_doPileup.Contains(true_regex) ) ) { bDoPhysicsSelect = applyPileupCuts = true; }
+
 bool bDoMultSelect = true;
 TString ENV_doMult = gSystem->Getenv("CDF_doMULT");
 if (!ENV_doMult.IsNull() && ( ENV_doMult.EqualTo("0") || ENV_doMult.Contains(false_regex) ) ) { bDoMultSelect = false; }
@@ -330,7 +339,7 @@ const AliVEvent::EOfflineTriggerTypes  mykEMC_noGA        = static_cast<AliVEven
 
 const AliVEvent::EOfflineTriggerTypes  mykMB              = AliVEvent::kMB;
 const AliVEvent::EOfflineTriggerTypes  mykINT7            = AliVEvent::kINT7;
-const AliVEvent::EOfflineTriggerTypes  mykAny             = AliVEvent::kAnyINT; // kAnyINT = kMB | kINT7 | kINT5 | kINT8 | kSPI7 
+const AliVEvent::EOfflineTriggerTypes  mykAny             = AliVEvent::kAnyINT; // kAnyINT = kMB | kINT7 | kINT5 | kINT8 | kSPI7
 const AliVEvent::EOfflineTriggerTypes  mykMB_central      = static_cast<AliVEvent::EOfflineTriggerTypes>(AliVEvent::kAnyINT | AliVEvent::kCentral);
 const AliVEvent::EOfflineTriggerTypes  mykMB_semicentral  = static_cast<AliVEvent::EOfflineTriggerTypes>(AliVEvent::kAnyINT | AliVEvent::kSemiCentral);
 const AliVEvent::EOfflineTriggerTypes  mykMB_mostcentral  = static_cast<AliVEvent::EOfflineTriggerTypes>(AliVEvent::kAnyINT | AliVEvent::kCentral | AliVEvent::kSemiCentral);
@@ -460,9 +469,17 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
   // Physics selection task
   AliPhysicsSelectionTask* pPhysSelTask = NULL;
-  if (!kIsAOD) {
+  if (bDoPhysicsSelect) {
     // signature : (Bool_t mCAnalysisFlag = kFALSE, Bool_t applyPileupCuts = kFALSE, UInt_t deprecatedFlag2 = 0, Bool_t useSpecialOutput=kFALSE)
-    pPhysSelTask = AliPhysicsSelectionTask::AddTaskPhysicsSelection();
+    pPhysSelTask = AliPhysicsSelectionTask::AddTaskPhysicsSelection(isMC,applyPileupCuts);
+    }
+
+  // AliMultSelection
+  AliMultSelectionTask* pMultSelTask = NULL;
+  if (bDoMultSelect && bIsRun2) {
+    // signature : ( Bool_t lCalibration = kFALSE, TString lExtraOptions = "", Int_t lNDebugEstimators = 1, const TString lMasterJobSessionFlag = "")
+    pMultSelTask = AliMultSelectionTask::AddTaskMultSelection();
+    pMultSelTask->SelectCollisionCandidates(AliVEvent::kAny);
     }
 
   // Centrality task
@@ -472,14 +489,6 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     //signature : (Bool_t fillHistos=kTRUE, Bool_t aod=kFALSE)
     pCentralityTask = AliCentralitySelectionTask::AddTaskCentrality(kFALSE, kIsAOD);
     pCentralityTask->SelectCollisionCandidates(AliVEvent::kAny);
-    }
-
-  // AliMultSelection
-  AliMultSelectionTask* pMultSelTask = NULL;
-  if (bDoMultSelect && bIsRun2) {
-    // signature : ( Bool_t lCalibration = kFALSE, TString lExtraOptions = "", Int_t lNDebugEstimators = 1, const TString lMasterJobSessionFlag = "")
-    pMultSelTask = AliMultSelectionTask::AddTaskMultSelection();
-    pMultSelTask->SelectCollisionCandidates(AliVEvent::kAny);
     }
 
   // Embedding task
