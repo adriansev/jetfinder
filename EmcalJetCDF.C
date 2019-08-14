@@ -1059,7 +1059,7 @@ return pMgr;
 
 //######################################################################################################################################
 AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, unsigned int nr_test_files, unsigned int TTL,
-                                       const char* outdir, const char subworkdir, const char* extradirlvl ) {
+                                       const char* outdir, const char* subworkdir, const char* extradirlvl ) {
 
   AliAnalysisAlien* plugin = new AliAnalysisAlien();
   if ( !plugin ) { std::cout << "!!! -->> alien handler could not be created <<-- !!!" << std::endl; return NULL;}
