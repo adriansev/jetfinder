@@ -124,6 +124,7 @@ class AliAnalysisAlien;
 
 //############################################################
 // Forward declarations
+void                  load_config ( const char* file );
 void                  LoadLibs (TString& listlibs, TString& listlibsextra);
 bool                  LoadLibList ( const TString& list, TString& listlibs, TString& listlibsextra );
 
@@ -217,9 +218,9 @@ if ( ManagerMode == AnalysisType::grid )   { sAnalysisType = "grid"; }
 if ( ManagerMode == AnalysisType::mixing ) { sAnalysisType = "mix"; }
 const char* cAnalysisType = sAnalysisType.Data();
 
-cout << std::endl << ">>>>>>>> ManagerMode : " << ManagerMode << " ; String value : " << cAnalysisType << std::endl << ">>>>>>>> PluginMode : " << PluginMode << " ; String value : " << cGridMode << std::endl << std::endl;
+cout << std::endl << ">>>>>>>> ManagerMode: " << ManagerMode << " ; Analysis type: " << cAnalysisType << std::endl << ">>>>>>>> PluginMode: " << PluginMode << " ; Type: " << cGridMode << std::endl << std::endl;
 
-
+load_config("cdf.steer");
 //---------------------------------------------------------------------------------------------
 TRegexp false_regex ("[f,F][a,A][l,L][s,S][e,E]");
 TRegexp true_regex ("[t,T][r,R][u,U][e,E]");
@@ -238,6 +239,10 @@ if (!ENV_doPileup.IsNull() && ( ENV_doPileup.EqualTo("1") || ENV_doPileup.Contai
 bool bDoMultSelect = true;
 TString ENV_doMult = gSystem->Getenv("CDF_doMULT");
 if (!ENV_doMult.IsNull() && ( ENV_doMult.EqualTo("0") || ENV_doMult.Contains(false_regex) ) ) { bDoMultSelect = false; }
+
+Int_t centbins = 1;
+TString ENV_centbins = gSystem->Getenv("CDF_doMULT_bins");
+if (!ENV_centbins.IsNull() && ENV_centbins.IsDigit() ) { centbins = ENV_DEBUG.Atoi(); if (centbins > 5) centbins = 5; }
 
 bool bDoBackgroundSubtraction = true;
 TString ENV_doBackground = gSystem->Getenv("CDF_doBKRD");
@@ -276,23 +281,32 @@ Bool_t bUseProgBar = kFALSE; // N.B. !! if true will set fDebug to 0
 TString ENV_USEPROGBAR = gSystem->Getenv("PROGRESSBAR");
 if (!ENV_USEPROGBAR.IsNull() && ( ENV_USEPROGBAR.EqualTo("1") || ENV_USEPROGBAR.Contains(true_regex) ) )  { bUseProgBar = kTRUE; }
 
+// Report configuration of analysis
+cout << "\n\n" << ">>>>>>>>   Analysis configuration   <<<<<<<<";
+cout << "PhysicsSelection task: " << bDoPhysicsSelect;
+cout << "Apply Pileup Cuts: " << applyPileupCuts;
+cout << "Do Multiplicity Selection: " << bDoMultSelect;
+cout << "Multiplicity Bins: " << centbins;
+cout << "Do background substraction: " << bDoBackgroundSubtraction;
+cout << "Analysis task Sample: " << bDoSample;
+cout << "Analysis task CDF: " << bDoCDF;
+cout << "DEBUG - Global: " << debug;
+cout << "DEBUG - MGR: " << mgr_debug;
+cout << "DEBUG - NSysInfo: " << kUseSysInfo;
+cout << "\n\n" << endl;
+
 //##################################################
 //        AliEN plugin variables
 //##################################################
 const char* curdir = gSystem->BaseName(gSystem->pwd());
 TString     kJobTag (curdir);
 
-TString execArgs (" -l -b -q -x");
-TString exec =
-//               "aliroot";
-              "root.exe";
+TString     kPluginExecutableCommand ("root.exe -l -b -q -x");
 
-TString     kPluginExecutableCommand = exec + execArgs;
-
-TString     kAliPhysicsVersion       = "vAN-20190304-1";
+TString     kAliPhysicsVersion       = "vAN-20190826-1";
 
 // == grid plugin files rules
-TString     kGridExtraFiles          = ""; // extra files that will be added to the input list in the JDL
+TString     kGridExtraFiles          = "cdf.steer rootlogon.C InputData.C"; // extra files that will be added to the input list in the JDL
 TString     kGridMergeExclude        = "AliAOD.root AliAOD.Jets.root"; // Files that should not be merged
 TString     kGridOutputStorages      = "disk=2"; // Make replicas on the storages
 
@@ -695,7 +709,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
     if ( pMultSelTask ) {
       sampleTaskchg->SetUseNewCentralityEstimation(bIsRun2);
-      sampleTaskchg->SetNCentBins(5);
+      sampleTaskchg->SetNCentBins(centbins);
       }
     }
 
@@ -724,7 +738,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
     if ( pMultSelTask ) {
       sampleTaskfull->SetUseNewCentralityEstimation(bIsRun2);
-      sampleTaskfull->SetNCentBins(5);
+      sampleTaskfull->SetNCentBins(centbins);
       }
     }
 
@@ -746,7 +760,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
     if ( pMultSelTask ) {
       anaTaskCDFchg->SetUseNewCentralityEstimation(bIsRun2);
-      anaTaskCDFchg->SetNCentBins(5);
+      anaTaskCDFchg->SetNCentBins(centbins);
       anaTaskCDFchg->SetCentralityEstimator(cent_est_chg.Data());
       }
 
@@ -765,7 +779,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
       if ( pMultSelTask ) {
         anaTaskCDFchg_MC->SetUseNewCentralityEstimation(bIsRun2);
-        anaTaskCDFchg_MC->SetNCentBins(5);
+        anaTaskCDFchg_MC->SetNCentBins(centbins);
         anaTaskCDFchg_MC->SetCentralityEstimator(cent_est_chg.Data());
         }
       }
@@ -787,7 +801,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
     if ( pMultSelTask ) {
       anaTaskCDFfull->SetUseNewCentralityEstimation(bIsRun2);
-      anaTaskCDFfull->SetNCentBins(5);
+      anaTaskCDFfull->SetNCentBins(centbins);
       anaTaskCDFfull->SetCentralityEstimator(cent_est_full.Data());
       }
 
@@ -805,7 +819,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
       if ( pMultSelTask ) {
         anaTaskCDFfull_MC->SetUseNewCentralityEstimation(bIsRun2);
-        anaTaskCDFfull_MC->SetNCentBins(5);
+        anaTaskCDFfull_MC->SetNCentBins(centbins);
         anaTaskCDFfull_MC->SetCentralityEstimator(cent_est_full.Data());
         }
       }
@@ -815,10 +829,6 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 //########################
 //   ANALYSIS TASKS - CONTAINERS SETUP
 //########################
-
-//   AliEmcalJetTask* pChJet02Task_MC = NULL;
-//   AliEmcalJetTask* pChJet04Task_MC = NULL;
-
 // add jet containers to CDF task for charged jets
   if (bDoChargedJets && bDoCDF) {
     AliJetContainer* jetcont_chg = NULL;
@@ -1234,6 +1244,25 @@ UInt_t j_acc = static_cast<UInt_t>(acc);
 return task->AddJetContainer ( jtype, jalgo, jscheme, jf->GetRadius(), j_acc, partcont, cluscont, tag);
 }
 
+//##################################################
+void load_config(const char* file) {
+std::ifstream filestream(file);
+std::string str;
+TPRegexp regex ("[a-zA-Z0-9_]+=[^\r^\n^\t^\f^\v^ ]+");
+
+while (std::getline(filestream, str)) {
+    TString line (str);
+    TString pair = line(regex);
+    if (!pair.IsNull()) {
+        TObjArray* decl = pair.Tokenize("=");
+        TString key   = ((TObjString*)decl->At(0))->GetString();
+        TString value = ((TObjString*)decl->At(1))->GetString();
+        value = value.Strip(TString::EStripType::kBoth, '\"');
+        value = value.Strip(TString::EStripType::kBoth, '\'');
+        gSystem->Setenv(key.Data(), value.Data());
+        }
+    }
+}
 
 // kate: indent-mode none; indent-width 2; replace-tabs on;
 

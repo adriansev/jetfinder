@@ -3,14 +3,10 @@
 CMD="exec root.exe -l -b -q -x"
 MACRO="EmcalJetCDF.C"
 
-# cat << EOF > .rootrc
-# EOF
-
 cat << EOF > rootlogon.C
 {
 gSystem->AddIncludePath("-I. -I$ALICE_PHYSICS/include -I$ALICE_ROOT/include -I$FASTJET/include -I/usr/include");
 gSystem->AddDynamicPath(".:$ALICE_PHYSICS/lib:$ALICE_ROOT/lib:$ROOTSYS/lib:$FASTJET/lib");
-
 gSystem->Load("libPWGPP");
 gSystem->Load("libPWGJEEMCALJetTasks");
 //gSystem->ListLibraries();
@@ -19,18 +15,6 @@ gSystem->Load("libPWGJEEMCALJetTasks");
 EOF
 
 ######################################################################
-export CDF_doPhysSelect='true'
-export CDF_doPileup='true'
-export CDF_doMULT='false'   # disable unconditionaly the running of AliMultSelectionTask
-export CDF_doBKRD='false'   # disable unconditionaly the running of RhoTask
-export CDF_doCDF='true'     # toggle execution of TaskEmcalJetCDF task
-export CDF_doSAMPLE='false' # toggle execution of TaskEmcalJetSample task
-
-export CDF_DEBUG='0'        # set debug value kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
-export CDF_DEBUG_MGR='0'    # set debug value for AliAnalysisManager
-export CDF_NSYSINFO='0'     # set (end enable) profiling of task; any int > 0 will enable profiling at sampling rate defined
-export PROGRESSBAR='false'  # toggle the progress bar of AliAnalysisManager; will disable debugging
-
 # Trigger values : (to be used as arguments)
 #kMB : 1
 #kINT7 : 2

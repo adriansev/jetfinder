@@ -1,0 +1,35 @@
+CDF_doPhysSelect='true'
+CDF_doPileup='true'
+CDF_doMULT='true'   # disable unconditionaly the running of AliMultSelectionTask
+CDF_doMULT_bins='1'
+CDF_doBKRD='true'   # disable unconditionaly the running of RhoTask
+CDF_doCDF='true'     # toggle execution of TaskEmcalJetCDF task
+CDF_doSAMPLE='false' # toggle execution of TaskEmcalJetSample task
+
+CDF_DEBUG='0'        # set debug value kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
+CDF_DEBUG_MGR='0'    # set debug value for AliAnalysisManager
+CDF_NSYSINFO='0'     # set (end enable) profiling of task; any int > 0 will enable profiling at sampling rate defined
+PROGRESSBAR='false'  # toggle the progress bar of AliAnalysisManager; will disable debugging
+
+# Trigger values : (to be used as arguments)
+#kMB : 1
+#kINT7 : 2
+#kAnyINT : 3145763
+#kMB_central 3211299
+#kMB_semicentral 3276835
+#kMB_mostcentral 3342371
+#kEMC : 50192
+#kEMC_noGA : 17424
+
+PERIOD='lhc16r'
+FILE='data.txt'
+SELECT_CHG='3145763'
+SELECT_FULL='3145763'
+MANAGER_MODE='0'  # local = 0, proof = 1, grid = 2, mixing = 3
+PLUGIN_MODE='0'   # test = 0, offline = 1, submit = 2, merge = 3, full = 4
+TASK_NAME='CDFJets'
+NR_FILES='1'
+NR_EVENTS='10000'
+DO_JETS_CHG='true'
+DO_JETS_FULL='false'
+
