@@ -294,6 +294,7 @@ cout << "Analysis task CDF: " << bDoCDF << "\n";
 cout << "DEBUG - Global: " << debug << "\n";
 cout << "DEBUG - MGR: " << mgr_debug << "\n";
 cout << "DEBUG - NSysInfo: " << kUseSysInfo << "\n";
+cout << "Progress bar: " << bUseProgBar << "\n";
 cout << "\n\n" << endl;
 
 //##################################################
@@ -389,7 +390,9 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     // AliPhysics version.
     plugin->SetAliPhysicsVersion ( kAliPhysicsVersion.Data() ); // Here you can set the (Ali)PHYSICS version you want to use
 
-    //gROOT->LoadMacro("InputData.C");
+    #if ( defined(__CINT__)
+    gROOT->LoadMacro("InputData.C");
+    #endif
     InputData(kGridDataSet);
     sRunName = CDF::GetPeriod( plugin->GetGridDataDir() );
 
@@ -1022,7 +1025,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
   if ( !pMgr->InitAnalysis() ) { std::cout << ">>>>>>>>>>>>>> AliAnalysisManager Initialising FAILED!!! " << std::endl; return NULL; }
   std::cout << "##-->> Initialising Analysis :: Status :" << std::endl;
   pMgr->PrintStatus();
-  pMgr->SetUseProgressBar(bUseProgBar, 100);
+  if (bUseProgBar) { pMgr->SetUseProgressBar(bUseProgBar, 100); }
 
   // task profiling
   if ( kUseSysInfo > 0 ) {

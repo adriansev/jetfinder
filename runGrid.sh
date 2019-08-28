@@ -27,20 +27,20 @@ fi
 #kEMC : 50192
 #kEMC_noGA : 17424
 
-PERIOD="lhc16r"
-FILE="data.txt"
-SELECT_CHG="3145763"
-SELECT_FULL="3145763"
+PERIOD="lhc18m"
+FILE="pp_lhc18m_aod_01"
+SELECT_CHG="2"
+SELECT_FULL="2"
 MANAGER_MODE="0"  # local = 0, proof = 1, grid = 2, mixing = 3
 PLUGIN_MODE="0"   # test = 0, offline = 1, submit = 2, merge = 3, full = 4
 TASK_NAME="CDFJets"
-NR_FILES="1"
-NR_EVENTS="10000"
-DO_JETS_CHG="true"
-DO_JETS_FULL="false"
+NR_FILES="10"
+NR_EVENTS="99999999"
+DO_JETS_CHG=1
+DO_JETS_FULL=0
 
 ROOT_VER=$(root-config --version)
 [[ "${ROOT_VER}" =~ ^6 ]] && MACRO="${MACRO}+"
 
-${CMD} "${MACRO}(\"${PERIOD}\",\"${FILE}\",${SELECT_CHG},${SELECT_FULL},${MANAGER_MODE},${PLUGIN_MODE},\"${TASK_NAME}\",${NR_FILES},${NR_EVENTS},\"${DO_JETS_CHG}\",\"${DO_JETS_FULL}\")"
+${CMD} "${MACRO}(\"${PERIOD}\",\"${FILE}\",${SELECT_CHG},${SELECT_FULL},${MANAGER_MODE},${PLUGIN_MODE},\"${TASK_NAME}\",${NR_FILES},${NR_EVENTS},${DO_JETS_CHG},${DO_JETS_FULL})"
 
