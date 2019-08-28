@@ -390,7 +390,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     // AliPhysics version.
     plugin->SetAliPhysicsVersion ( kAliPhysicsVersion.Data() ); // Here you can set the (Ali)PHYSICS version you want to use
 
-    #if ( defined(__CINT__)
+    #if ( defined(__CINT__))
     gROOT->LoadMacro("InputData.C");
     #endif
     InputData(kGridDataSet);
