@@ -1084,8 +1084,8 @@ AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, un
   plugin->AddIncludePath("-I$FASTJET/include");
   plugin->AddIncludePath("-I/usr/include");
 
-//   unsigned int       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
-//   unsigned int       kMaxInitFailed           = 10 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
+  unsigned int       kGridMaxMergeFiles       = 100;            // Number of files merged in a chunk grid run range
+  unsigned int       kMaxInitFailed           = 30 ;            // Optionally set number of failed jobs that will trigger killing waiting sub-jobs.
 
   TString     kGridOutdir              = outdir ;       // AliEn output directory. If blank will become output_<kTrainName>
   TString     kGridSubWorkDir          = subworkdir ;   // sub working directory not to confuse different run xmls
@@ -1142,14 +1142,14 @@ AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, un
   // Maximum initial consecutive subjobs accepted to fail.
   // plugin->SetMaxInitFailed ( kMaxInitFailed );
 
-  // Optionally resubmit threshold.
-  // plugin->SetMasterResubmitThreshold(90);
+  // Failed jobs will be resubmitted until this DONE ratio.
+  plugin->SetMasterResubmitThreshold(95);
 
   // Number of runs per masterjob
-  // plugin->SetNrunsPerMaster(1);
+  plugin->SetNrunsPerMaster(1);
 
   // exit from aliensh after submmiting job
-  plugin->SetDropToShell ( kTRUE );
+  plugin->SetDropToShell ( kFALSE );
 
   // Overwrite existing files if any
   plugin->SetOverwriteMode();
