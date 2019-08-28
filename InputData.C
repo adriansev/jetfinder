@@ -36,7 +36,7 @@ Printf ( "data = %s" , datarun.Data() );
 // FILTER_p-p_113_LHC11a: Standard AODs + deltas  pp 2.76 GeV
 // runlist for lego dataset LHC11a_pass4_AOD (pass4_wSDD) ; Jets_EMC_pp train
 // MC anchored lhc11a : http://alimonitor.cern.ch/job_details.jsp?jt_description=LHC11a
-if ( datarun.EqualTo ( "pp_lhc11a_aod" ) ) {
+if ( datarun.EqualTo ( "pp_lhc11a" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -54,7 +54,7 @@ if ( datarun.EqualTo ( "pp_lhc11a_aod" ) ) {
 // AOD LHC10d; 7 TeV
 // MC anchored 10d :http://alimonitor.cern.ch/job_details.jsp?jt_description=LHC10d
 // runlist for lego dataset LHC10d_pass4_AOD ; Jets_EMC_pp train
-else if ( datarun.EqualTo ( "pp_lhc10d_aod" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc10d" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -100,7 +100,7 @@ else if ( datarun.EqualTo ( "pp_lhc10d_14j4d" ) ) {
 // AOD LHC10e; 7 TeV
 // MC anchored 10e : http://alimonitor.cern.ch/job_details.jsp?jt_description=LHC10e
 // runlist for lego dataset LHC10e_pass4_AOD ; Jets_EMC_pp train
-else if ( datarun.EqualTo ( "pp_lhc10e_aod" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc10e" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -129,7 +129,7 @@ else if ( datarun.EqualTo ( "pp_lhc10e_aod" ) ) {
 // MC anchored lhc13g : http://alimonitor.cern.ch/job_details.jsp?jt_description=LHC13g
 // AOD LHC13g; 2.76 TeV
 // LHC13g_AOD155 Jets_EMC_pp train
-else if ( datarun.EqualTo ( "pp_lhc13g_aod" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc13g" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -173,7 +173,7 @@ else if ( datarun.EqualTo ( "pp_lhc14b7" ) ) {
     }
 
 // AOD LHC16q; p-Pb 5.02 TeV
-else if ( datarun.EqualTo ( "pp_lhc16q_aod" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc16q" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -195,7 +195,7 @@ else if ( datarun.EqualTo ( "pp_lhc16q_aod" ) ) {
 // AOD LHC16r; p-Pb 8.16 TeV
 // https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16r
 // https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16r/RunList_LHC16r_pass1_CentralBarrelTracking_calo_20170202_v0.txt
-else if ( datarun.EqualTo ( "pp_lhc16r_aod" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc16r" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -213,7 +213,7 @@ else if ( datarun.EqualTo ( "pp_lhc16r_aod" ) ) {
 // AOD LHC16s; Pb-p 8.16 TeV
 // https://twiki.cern.ch/twiki/bin/view/ALICE/AliDPGRunList16s
 // https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList16s/RunList_LHC16s_pass1_CentralBarrelTracking_calo_20170202_v0.txt
-else if ( datarun.EqualTo ( "pp_lhc16s_aod" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc16s" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -229,7 +229,7 @@ else if ( datarun.EqualTo ( "pp_lhc16s_aod" ) ) {
     }
 
 // AOD LHC16t; p-Pb 5.02 TeV
-else if ( datarun.EqualTo ( "pp_lhc16t_aod" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc16t" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -270,7 +270,7 @@ else if ( datarun.EqualTo ( "lhc18f3bcent" ) ) {
 // https://alimonitor.cern.ch/configuration/index.jsp?partition=LHC18m
 // https://twiki.cern.ch/twiki/pub/ALICE/AliDPGRunList18m/RunList_LHC18m_pass1_CentralBarrelTracking.txt
 // https://alimonitor.cern.ch/prod/jobs.jsp?t=17285
-else if ( datarun.EqualTo ( "pp_lhc18m_aod_01" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc18m_01" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -286,7 +286,7 @@ else if ( datarun.EqualTo ( "pp_lhc18m_aod_01" ) ) {
 
     return kTRUE;
     }
-else if ( datarun.EqualTo ( "pp_lhc18m_aod_02" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc18m_02" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -301,7 +301,7 @@ else if ( datarun.EqualTo ( "pp_lhc18m_aod_02" ) ) {
     plugin->AddRunList(list04.Data());
     return kTRUE;
     }
-else if ( datarun.EqualTo ( "pp_lhc18m_aod_03" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc18m_03" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -316,7 +316,7 @@ else if ( datarun.EqualTo ( "pp_lhc18m_aod_03" ) ) {
     plugin->AddRunList(list06.Data());
     return kTRUE;
     }
-else if ( datarun.EqualTo ( "pp_lhc18m_aod_04" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc18m_04" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -331,7 +331,7 @@ else if ( datarun.EqualTo ( "pp_lhc18m_aod_04" ) ) {
     plugin->AddRunList(list08.Data());
     return kTRUE;
     }
-else if ( datarun.EqualTo ( "pp_lhc18m_aod_05" ) ) {
+else if ( datarun.EqualTo ( "pp_lhc18m_05" ) ) {
     plugin->SetRunPrefix ( kGridRunPattern.Data() );
 
     // AliEn data production directory
@@ -339,6 +339,144 @@ else if ( datarun.EqualTo ( "pp_lhc18m_aod_05" ) ) {
 
     // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
     plugin->SetDataPattern ( "pass1_withTRDtracking/AOD208/*/AliAOD.root" );
+
+    TString list09 = "292080 290766 290499 291768 291766 291363 291946 292521 292061 291977 292701 290932 290853 292106 291702 291417 290787 291419 291416 291402 292163 291942 291692 292428 290550 290423 290374 292803 290721 291005 290776 292737 291424 290976";
+    TString list10 = "292747 290614 292274 291265 290428 290411 290941 290538 292077 290324 292526 292270 291451 291283 291945 290613 292557 292109 291111 292166 291485 292752 292748 291803 291446 292584 291110 292834 292758 292553 292242 290888 291361 292754 290544 290456 292586 291690 292432 291377 292810 292161 290894 292265 290375 292809 290632 292081 291100 290615 292241 290627 290401 290458 291796 290944 291006 291795 292167 292744 291762 291065 290327 292698 291285 290862 292836 292108 292560 291760 291282 292406 292269 292114 290980 290892 290774 290974 290658 292192 291069 290376 292164 290895 290588 290790 291262 292162 291037 292832 292695 292140 291188 290500 290948 290426 290843 292218 290399 292750 290689";
+    plugin->AddRunList(list09.Data());
+    plugin->AddRunList(list10.Data());
+    return kTRUE;
+    }
+
+// LHC18m anchored
+// https://alice.its.cern.ch/jira/browse/ALIROOT-8035
+// LHC18j4 	     General-purpose Monte Carlo production anchored to LHC18m, ALIROOT-8035
+// LHC18j4_extra     General-purpose Monte Carlo production anchored to LHC18m, extra statistics, no ESDs, ALIROOT-8035
+else if ( datarun.EqualTo ( "pp_lhc18j4_01" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD209/*/AliAOD.root" );
+
+    TString list01 = "291397 291420 290943 290979 290769 290645 291286";
+    TString list02 = "291697 291661 291665 291756  290886 290501 292298 291263 291481 291484 292696 292107";
+    plugin->AddRunList(list01.Data());
+    plugin->AddRunList(list02.Data());
+
+    return kTRUE;
+    }
+else if ( datarun.EqualTo ( "pp_lhc18j4_02" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD209/*/AliAOD.root" );
+
+    TString list03 = "292398 291375 290860 291209 290459 292430 291456 291453 291953 291116 292160 292062 291041 291093";
+    TString list04 = "290692 291002 292500 292115 291624 291066 292457 291004 290425 290469 292739 291360 292831 290975 292405";
+    plugin->AddRunList(list03.Data());
+    plugin->AddRunList(list04.Data());
+    return kTRUE;
+    }
+else if ( datarun.EqualTo ( "pp_lhc18j4_03" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD209/*/AliAOD.root" );
+
+    TString list05 = "292273 290687 290404 292240 292495 292839 292497 290848 292429 291948 291482 292040 291101 291943 290323 290590";
+    TString list06 = "291590 291284 291769 292456 291706 292804 291976 292554 292060 291362 291240 290549 290660 291003 292523";
+    plugin->AddRunList(list05.Data());
+    plugin->AddRunList(list06.Data());
+    return kTRUE;
+    }
+else if ( datarun.EqualTo ( "pp_lhc18j4_04" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD209/*/AliAOD.root" );
+
+    TString list07 = "291622 292693 292075 291755 291618 291035 292397 292811 292559 290846 292496 291615 292012 291447 290553 291626 290696 290887 291982 292460";
+    TString list08 = "290665 291266 291143 290539 292563 291399 291257 291657 291457 292704 290540 290350 290412 292168 290699 292434 290935 290467 292461 291698 292524 292067 291729 291614 291400 290764 291944 291694 290841 290612 290427";
+    plugin->AddRunList(list07.Data());
+    plugin->AddRunList(list08.Data());
+    return kTRUE;
+    }
+else if ( datarun.EqualTo ( "pp_lhc18j4_05" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD209/*/AliAOD.root" );
+
+    TString list09 = "292080 290766 290499 291768 291766 291363 291946 292521 292061 291977 292701 290932 290853 292106 291702 291417 290787 291419 291416 291402 292163 291942 291692 292428 290550 290423 290374 292803 290721 291005 290776 292737 291424 290976";
+    TString list10 = "292747 290614 292274 291265 290428 290411 290941 290538 292077 290324 292526 292270 291451 291283 291945 290613 292557 292109 291111 292166 291485 292752 292748 291803 291446 292584 291110 292834 292758 292553 292242 290888 291361 292754 290544 290456 292586 291690 292432 291377 292810 292161 290894 292265 290375 292809 290632 292081 291100 290615 292241 290627 290401 290458 291796 290944 291006 291795 292167 292744 291762 291065 290327 292698 291285 290862 292836 292108 292560 291760 291282 292406 292269 292114 290980 290892 290774 290974 290658 292192 291069 290376 292164 290895 290588 290790 291262 292162 291037 292832 292695 292140 291188 290500 290948 290426 290843 292218 290399 292750 290689";
+    plugin->AddRunList(list09.Data());
+    plugin->AddRunList(list10.Data());
+    return kTRUE;
+    }
+
+else if ( datarun.EqualTo ( "pp_lhc18j4_extra_01" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4_extra" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD/*/AliAOD.root" );
+
+    TString list01 = "291397 291420 290943 290979 290769 290645 291286";
+    TString list02 = "291697 291661 291665 291756  290886 290501 292298 291263 291481 291484 292696 292107";
+    plugin->AddRunList(list01.Data());
+    plugin->AddRunList(list02.Data());
+
+    return kTRUE;
+    }
+else if ( datarun.EqualTo ( "pp_lhc18j4_extra_02" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4_extra" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD/*/AliAOD.root" );
+
+    TString list03 = "292398 291375 290860 291209 290459 292430 291456 291453 291953 291116 292160 292062 291041 291093";
+    TString list04 = "290692 291002 292500 292115 291624 291066 292457 291004 290425 290469 292739 291360 292831 290975 292405";
+    plugin->AddRunList(list03.Data());
+    plugin->AddRunList(list04.Data());
+    return kTRUE;
+    }
+else if ( datarun.EqualTo ( "pp_lhc18j4_extra_03" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4_extra" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD/*/AliAOD.root" );
+
+    TString list05 = "292273 290687 290404 292240 292495 292839 292497 290848 292429 291948 291482 292040 291101 291943 290323 290590";
+    TString list06 = "291590 291284 291769 292456 291706 292804 291976 292554 292060 291362 291240 290549 290660 291003 292523";
+    plugin->AddRunList(list05.Data());
+    plugin->AddRunList(list06.Data());
+    return kTRUE;
+    }
+else if ( datarun.EqualTo ( "pp_lhc18j4_extra_04" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4_extra" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD/*/AliAOD.root" );
+
+    TString list07 = "291622 292693 292075 291755 291618 291035 292397 292811 292559 290846 292496 291615 292012 291447 290553 291626 290696 290887 291982 292460";
+    TString list08 = "290665 291266 291143 290539 292563 291399 291257 291657 291457 292704 290540 290350 290412 292168 290699 292434 290935 290467 292461 291698 292524 292067 291729 291614 291400 290764 291944 291694 290841 290612 290427";
+    plugin->AddRunList(list07.Data());
+    plugin->AddRunList(list08.Data());
+    return kTRUE;
+    }
+else if ( datarun.EqualTo ( "pp_lhc18j4_extra_05" ) ) {
+    // AliEn data production directory
+    plugin->SetGridDataDir ( "/alice/sim/2018/LHC18j4_extra" );
+
+    // Can be like: *AliESDs.root, */pass1/*AliESDs.root, ...
+    plugin->SetDataPattern ( "/AOD/*/AliAOD.root" );
 
     TString list09 = "292080 290766 290499 291768 291766 291363 291946 292521 292061 291977 292701 290932 290853 292106 291702 291417 290787 291419 291416 291402 292163 291942 291692 292428 290550 290423 290374 292803 290721 291005 290776 292737 291424 290976";
     TString list10 = "292747 290614 292274 291265 290428 290411 290941 290538 292077 290324 292526 292270 291451 291283 291945 290613 292557 292109 291111 292166 291485 292752 292748 291803 291446 292584 291110 292834 292758 292553 292242 290888 291361 292754 290544 290456 292586 291690 292432 291377 292810 292161 290894 292265 290375 292809 290632 292081 291100 290615 292241 290627 290401 290458 291796 290944 291006 291795 292167 292744 291762 291065 290327 292698 291285 290862 292836 292108 292560 291760 291282 292406 292269 292114 290980 290892 290774 290974 290658 292192 291069 290376 292164 290895 290588 290790 291262 292162 291037 292832 292695 292140 291188 290500 290948 290426 290843 292218 290399 292750 290689";
