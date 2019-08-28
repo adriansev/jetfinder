@@ -3,6 +3,7 @@
 CMD="exec root.exe -l -b -q -x"
 MACRO="EmcalJetCDF.C"
 
+if [[ ! -e "rootlogon.C" ]]; then
 cat << EOF > rootlogon.C
 {
 gSystem->AddIncludePath("-I. -I$ALICE_PHYSICS/include -I$ALICE_ROOT/include -I$FASTJET/include -I/usr/include");
@@ -13,6 +14,7 @@ gSystem->Load("libPWGJEEMCALJetTasks");
 }
 
 EOF
+fi
 
 ######################################################################
 # Trigger values : (to be used as arguments)

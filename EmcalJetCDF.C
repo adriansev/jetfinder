@@ -15,6 +15,7 @@
 #include <TSystem.h>
 #include <TString.h>
 #include <TRegexp.h>
+#include <TPRegexp.h>
 #include <TInterpreter.h>
 
 #include <TApplication.h>
@@ -242,7 +243,7 @@ if (!ENV_doMult.IsNull() && ( ENV_doMult.EqualTo("0") || ENV_doMult.Contains(fal
 
 Int_t centbins = 1;
 TString ENV_centbins = gSystem->Getenv("CDF_doMULT_bins");
-if (!ENV_centbins.IsNull() && ENV_centbins.IsDigit() ) { centbins = ENV_DEBUG.Atoi(); if (centbins > 5) centbins = 5; }
+if (!ENV_centbins.IsNull() && ENV_centbins.IsDigit() ) { centbins = ENV_centbins.Atoi(); if (centbins > 5) centbins = 5; }
 
 bool bDoBackgroundSubtraction = true;
 TString ENV_doBackground = gSystem->Getenv("CDF_doBKRD");
@@ -282,17 +283,17 @@ TString ENV_USEPROGBAR = gSystem->Getenv("PROGRESSBAR");
 if (!ENV_USEPROGBAR.IsNull() && ( ENV_USEPROGBAR.EqualTo("1") || ENV_USEPROGBAR.Contains(true_regex) ) )  { bUseProgBar = kTRUE; }
 
 // Report configuration of analysis
-cout << "\n\n" << ">>>>>>>>   Analysis configuration   <<<<<<<<";
-cout << "PhysicsSelection task: " << bDoPhysicsSelect;
-cout << "Apply Pileup Cuts: " << applyPileupCuts;
-cout << "Do Multiplicity Selection: " << bDoMultSelect;
-cout << "Multiplicity Bins: " << centbins;
-cout << "Do background substraction: " << bDoBackgroundSubtraction;
-cout << "Analysis task Sample: " << bDoSample;
-cout << "Analysis task CDF: " << bDoCDF;
-cout << "DEBUG - Global: " << debug;
-cout << "DEBUG - MGR: " << mgr_debug;
-cout << "DEBUG - NSysInfo: " << kUseSysInfo;
+cout << "\n\n" << ">>>>>>>>   Analysis configuration   <<<<<<<<" << "\n";
+cout << "PhysicsSelection task: " << bDoPhysicsSelect << "\n";
+cout << "Apply Pileup Cuts: " << applyPileupCuts << "\n";
+cout << "Do Multiplicity Selection: " << bDoMultSelect << "\n";
+cout << "Multiplicity Bins: " << centbins << "\n";
+cout << "Do background substraction: " << bDoBackgroundSubtraction << "\n";
+cout << "Analysis task Sample: " << bDoSample << "\n";
+cout << "Analysis task CDF: " << bDoCDF << "\n";
+cout << "DEBUG - Global: " << debug << "\n";
+cout << "DEBUG - MGR: " << mgr_debug << "\n";
+cout << "DEBUG - NSysInfo: " << kUseSysInfo << "\n";
 cout << "\n\n" << endl;
 
 //##################################################
@@ -388,7 +389,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     // AliPhysics version.
     plugin->SetAliPhysicsVersion ( kAliPhysicsVersion.Data() ); // Here you can set the (Ali)PHYSICS version you want to use
 
-    gROOT->LoadMacro("InputData.C");
+    //gROOT->LoadMacro("InputData.C");
     InputData(kGridDataSet);
     sRunName = CDF::GetPeriod( plugin->GetGridDataDir() );
 
