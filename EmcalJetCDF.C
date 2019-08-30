@@ -168,7 +168,6 @@ enum EPluginRunMode {
   };
 */
 
-//     const char*   cDataType      = "AOD",       // set the analysis type, AOD or ESD
 //##################################################
 AliAnalysisManager* EmcalJetCDF (
     const char*   cRunPeriod     = "LHC11d",    // set the run period
@@ -194,17 +193,6 @@ PluginType    PluginMode  = static_cast<PluginType>(alien_mode);
 namespace CDF = PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetCDF_NS; // shortcut to task namespace
 unsigned int       kGridFilesPerJob         = iNumFiles;      // Maximum number of files per job (gives size of AOD)
 unsigned int       kTTL                     = 64800 ;         // Time To Live; 18h = 64800; 12h = 43200
-
-bool bDoEmbedding = false;
-
-// Embeded Configuration options
-// Embedding files list
-const TString embeddedFilesList = "aodFilesEmbed.txt";
-// If true, events that are not selected in the PbPb will not be used for embedding.
-// This ensures that good embedded events are not wasted on bad PbPb events.
-const bool internalEventSelection = true;
-// Do jet matching
-const bool useJetTagger = true;
 
 TString sGridMode ("test");
 if ( PluginMode == PluginType::offline ) { sGridMode = "offline"; }
@@ -257,6 +245,12 @@ bool  bDoCDF    = true;
 TString ENV_doCDF = gSystem->Getenv("CDF_doCDF");
 if (!ENV_doCDF.IsNull() && ( ENV_doCDF.EqualTo("0") || ENV_doCDF.Contains(false_regex) ) ) { bDoCDF = kFALSE; }
 
+// do Embedding
+bool bDoEmbedding = false;
+
+// Do jet matching
+const bool useJetTagger = true;
+
 // ######   DEBUG    ######
 Int_t           debug              =  0 ; // kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
 UInt_t          mgr_debug          =  0 ; // AliAnalysisManager debug level
@@ -304,8 +298,9 @@ const char* curdir = gSystem->BaseName(gSystem->pwd());
 TString     kJobTag (curdir);
 
 TString     kPluginExecutableCommand ("root.exe -l -b -q -x");
-
-TString     kAliPhysicsVersion       = "vAN-20190826-1";
+TString     kAliPhysicsVersion       =
+                                         "vAN-20190829-1";
+                                         // "vAN-20190829_ROOT6-1";
 
 // == grid plugin files rules
 TString     kGridExtraFiles          = "cdf.steer rootlogon.C InputData.C"; // extra files that will be added to the input list in the JDL
@@ -319,16 +314,13 @@ TString     kCommonOutputFileName    = "AnalysisResults.root";
 //   PROOF SETTINGS
 //--------------------
 TString kAAF        = "";
-Int_t   kProofReset = 0; (void)kProofReset;
-Int_t   kWorkers    = 20; (void)kWorkers;
+Int_t   kProofReset = 0;   (void)kProofReset;
+Int_t   kWorkers    = 20;  (void)kWorkers;
 Int_t   kCores      = 8  ; (void)kCores;
 // AliRoot mode among the list supported by the proof cluster.
 // TString     kAlirootMode             = "ALIROOT";     // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
 
 //############################################################
-// const AliAnalysisTaskEmcal::EDataType_t kAod = AliAnalysisTaskEmcal::kAOD;
-// const AliAnalysisTaskEmcal::EDataType_t kEsd = AliAnalysisTaskEmcal::kESD;
-
 const AliJetContainer::EJetType_t    fulljet = AliJetContainer::kFullJet;
 const AliJetContainer::EJetType_t     chgjet = AliJetContainer::kChargedJet;
 const AliJetContainer::EJetAlgo_t     antikt = AliJetContainer::antikt_algorithm;
@@ -376,7 +368,8 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
   TString sRunName;
   Bool_t kIsAOD = kTRUE;
   AliAnalysisTaskEmcal::EDataType_t iDataType = AliAnalysisTaskEmcal::kAOD; // assuming default is to process AOD
-  TString file;
+
+  // GRID MODE SETTINGS
   AliAnalysisAlien* plugin = NULL;
   if ( ManagerMode == AnalysisType::grid ) {  // start grid analysis
     // ( const char* gridMode, const char* tag, unsigned int nr_test_files, unsigned int TTL, const char* outdir, const char subworkdir, const char* extradirlvl);
@@ -396,12 +389,13 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     InputData(kGridDataSet);
     sRunName = CDF::GetPeriod( plugin->GetGridDataDir() );
 
-    file = CDF::GetFileFromPath(plugin->GetDataPattern());
+    TString file = CDF::GetFileFromPath(plugin->GetDataPattern());
     if (file.Contains("AliESD")) { iDataType = AliAnalysisTaskEmcal::kESD; kIsAOD = kFALSE; }
 
     plugin->SetMergeExcludes(kGridMergeExclude.Data());
     }
 
+  // LOCAL MODE SETTINGS
   if ( ManagerMode == AnalysisType::local ) { // start local analysis
     if ( kDataSource.IsNull() ) { Printf("You need to provide the list of local files!"); return NULL; }
     TChain* pChain = CDF::CreateChain(kDataSource.Data(), "auto", "", iNumFiles);
@@ -409,7 +403,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     Printf("Setting local analysis for %d files from list %s, max events = %d", iNumFiles, kDataSource.Data(), iNumEvents);
 
     // get the path of first file
-    file = pChain->GetFile()->GetEndpointUrl()->GetUrl();
+    TString file = pChain->GetFile()->GetEndpointUrl()->GetUrl();
     sRunName = CDF::GetPeriod(file.Data()); // get the run name : first token beggining with lhc
     if ( CDF::GetFileFromPath(file).Contains("AliESD") ) { iDataType = AliAnalysisTaskEmcal::kESD; kIsAOD = kFALSE; }
     }
@@ -428,7 +422,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
   TString EMCALcfg ("CDF_CorrectionsConf.yaml");
   if (isMC) {EMCALcfg = "CDF_MC_CorrectionsConf.yaml";}
 
-  if ( !kGridExtraFiles.IsNull() ) {kGridExtraFiles += " ";}
+  if ( !kGridExtraFiles.IsNull() ) { kGridExtraFiles += " "; }
   kGridExtraFiles += EMCALcfg;
 
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpp;
@@ -444,7 +438,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
   if (iBeamType != AliAnalysisTaskEmcal::kpp) { kGhostArea = 0.005; }
 
   AliTrackContainer::SetDefTrackCutsPeriod(sRunPeriod);
-  Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
+  Printf(">>>   Default track cut period set to: %s\n", AliTrackContainer::GetDefTrackCutsPeriod().Data());
 
   Bool_t bDoEmcalCorrections  = kFALSE;
   if (bDoFullJets) { bDoEmcalCorrections  = kTRUE; }
@@ -509,6 +503,13 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     pCentralityTask->SelectCollisionCandidates(AliVEvent::kAny);
     }
 
+
+  // Embeded Configuration options
+  // Embedding files list
+  const TString embeddedFilesList = "aodFilesEmbed.txt";
+  // If true, events that are not selected in the PbPb will not be used for embedding.
+  // This ensures that good embedded events are not wasted on bad PbPb events.
+  const bool internalEventSelection = true;
   // Embedding task
   if (bDoEmbedding) {
     // Debug options
@@ -1143,10 +1144,10 @@ AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, un
   // plugin->SetMaxInitFailed ( kMaxInitFailed );
 
   // Failed jobs will be resubmitted until this DONE ratio.
-  plugin->SetMasterResubmitThreshold(95);
+  plugin->SetMasterResubmitThreshold(98);
 
   // Number of runs per masterjob
-  plugin->SetNrunsPerMaster(1);
+  plugin->SetNrunsPerMaster(1); // default value is 1
 
   // exit from aliensh after submmiting job
   plugin->SetDropToShell ( kFALSE );
@@ -1155,7 +1156,7 @@ AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, un
   plugin->SetOverwriteMode();
 
   // write the output to subdirs named after run number
-  // plugin->SetOutputToRunNo(1);
+  plugin->SetOutputToRunNo(1);
 
   // Optionally set input format (default xml-single)
   plugin->SetInputFormat("xml-single");
@@ -1164,7 +1165,7 @@ AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, un
   plugin->SetPrice(1);
 
   // We split per SE or file
-  plugin->SetSplitMode("se");
+  plugin->SetSplitMode("se"); // default value is "se"
 
   // MERGING - Enable merging via automatic JDL
   plugin->SetMergeViaJDL(kTRUE);
