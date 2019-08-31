@@ -4,7 +4,7 @@ CMD="exec root.exe -l -b -q -x"
 MACRO="EmcalJetCDF.C"
 
 if [[ ! -e "rootlogon.C" ]]; then
-cat << EOF > rootlogon.C
+cat << "EOF" > rootlogon.C
 {
 gSystem->AddIncludePath("-I. -I$ALICE_PHYSICS/include -I$ALICE_ROOT/include -I$FASTJET/include -I/usr/include");
 gSystem->AddDynamicPath(".:$ALICE_PHYSICS/lib:$ALICE_ROOT/lib:$ROOTSYS/lib:$FASTJET/lib");
