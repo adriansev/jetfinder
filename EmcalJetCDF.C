@@ -299,8 +299,12 @@ TString     kJobTag (curdir);
 
 TString     kPluginExecutableCommand ("root.exe -l -b -q -x");
 TString     kAliPhysicsVersion       =
-                                         "vAN-20190829-1";
-                                         // "vAN-20190829_ROOT6-1";
+                                         "vAN-20190904-1";
+                                         // "vAN-20190904_ROOT6-1";
+
+TString ENV_ALIPHYSVER = gSystem->Getenv("ALIPHYSICS_VERSION");
+TRegexp start_with_v ("^v.*"); // all cvmfs versions start with "v"; it is the common token for all cvmfs versions
+if ( ENV_ALIPHYSVER.Contains(start_with_v) ) { kAliPhysicsVersion = ENV_ALIPHYSVER.Data(); }
 
 // == grid plugin files rules
 TString     kGridExtraFiles          = "cdf.steer rootlogon.C InputData.C"; // extra files that will be added to the input list in the JDL
