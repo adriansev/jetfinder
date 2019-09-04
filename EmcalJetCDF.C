@@ -276,8 +276,19 @@ Bool_t bUseProgBar = kFALSE; // N.B. !! if true will set fDebug to 0
 TString ENV_USEPROGBAR = gSystem->Getenv("PROGRESSBAR");
 if (!ENV_USEPROGBAR.IsNull() && ( ENV_USEPROGBAR.EqualTo("1") || ENV_USEPROGBAR.Contains(true_regex) ) )  { bUseProgBar = kTRUE; }
 
+TString     kPluginExecutableCommand ("root.exe -l -b -q -x");
+TString     kAliPhysicsVersion       =
+                                         "vAN-20190904-1";
+                                         // "vAN-20190904_ROOT6-1";
+
+TString ENV_ALIPHYSVER = gSystem->Getenv("ALIPHYSICS_VERSION");
+TRegexp start_with_v ("^v.*"); // all cvmfs versions start with "v"; it is the common token for all cvmfs versions
+if ( ENV_ALIPHYSVER.Contains(start_with_v) ) { kAliPhysicsVersion = ENV_ALIPHYSVER; }
+
 // Report configuration of analysis
 cout << "\n\n" << ">>>>>>>>   Analysis configuration   <<<<<<<<" << "\n";
+cout << "ALIPHYSICS_VERSION - Running env: " << ENV_ALIPHYSVER.Data() << "\n";
+cout << "ALIPHYSICS_VERSION - GRID: " << kAliPhysicsVersion.Data() << "\n";
 cout << "PhysicsSelection task: " << bDoPhysicsSelect << "\n";
 cout << "Apply Pileup Cuts: " << applyPileupCuts << "\n";
 cout << "Do Multiplicity Selection: " << bDoMultSelect << "\n";
@@ -297,14 +308,6 @@ cout << "\n\n" << endl;
 const char* curdir = gSystem->BaseName(gSystem->pwd());
 TString     kJobTag (curdir);
 
-TString     kPluginExecutableCommand ("root.exe -l -b -q -x");
-TString     kAliPhysicsVersion       =
-                                         "vAN-20190904-1";
-                                         // "vAN-20190904_ROOT6-1";
-
-TString ENV_ALIPHYSVER = gSystem->Getenv("ALIPHYSICS_VERSION");
-TRegexp start_with_v ("^v.*"); // all cvmfs versions start with "v"; it is the common token for all cvmfs versions
-if ( ENV_ALIPHYSVER.Contains(start_with_v) ) { kAliPhysicsVersion = ENV_ALIPHYSVER.Data(); }
 
 // == grid plugin files rules
 TString     kGridExtraFiles          = "cdf.steer rootlogon.C InputData.C"; // extra files that will be added to the input list in the JDL
