@@ -42,5 +42,5 @@ DO_JETS_FULL=0
 ROOT_VER=$(root-config --version)
 [[ "${ROOT_VER}" =~ ^6 ]] && MACRO="${MACRO}+"
 
-${CMD} "${MACRO}(\"${PERIOD}\",\"${FILE}\",${SELECT_CHG},${SELECT_FULL},${MANAGER_MODE},${PLUGIN_MODE},\"${TASK_NAME}\",${NR_FILES},${NR_EVENTS},${DO_JETS_CHG},${DO_JETS_FULL})" 2>&1 | tee runGrid.log
+${CMD} "${MACRO}(\"${PERIOD}\",\"${FILE}\",${SELECT_CHG},${SELECT_FULL},${MANAGER_MODE},${PLUGIN_MODE},\"${TASK_NAME}\",${NR_FILES},${NR_EVENTS},${DO_JETS_CHG},${DO_JETS_FULL})" 2>&1 | tee runGrid_${MANAGER_MODE}_${PLUGIN_MODE}.log
 
