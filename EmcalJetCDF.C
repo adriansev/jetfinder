@@ -29,6 +29,7 @@
 #include <TDirectory.h>
 #include <TDirectoryFile.h>
 #include <TFile.h>
+#include <TFileInfo.h>
 #include <TFileCollection.h>
 #include <TCollection.h>
 #include <TChain.h>
@@ -209,7 +210,7 @@ const char* cAnalysisType = sAnalysisType.Data();
 
 cout << std::endl << ">>>>>>>> ManagerMode: " << ManagerMode << " ; Analysis type: " << cAnalysisType << std::endl << ">>>>>>>> PluginMode: " << PluginMode << " ; Type: " << cGridMode << std::endl << std::endl;
 
-load_config("cdf.steer");
+CDF::load_config("cdf.steer");
 //---------------------------------------------------------------------------------------------
 TRegexp false_regex ("[f,F][a,A][l,L][s,S][e,E]");
 TRegexp true_regex ("[t,T][r,R][u,U][e,E]");
@@ -847,7 +848,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     for ( Float_t fi = 0 ; fi<=100 ; fi+=10) {
       // CHG JETS 0.2
       jetcont_chg = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
-      //jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg), pChJet02Task, acc_chgjets);
+      //jetcont_chg = CDF::AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg), pChJet02Task, acc_chgjets);
       CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
       if (pRhoTask) {
         jetcont_chg->SetRhoName(sRhoChName.Data());
@@ -856,7 +857,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
       // CHG JETS 0.4
       jetcont_chg = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
-      //jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg), pChJet04Task, acc_chgjets);
+      //jetcont_chg = CDF::AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg), pChJet04Task, acc_chgjets);
       CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
       if (pRhoTask) {
         jetcont_chg->SetRhoName(sRhoChName.Data());
@@ -865,7 +866,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
       if (isMC) {
         // CHG JETS MC 0.2
-        jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg_MC), pChJet02Task_MC, acc_chgjets);
+        jetcont_chg = CDF::AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg_MC), pChJet02Task_MC, acc_chgjets);
         CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
         if (pRhoTask_MC) {
           jetcont_chg->SetRhoName(sRhoChName_MC.Data());
@@ -873,7 +874,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
           }
 
         // CHG JETS MC 0.4
-        jetcont_chg = AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg_MC), pChJet04Task_MC, acc_chgjets);
+        jetcont_chg = CDF::AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg_MC), pChJet04Task_MC, acc_chgjets);
         CDF::jetContSetParams (jetcont_chg,    fi,   fi+10, 0, 0);
         if (pRhoTask_MC) {
           jetcont_chg->SetRhoName(sRhoChName_MC.Data());
@@ -883,6 +884,8 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
       }
 
     jetcont_chg   = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.2, acc_chgjets, "Jet");
+    //jetcont_chg = CDF::AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg), pChJet02Task, acc_chgjets);
+
     CDF::jetContSetParams (jetcont_chg,     1., 500., 0, 0);
     if (pRhoTask) {
       jetcont_chg->SetRhoName(sRhoChName.Data());
@@ -890,6 +893,8 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
       }
 
     jetcont_chg   = anaTaskCDFchg->AddJetContainer(chgjet, antikt, recomb, 0.4, acc_chgjets, "Jet");
+    //jetcont_chg = CDF::AddJetContainerJetTask(dynamic_cast<AliAnalysisTaskEmcalJetCDF*>(anaTaskCDFchg), pChJet04Task, acc_chgjets);
+
     CDF::jetContSetParams (jetcont_chg,     1., 500., 0, 0);
     if (pRhoTask_MC) {
       jetcont_chg->SetRhoName(sRhoChName.Data());
@@ -1272,6 +1277,7 @@ while (std::getline(filestream, str)) {
         value = value.Strip(TString::EStripType::kBoth, '\"');
         value = value.Strip(TString::EStripType::kBoth, '\'');
         gSystem->Setenv(key.Data(), value.Data());
+        delete decl;
         }
     }
 }
