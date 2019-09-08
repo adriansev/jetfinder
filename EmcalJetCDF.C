@@ -35,6 +35,7 @@
 #include <TChain.h>
 #include <TObjString.h>
 #include <TObjArray.h>
+#include <TProof.h>
 
 #include <TObject.h>
 #include <TNamed.h>
@@ -133,23 +134,13 @@ bool                  LoadLibList ( const TString& list, TString& listlibs, TStr
 AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, unsigned int nr_test_files = 1, unsigned int TTL = 43200 ,
                                        const char* outdir = "output", const char* subworkdir = "", const char* extradirlvl = "");
 
-//############################################################
-enum  AnalysisType {
-  local    = 0, // kLocalAnalysis
-  proof    = 1, // kProofAnalysis
-  grid     = 2, // kGridAnalysis
-  mixing   = 3  // kMixingAnalysis
-  };
-
-enum PluginType { test = 0, offline  = 1, submit = 2, merge = 3, full = 4 };
-
 //##################################################
 AliAnalysisManager* EmcalJetCDF (
     const char*   cRunPeriod     = "LHC11d",    // set the run period
     const char*   cLocalFiles    = "data.txt",  // set the local list file
     const Int_t   arg_sel_chg    = 2,           // defaults kINT7  // physics selection
     const Int_t   arg_sel_full   = 2,           // defaults kINT7  // physics selection
-    const Int_t   mgr_mode       = 0,           // local = 0, proof = 1, grid = 2, mixing = 3
+    const Int_t   mgr_mode       = 0,           // local = 0, proof = 1, grid = 2
     const Int_t   alien_mode     = 0,           // test = 0, offline = 1, submit = 2, merge = 3, full = 4
     const char*   cTaskName      = "CDFJets",   // sets name of task manager
     unsigned int  iNumFiles      = 100,         // numger of files to process from list file
@@ -162,27 +153,26 @@ TString     ListLibs      = ""; // string list of loaded libs
 TString     ListLibsExtra = ""; // string list of loaded extra libs
 LoadLibs( ListLibs, ListLibsExtra ); // load libs and save the lists to ListLibs and ListLibsExtra
 
-AnalysisType  ManagerMode = static_cast<AnalysisType>(mgr_mode);
-PluginType    PluginMode  = static_cast<PluginType>(alien_mode);
+AliAnalysisManager::EAliAnalysisExecMode  ManagerMode = static_cast<AliAnalysisManager::EAliAnalysisExecMode>(mgr_mode);
+AliAnalysisGrid::EPluginRunMode           PluginMode  = static_cast<AliAnalysisGrid::EPluginRunMode>(alien_mode);
 
 namespace CDF = PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetCDF_NS; // shortcut to task namespace
 unsigned int       kGridFilesPerJob         = iNumFiles;      // Maximum number of files per job (gives size of AOD)
 unsigned int       kTTL                     = 64800 ;         // Time To Live; 18h = 64800; 12h = 43200
 
-TString sGridMode ("test");
-if ( PluginMode == PluginType::offline ) { sGridMode = "offline"; }
-if ( PluginMode == PluginType::submit )  { sGridMode = "submit"; }
-if ( PluginMode == PluginType::merge )   { sGridMode = "merge"; }
-if ( PluginMode == PluginType::full )    { sGridMode = "full"; }
-const char* cGridMode = sGridMode.Data();
-
 TString sAnalysisType ("local");
-if ( ManagerMode == AnalysisType::proof )  { sAnalysisType = "proof"; }
-if ( ManagerMode == AnalysisType::grid )   { sAnalysisType = "grid"; }
-if ( ManagerMode == AnalysisType::mixing ) { sAnalysisType = "mix"; }
+if ( ManagerMode == AliAnalysisManager::kProofAnalysis )  { sAnalysisType = "proof"; }
+if ( ManagerMode == AliAnalysisManager::kGridAnalysis )   { sAnalysisType = "grid"; }
 const char* cAnalysisType = sAnalysisType.Data();
 
-cout << std::endl << ">>>>>>>> ManagerMode: " << ManagerMode << " ; Analysis type: " << cAnalysisType << std::endl << ">>>>>>>> PluginMode: " << PluginMode << " ; Type: " << cGridMode << std::endl << std::endl;
+TString sGridMode ("test");
+if ( PluginMode == AliAnalysisGrid::kOffline ) { sGridMode = "offline"; }
+if ( PluginMode == AliAnalysisGrid::kSubmit )  { sGridMode = "submit"; }
+if ( PluginMode == AliAnalysisGrid::kMerge )   { sGridMode = "merge"; }
+if ( PluginMode == AliAnalysisGrid::kFull )    { sGridMode = "full"; }
+
+if (sAnalysisType.EqualTo("proof")) { sGridMode = "test"; } // always use test mode for plugin if we are using proof
+const char* cGridMode = sGridMode.Data();
 
 //######################################
 //   LOAD CONFIGURATION FILE
@@ -284,16 +274,6 @@ TString     kGridOutputStorages      = "disk=2"; // Make replicas on the storage
 // FILES USED IN MACRO
 TString     kCommonOutputFileName    = "AnalysisResults.root";
 
-//--------------------
-//   PROOF SETTINGS
-//--------------------
-TString kAAF        = "";
-Int_t   kProofReset = 0;   (void)kProofReset;
-Int_t   kWorkers    = 20;  (void)kWorkers;
-Int_t   kCores      = 8  ; (void)kCores;
-// AliRoot mode among the list supported by the proof cluster.
-// TString     kAlirootMode             = "ALIROOT";     // STEERBase,ESD,AOD,ANALYSIS,ANALYSISalice (default aliroot mode)
-
 //############################################################
 const AliJetContainer::EJetType_t    fulljet = AliJetContainer::kFullJet;
 const AliJetContainer::EJetType_t     chgjet = AliJetContainer::kChargedJet;
@@ -311,7 +291,7 @@ TString kDataSource (cLocalFiles);
 
 // label of dataset from InputData.C
 TString kGridDataSet ("");
-if ( ManagerMode == AnalysisType::grid ) { kGridDataSet = kDataSource;}
+if ( ManagerMode == AliAnalysisManager::kGridAnalysis ) { kGridDataSet = kDataSource;}
 
 //############################################################
 // SETUP OF TRIGGERS
@@ -335,6 +315,7 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 //############################################################
 // Analysis manager
   AliAnalysisManager* pMgr = new AliAnalysisManager(cTaskName);
+  pMgr->SetAnalysisType(ManagerMode);
   pMgr->SetDebugLevel(mgr_debug);
   if ( kUseSysInfo > 0 ) { pMgr->SetNSysInfo ( kUseSysInfo ); }
 
@@ -345,10 +326,10 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
 
   // GRID MODE SETTINGS
   AliAnalysisAlien* plugin = NULL;
-  if ( ManagerMode == AnalysisType::grid ) {  // start grid analysis
+  if ( ManagerMode == AliAnalysisManager::kGridAnalysis ) {  // start grid analysis
     // ( const char* gridMode, const char* tag, unsigned int nr_test_files, unsigned int TTL, const char* outdir, const char subworkdir, const char* extradirlvl);
     plugin = CreateAlienHandler(cGridMode, kJobTag.Data(), kGridFilesPerJob, kTTL);
-    if ( !plugin ) { ::Error ( "runEMCalJetSampleTask.C - StartGridAnalysis", "plugin invalid" ); return NULL; }
+    if ( !plugin ) { ::Error ( "EmcalJetCDF.C - Start GRID Analysis", "plugin invalid" ); return NULL; }
     pMgr->SetGridHandler(plugin);
 
     // use this command to run the macro
@@ -369,10 +350,11 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     plugin->SetMergeExcludes(kGridMergeExclude.Data());
     }
 
-  // LOCAL MODE SETTINGS
-  if ( ManagerMode == AnalysisType::local ) { // start local analysis
+  // LOCAL CHAIN
+  TChain* pChain = NULL;
+  if ( ManagerMode == AliAnalysisManager::kLocalAnalysis ) { // start local analysis
     if ( kDataSource.IsNull() ) { Printf("You need to provide the list of local files!"); return NULL; }
-    TChain* pChain = CDF::CreateChain(kDataSource.Data(), "auto", "", iNumFiles);
+    pChain = CDF::CreateChain(kDataSource.Data(), "auto", "", iNumFiles);
     if (!pChain) { std::cout << ">>>>>>>>>>>>>>   CHAIN NOT CREATED   <<<<<<<<<<<<<<" << std::endl; return NULL; }
     Printf("Setting local analysis for %d files from list %s, max events = %d", iNumFiles, kDataSource.Data(), iNumEvents);
 
@@ -381,6 +363,28 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
     sRunName = CDF::GetPeriod(file.Data()); // get the run name : first token beggining with lhc
     if ( CDF::GetFileFromPath(file).Contains("AliESD") ) { iDataType = AliAnalysisTaskEmcal::kESD; kIsAOD = kFALSE; }
     }
+
+  // PROOF MODE SETTINGS
+  if ( ManagerMode == AliAnalysisManager::kProofAnalysis ) { // start local proof analysis
+    if ( kDataSource.IsNull() ) { Printf("You need to provide the list of local files!"); return NULL; }
+    TChain* chain = CDF::CreateChain(kDataSource.Data(), "auto", "", 1);
+    if (!chain) { std::cout << ">>>>>>>>>>>>>>   CHAIN NOT CREATED   <<<<<<<<<<<<<<" << std::endl; return NULL; }
+    TString file = chain->GetFile()->GetEndpointUrl()->GetUrl();
+    sRunName = CDF::GetPeriod(file.Data()); // get the run name : first token beggining with lhc
+    if ( CDF::GetFileFromPath(file).Contains("AliESD") ) { iDataType = AliAnalysisTaskEmcal::kESD; kIsAOD = kFALSE; }
+    chain->Delete();
+    // ( const char* gridMode, const char* tag, unsigned int nr_test_files, unsigned int TTL, const char* outdir, const char subworkdir, const char* extradirlvl);
+    plugin = CreateAlienHandler(cGridMode, kJobTag.Data(), kGridFilesPerJob, kTTL);
+    if ( !plugin ) { ::Error ( "EmcalJetCDF.C - Start PROOF Analysis", "plugin invalid" ); return NULL; }
+    pMgr->SetGridHandler(plugin);
+
+    plugin->SetFileForTestMode(kDataSource.Data());
+    plugin->SetProofConnectGrid(false);
+    plugin->SetProofCluster("lite://");
+    }
+
+  cout << ">>>>>>>> ManagerMode: " << ManagerMode << " ; Analysis type: " << cAnalysisType << std::endl;
+  cout << ">>>>>>>> PluginMode: "  << PluginMode  << " ; Type: "          << cGridMode << std::endl;
 
   TString sDataType ("AOD");
   if (!kIsAOD) { sDataType = "ESD"; }
@@ -912,20 +916,19 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
       }
     }
 
-  //   Let's start #########################################################################################################
+
+//#############################################################################
+//#############################################################################
   if ( !pMgr->InitAnalysis() ) { std::cout << ">>>>>>>>>>>>>> AliAnalysisManager Initialising FAILED!!! " << std::endl; return NULL; }
   std::cout << "##-->> Initialising Analysis :: Status :" << std::endl;
   pMgr->PrintStatus();
   if (bUseProgBar) { pMgr->SetUseProgressBar(bUseProgBar, 100); }
 
   // task profiling
-  if ( kUseSysInfo > 0 ) {
-    for ( int i = 0; i < pMgr->GetTopTasks()->GetEntries(); i++ ) { pMgr->ProfileTask (i); }
-    }
+  if ( kUseSysInfo > 0 ) { for ( int i = 0; i < pMgr->GetTopTasks()->GetEntries(); i++ ) { pMgr->ProfileTask (i); } }
 
-  CDF::SaveManager("train.root");
-
-  if ( ManagerMode == AnalysisType::local ) { // start local analysis
+//#############################################################################
+  if ( ManagerMode == AliAnalysisManager::kLocalAnalysis ) { // start local analysis
     // enable class level debugging for these classes
     if ( debug > 2 ) {
       //pMgr->AddClassDebug("AliJetContainer", 100);
@@ -933,34 +936,45 @@ AliVEvent::EOfflineTriggerTypes kSel_full  = static_cast<AliVEvent::EOfflineTrig
       pMgr->AddClassDebug("AliAnalysisTaskEmcalJetCDF", 100);
       }
 
-    TChain* pChain = CDF::CreateChain(kDataSource.Data(), "auto", "", iNumFiles);
-    if (!pChain) { std::cout << ">>>>>>>>>>>>>>   CHAIN NOT CREATED   <<<<<<<<<<<<<<" << std::endl; return NULL; }
-
-    // start analysis
+    if (!pChain) { std::cout << ">>>>>>>>>>>>>>   StartAnalysis LOCAL :: CHAIN NOT FOUND   <<<<<<<<<<<<<<" << std::endl; return NULL; }
     Printf("Starting LOCAL Analysis...");
     pMgr->StartAnalysis( cAnalysisType, pChain, iNumEvents );
     }
 
-  if ( ManagerMode == AnalysisType::grid ) {  // start grid analysis
-    // start analysis
-    Printf("Starting GRID Analysis...");
+//#############################################################################
+  if ( ManagerMode == AliAnalysisManager::kProofAnalysis ) {
+//     gProofDebugMask = TProofDebug::kAll;
+//     gProofDebugLevel = 5;
 
-    ListLibs += kGridExtraFiles;
-    if ( ListLibs.Length() )       { plugin->SetAdditionalLibs     ( ListLibs.Data() ); }
-    if ( ListLibsExtra.Length() )  { plugin->SetAdditionalRootLibs ( ListLibsExtra.Data() ); }
+    if ( !pMgr->IsProofMode() ) {cout << "WE ARE NOT IN PROOF MODE" << endl; return NULL;}
+    Printf("Starting PROOF Analysis...");
+    plugin->StartAnalysis(iNumEvents);
+    if (gProof) {gProof->Print();} 
+    }
 
-    if ( PluginMode == PluginType::test ) {
-      plugin->StartAnalysis(iNumEvents); }
-    else {
-      pMgr->SetDebugLevel(0);
-      plugin->StartAnalysis();
-      }
-    } 
+//#############################################################################
+  if ( ManagerMode == AliAnalysisManager::kGridAnalysis ) {  // start grid analysis
+  Printf("Starting GRID Analysis...");
+
+  ListLibs += kGridExtraFiles;
+  if ( ListLibs.Length() )       { plugin->SetAdditionalLibs     ( ListLibs.Data() ); }
+  if ( ListLibsExtra.Length() )  { plugin->SetAdditionalRootLibs ( ListLibsExtra.Data() ); }
+
+  if ( PluginMode == AliAnalysisGrid::kTest ) {
+    if (plugin) { plugin->StartAnalysis(iNumEvents); }
+    }
+  else {
+    pMgr->SetDebugLevel(0);
+    CDF::SaveManager("train.root");
+    if (plugin) { plugin->StartAnalysis(); }
+    }
+  } 
 
 cout << "END of EmcalJetCDF.C" << std::endl;
 return pMgr;
 }
 
+//######################################################################################################################################
 //######################################################################################################################################
 AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, unsigned int nr_test_files, unsigned int TTL,
                                        const char* outdir, const char* subworkdir, const char* extradirlvl ) {
