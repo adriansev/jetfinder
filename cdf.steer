@@ -3,8 +3,6 @@ CDF_doPileup='true'
 CDF_doMULT='true'   # disable unconditionaly the running of AliMultSelectionTask
 CDF_doMULT_bins='1'
 CDF_doBKRD='true'   # disable unconditionaly the running of RhoTask
-CDF_doCDF='true'     # toggle execution of TaskEmcalJetCDF task
-CDF_doSAMPLE='false' # toggle execution of TaskEmcalJetSample task
 
 CDF_DEBUG='0'        # set debug value kFatal = 0, kError, kWarning, kInfo, kDebug, kMaxType
 CDF_DEBUG_MGR='0'    # set debug value for AliAnalysisManager
