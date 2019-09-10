@@ -238,8 +238,8 @@ if (!ENV_USEPROGBAR.IsNull() && ( ENV_USEPROGBAR.EqualTo("1") || ENV_USEPROGBAR.
 
 TString     kPluginExecutableCommand ("root.exe -l -b -q -x");
 TString     kAliPhysicsVersion       =
-                                         "vAN-20190908-1";
-                                         // "vAN-20190908_ROOT6-1";
+                                         "vAN-20190910-1";
+                                         // "vAN-20190910_ROOT6-1";
 
 TString ENV_ALIPHYSVER = gSystem->Getenv("ALIPHYSICS_VERSION");
 TRegexp start_with_v ("^v.*"); // all cvmfs versions start with "v"; it is the common token for all cvmfs versions
