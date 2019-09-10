@@ -153,25 +153,43 @@ TString     ListLibs      = ""; // string list of loaded libs
 TString     ListLibsExtra = ""; // string list of loaded extra libs
 LoadLibs( ListLibs, ListLibsExtra ); // load libs and save the lists to ListLibs and ListLibsExtra
 
-AliAnalysisManager::EAliAnalysisExecMode  ManagerMode = static_cast<AliAnalysisManager::EAliAnalysisExecMode>(mgr_mode);
-AliAnalysisGrid::EPluginRunMode           PluginMode  = static_cast<AliAnalysisGrid::EPluginRunMode>(alien_mode);
-
 namespace CDF = PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetCDF_NS; // shortcut to task namespace
 unsigned int       kGridFilesPerJob         = iNumFiles;      // Maximum number of files per job (gives size of AOD)
 unsigned int       kTTL                     = 64800 ;         // Time To Live; 18h = 64800; 12h = 43200
 
 TString sAnalysisType ("local");
-if ( ManagerMode == AliAnalysisManager::kProofAnalysis )  { sAnalysisType = "proof"; }
-if ( ManagerMode == AliAnalysisManager::kGridAnalysis )   { sAnalysisType = "grid"; }
+AliAnalysisManager::EAliAnalysisExecMode ManagerMode = AliAnalysisManager::kLocalAnalysis;
+if (mgr_mode == 1) {
+  ManagerMode = AliAnalysisManager::kProofAnalysis;
+  sAnalysisType = "proof";
+  }
+if (mgr_mode == 2) {
+  ManagerMode = AliAnalysisManager::kGridAnalysis;
+  sAnalysisType = "grid";
+  }
 const char* cAnalysisType = sAnalysisType.Data();
 
 TString sGridMode ("test");
-if ( PluginMode == AliAnalysisGrid::kOffline ) { sGridMode = "offline"; }
-if ( PluginMode == AliAnalysisGrid::kSubmit )  { sGridMode = "submit"; }
-if ( PluginMode == AliAnalysisGrid::kMerge )   { sGridMode = "merge"; }
-if ( PluginMode == AliAnalysisGrid::kFull )    { sGridMode = "full"; }
+AliAnalysisGrid::EPluginRunMode PluginMode = AliAnalysisGrid::kTest;
 
-if (sAnalysisType.EqualTo("proof")) { sGridMode = "test"; } // always use test mode for plugin if we are using proof
+if (mgr_mode != 1) {  // if not proof
+  if (alien_mode == 1) {
+    PluginMode = AliAnalysisGrid::kOffline;
+    sGridMode = "offline";
+    }
+  if (alien_mode == 2) {
+    PluginMode = AliAnalysisGrid::kSubmit;
+    sGridMode = "submit";
+    }
+  if (alien_mode == 3) {
+    PluginMode = AliAnalysisGrid::kMerge;
+    sGridMode = "merge";
+    }
+  if (alien_mode == 4) {
+    PluginMode = AliAnalysisGrid::kFull;
+    sGridMode = "full";
+    }
+  }
 const char* cGridMode = sGridMode.Data();
 
 //######################################
