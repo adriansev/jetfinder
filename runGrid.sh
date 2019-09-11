@@ -28,10 +28,10 @@ fi
 #kEMC_noGA : 17424
 
 PERIOD="lhc18m"
-FILE="pp_lhc18m_aod_01"
+FILE="pp_lhc18m_01"
 SELECT_CHG="2"
 SELECT_FULL="2"
-MANAGER_MODE="0"  # local = 0, proof = 1, grid = 2, mixing = 3
+MANAGER_MODE="0"  # local = 0, proof = 1, grid = 2
 PLUGIN_MODE="0"   # test = 0, offline = 1, submit = 2, merge = 3, full = 4
 TASK_NAME="CDFJets"
 NR_FILES="10"
