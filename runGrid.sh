@@ -18,14 +18,16 @@ fi
 
 ######################################################################
 # Trigger values : (to be used as arguments)
-#kMB : 1
-#kINT7 : 2
-#kAnyINT : 3145763
-#kMB_central 3211299
-#kMB_semicentral 3276835
-#kMB_mostcentral 3342371
-#kEMC : 50192
-#kEMC_noGA : 17424
+# kMB : 1
+# kINT7 : 2
+# kHighMult : 8
+# kHighMultV0 : 65536
+# kAnyINT : 3145763
+# kMB_central 3211299
+# kMB_semicentral 3276835
+# kMB_mostcentral 3342371
+# kEMC : 50192
+# kEMC_noGA : 17424
 
 PERIOD="lhc18m"
 FILE="pp_lhc18m_01"
