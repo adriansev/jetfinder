@@ -1074,7 +1074,7 @@ AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, un
   plugin->SetDropToShell ( kFALSE );
 
   // Overwrite existing files if any
-  plugin->SetOverwriteMode();
+  plugin->SetOverwriteMode(kFALSE);
 
   // write the output to subdirs named after run number
   plugin->SetOutputToRunNo(1);
