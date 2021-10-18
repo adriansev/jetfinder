@@ -1076,7 +1076,7 @@ AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, un
   plugin->SetOverwriteMode(kFALSE);
 
   // write the output to subdirs named after run number
-  plugin->SetOutputToRunNo(1);
+  plugin->SetOutputToRunNo(0);
 
   // Optionally set input format (default xml-single)
   plugin->SetInputFormat("xml-single");
@@ -1088,7 +1088,7 @@ AliAnalysisAlien* CreateAlienHandler ( const char* gridMode, const char* tag, un
   plugin->SetSplitMode("se"); // default value is "se"
 
   // MERGING - Enable merging via automatic JDL
-  plugin->SetMergeViaJDL(kTRUE);
+  plugin->SetMergeViaJDL(0);
 
   // Maximum number of files to be merged in one chunk
   plugin->SetOneStageMerging(kFALSE);
