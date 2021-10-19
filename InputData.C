@@ -25,7 +25,7 @@ if ( !plugin ) { ::Error ( "InputData.C", "InputData :: plugin invalid or not fo
 
 //  DEFINED INPUT DATA
 TString datarun (label);
-if ( datarun.IsNull() ) { ::Error ( "InputData :: no data input" ); return kFALSE; }
+if ( datarun.IsNull() ) { ::Error ( "InputData.C", "InputData :: no data input" ); return kFALSE; }
 datarun.ToLower();
 
 TString     kGridRunPattern = "000"; // important for leading zeroes!!
@@ -292,8 +292,8 @@ else {
     return kFALSE;
     }
 
-TString grid_data_dir = plugin->GetGridDataDir()
-if grid_data_dir.Contains("/alice/data/") { plugin->SetRunPrefix ( kGridRunPattern.Data() ); }
+TString grid_data_dir = plugin->GetGridDataDir();
+if (grid_data_dir.Contains("/alice/data/")) { plugin->SetRunPrefix ( kGridRunPattern.Data() ); }
 
 plugin->AddRunList(run_list.Data());
 return kTRUE;
