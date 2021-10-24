@@ -233,14 +233,14 @@ else if ( datarun.EqualTo ( "pp_lhc18m_barr_02" ) ) {
 // https://alice.its.cern.ch/jira/browse/ALIROOT-8628
 //  pp, 13 TeV - General-purpose Monte Carlo production anchored to LHC18m pass2, store BKG, ALIROOT-8628
 else if ( datarun.EqualTo ( "pp_lhc21a5a_emc_01" ) ) {
-    plugin->SetGridDataDir ( "/alice/sim/2018/LHC21a5a" );
+    plugin->SetGridDataDir ( "/alice/sim/2021/LHC21a5a" );
     plugin->SetDataPattern ( "AOD/*/AliAOD.root" );
 
     run_list = "290459 291375 291481 292430 291263 292398 291484 292696 290645 291286 290979 291420 290943 291397";
     }
 
 else if ( datarun.EqualTo ( "pp_lhc21a5a_emc_02" ) ) {
-    plugin->SetGridDataDir ( "/alice/sim/2018/LHC21a5a" );
+    plugin->SetGridDataDir ( "/alice/sim/2021/LHC21a5a" );
     plugin->SetDataPattern ( "AOD/*/AliAOD.root" );
 
     TString list01 = "292811 290660 291003 291284 292693 290975 290323 292523 292804 291116 292554 290590 291482 290425 ";
@@ -249,7 +249,7 @@ else if ( datarun.EqualTo ( "pp_lhc21a5a_emc_02" ) ) {
     }
 
 else if ( datarun.EqualTo ( "pp_lhc21a5a_emc_03" ) ) {
-    plugin->SetGridDataDir ( "/alice/sim/2018/LHC21a5a" );
+    plugin->SetGridDataDir ( "/alice/sim/2021/LHC21a5a" );
     plugin->SetDataPattern ( "AOD/*/AliAOD.root" );
 
     TString list01 = "290500 291188 290426 290588 291069 290399 292750 291037 292695 290327 290948 291377 290974 292406 ";
@@ -263,7 +263,7 @@ else if ( datarun.EqualTo ( "pp_lhc21a5a_emc_03" ) ) {
     }
 
 else if ( datarun.EqualTo ( "pp_lhc21a5a_barr_01" ) ) {
-    plugin->SetGridDataDir ( "/alice/sim/2018/LHC21a5a" );
+    plugin->SetGridDataDir ( "/alice/sim/2021/LHC21a5a" );
     plugin->SetDataPattern ( "AOD/*/AliAOD.root" );
 
     TString list01 = "290404 292040 291066 291948 290848 290687 292240 292273 292115 292062 292160 ";
@@ -272,7 +272,7 @@ else if ( datarun.EqualTo ( "pp_lhc21a5a_barr_01" ) ) {
     }
 
 else if ( datarun.EqualTo ( "pp_lhc21a5a_barr_02" ) ) {
-    plugin->SetGridDataDir ( "/alice/sim/2018/LHC21a5a" );
+    plugin->SetGridDataDir ( "/alice/sim/2021/LHC21a5a" );
     plugin->SetDataPattern ( "AOD/*/AliAOD.root" );
 
     TString list01 = "290843 290376 290689 292218 291760 290294 292269 292140 290253 291762 292192 ";
